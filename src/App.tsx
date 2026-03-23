@@ -86,7 +86,7 @@ function App() {
     }
   }, [authLoading, user])
 
-  const handleRecord = useCallback(() => {
+  const handleRecord = useCallback(async () => {
     if (isRecording) {
       // Pause recording
       if (recorderState === "recording") {
@@ -98,8 +98,19 @@ function App() {
       // Start recording
       setIsRecording(true)
       setDuration(0)
-      startCamera()
-      startMic()
+
+      try {
+        // Start camera and mic - wait for them to be ready
+        await startCamera()
+        await startMic()
+      } catch (err) {
+        console.error("Failed to start camera/mic:", err)
+        setIsRecording(false)
+        return
+      }
+
+      // Wait a bit for the video element to be ready in DOM
+      await new Promise(resolve => setTimeout(resolve, 100))
 
       // Set up video reference for camera bubble
       if (cameraVideoRef.current) {

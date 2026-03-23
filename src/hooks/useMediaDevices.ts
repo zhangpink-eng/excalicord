@@ -55,6 +55,7 @@ export function useMediaDevices(): UseMediaDevicesReturn {
   }, [refreshDevices])
 
   const startCamera = useCallback(async () => {
+    if (cameraStream) return // Already running
     setIsLoading(true)
     setError(null)
     try {
@@ -68,13 +69,14 @@ export function useMediaDevices(): UseMediaDevicesReturn {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to access camera")
       console.error("Camera error:", err)
+      throw err // Re-throw so caller can handle
     } finally {
       setIsLoading(false)
     }
-  }, [selectedCamera])
+  }, [selectedCamera, cameraStream])
 
   const startMic = useCallback(async () => {
-    setIsLoading(true)
+    if (micStream) return // Already running
     setError(null)
     try {
       const constraints: MediaStreamConstraints = {
@@ -87,10 +89,9 @@ export function useMediaDevices(): UseMediaDevicesReturn {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to access microphone")
       console.error("Microphone error:", err)
-    } finally {
-      setIsLoading(false)
+      throw err
     }
-  }, [selectedMic])
+  }, [selectedMic, micStream])
 
   const stopCamera = useCallback(() => {
     if (cameraStream) {
