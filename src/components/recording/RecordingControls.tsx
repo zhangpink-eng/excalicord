@@ -85,11 +85,12 @@ export function RecordingControls({
       </div>
 
       <div className="flex items-center gap-4">
-        <div className="font-mono text-sm">
-          <span className={isRecording ? "text-recording" : "text-muted-foreground"}>
+        {/* Duration - only show when recording */}
+        {isRecording && (
+          <div className="font-mono text-sm text-recording">
             {formatDuration(duration)}
-          </span>
-        </div>
+          </div>
+        )}
 
         <div className="flex items-center gap-1">
           <Button
