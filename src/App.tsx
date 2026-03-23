@@ -38,10 +38,10 @@ function App() {
     setExcalidrawCanvas,
     setCameraBubbleState,
     setBeautySettings,
+    duration, // Get duration from recorder hook
   } = useCanvasRecorder()
 
   const [isRecording, setIsRecording] = useState(false)
-  const [duration, setDuration] = useState(0)
   const [beautyEnabled, setBeautyEnabled] = useState(false)
   const [beautySettings, setBeautySettingsState] = useState<BeautySettings>(defaultBeautySettings)
   const [recordingError, setRecordingError] = useState<string | null>(null)
@@ -100,7 +100,6 @@ function App() {
   const handleRecord = useCallback(async () => {
     // Start recording - camera/mic should already be running if enabled
     setIsRecording(true)
-    setDuration(0)
     setRecordingError(null)
 
     // Set up Excalidraw canvas reference

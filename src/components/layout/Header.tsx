@@ -26,15 +26,49 @@ export function Header({ projectName, onTogglePanel, onShare, onPricing, panelVi
           </>
         )}
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1">
         <LanguageSelector />
-        <span className="text-xs text-muted-foreground">Auto-saved</span>
-        <Button variant="ghost" size="sm" onClick={onPricing}>
-          Pricing
+        <span className="text-xs text-muted-foreground mr-2">Auto-saved</span>
+
+        {/* Pricing icon */}
+        <Button variant="ghost" size="icon" onClick={onPricing} title="价格">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <line x1="12" x2="12" y1="2" y2="22" />
+            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+          </svg>
         </Button>
-        <Button variant="ghost" size="sm" onClick={onShare}>
-          Share
+
+        {/* Share icon */}
+        <Button variant="ghost" size="icon" onClick={onShare} title="分享">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <circle cx="18" cy="5" r="3" />
+            <circle cx="6" cy="12" r="3" />
+            <circle cx="18" cy="19" r="3" />
+            <line x1="8.59" x2="15.42" y1="13.51" y2="17.49" />
+            <line x1="15.41" x2="8.59" y1="6.51" y2="10.49" />
+          </svg>
         </Button>
+
         {/* Settings/Config icon to toggle right panel */}
         <Button
           variant="ghost"
