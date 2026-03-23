@@ -9,118 +9,135 @@
 
 ## 阶段概述
 
-Phase 2 完成了 Excalicord 项目的核心功能实现，包括摄像头气泡组件、自定义 Hooks 和录制服务。
+Phase 2 完成了 Excalicord 项目的核心功能实现。本阶段实现了完整的画布录制系统、FFmpeg.wasm 视频导出、身份认证页面和 Supabase 后端集成。
 
 ### 完成情况
 
 #### 已完成
 
-- [x] 实现摄像头气泡组件 (CameraBubble)
-  - 可拖拽定位
-  - 可调整大小
-  - 支持多种形状（圆角矩形、圆形、药丸形）
-- [x] 实现 useMediaDevices Hook
-  - 摄像头/麦克风设备管理
-  - 设备切换
-- [x] 实现 useRecording Hook
-  - 录制状态管理
-  - 计时器
-- [x] 实现 useSlides Hook
-  - 幻灯片 CRUD 操作
-  - 幻灯片切换
-- [x] 实现 useExport Hook
-  - 导出进度追踪
-- [x] 创建 VideoConverter 服务
-  - FFmpeg 预留接口
+- [x] **CanvasRecorder 服务**
+  - Excalidraw 画布与 CameraBubble 合成录制
+  - 支持多种气泡形状（圆角矩形、圆形、药丸形）
+  - MediaRecorder API 集成
+
+- [x] **useCanvasRecorder Hook**
+  - React 集成录制功能
+  - 录制状态管理（idle, recording, paused, stopped）
+  - 计时器和时长追踪
+
+- [x] **FFmpeg.wasm 视频导出**
+  - @ffmpeg/ffmpeg@0.12.10 集成
+  - MP4 (H.264) 导出
+  - WebM (VP9) 导出
+  - GIF 导出
+  - 质量预设（low, medium, high, ultra）
+  - 进度报告
+
+- [x] **身份认证页面**
+  - LoginPage - 邮箱/密码登录 + Google OAuth
+  - SignUpPage - 注册页面
+  - DashboardPage - 项目列表管理
+  - 页面路由和状态管理
+
+- [x] **Supabase 后端集成**
+  - 完整数据库 Schema（profiles, projects, slides, exports, subscription_quotas, usage_records）
+  - RLS 策略和权限管理
+  - Auth API（登录、注册、OAuth、登出）
+  - Projects CRUD 操作
+
+- [x] **AuthContext 和 ProjectContext**
+  - useAuth - 认证状态管理
+  - useProject - 项目和幻灯片管理
 
 #### 未完成
 
-- [ ] 完善 Excalidraw 画布集成
-- [ ] 实现真正的屏幕录制
-- [ ] 实现 MP4 导出
-- [ ] 实现项目保存/加载（需要 Supabase）
+- [ ] AI 虚拟形象集成（Phase 3）
+- [ ] 美颜滤镜（Phase 3）
+- [ ] Stripe 订阅集成（Phase 3）
 
 ---
 
 ## 新增组件
 
-### CameraBubble
+### CanvasRecorder
 
 ```typescript
-interface CameraBubbleProps {
-  stream: MediaStream | null
-  position?: { x: number; y: number }
-  size?: { width: number; height: number }
-  shape?: "rounded-rect" | "circle" | "pill"
-  borderRadius?: number
-  borderColor?: string
-  borderWidth?: number
-  onPositionChange?: (pos: { x: number; y: number }) => void
-  onSizeChange?: (size: { width: number; height: number }) => void
+export class CanvasRecorder {
+  initialize(canvas: HTMLCanvasElement): void
+  setExcalidrawCanvas(canvas: HTMLCanvasElement | null): void
+  setCameraBubble(state: CameraBubbleState | null): void
+  setCameraVideo(video: HTMLVideoElement | null): void
+  start(): Promise<void>
+  stop(): Promise<Blob | null>
+  pause(): void
+  resume(): void
+  destroy(): void
 }
 ```
 
 特性：
-- 拖拽移动位置
-- 右下角调整大小
-- 支持多种形状
-- 可自定义边框颜色和宽度
+- 画布与摄像头气泡合成
+- 可配置帧率（默认 30fps）
+- 自动选择支持的 MIME 类型
+- 音频轨道同步
 
----
+### useCanvasRecorder
 
-## 新增 Hooks
-
-### useMediaDevices
-
-管理摄像头和麦克风设备：
-- `cameraStream` / `micStream`: MediaStream 对象
-- `devices`: 可用设备列表
-- `startCamera()` / `startMic()`: 启动设备
-- `stopCamera()` / `stopMic()`: 停止设备
-- `selectCamera(deviceId)` / `selectMic(deviceId)`: 切换设备
-
-### useRecording
-
-管理录制状态：
-- `state`: RecordingState ("idle" | "countdown" | "recording" | "paused" | "stopped")
-- `duration`: 录制时长（秒）
-- `startRecording()`: 开始录制
-- `pauseRecording()`: 暂停录制
-- `resumeRecording()`: 恢复录制
-- `stopRecording()`: 停止录制，返回 Blob
-
-### useSlides
-
-管理幻灯片：
-- `slides`: 幻灯片列表
-- `currentSlideIndex`: 当前幻灯片索引
-- `addSlide()`: 添加幻灯片
-- `removeSlide(index)`: 删除幻灯片
-- `updateSlide(index, updates)`: 更新幻灯片
-- `reorderSlides(from, to)`: 重排幻灯片
-- `goToSlide(index)`: 跳转到指定幻灯片
-
-### useExport
-
-管理视频导出：
-- `isExporting`: 是否正在导出
-- `progress`: 导出进度 (0-100)
-- `exportVideo(blob, format)`: 导出视频
-- `cancelExport()`: 取消导出
+```typescript
+export function useCanvasRecorder(): UseCanvasRecorderReturn {
+  // Returns: state, duration, recordedBlob, startRecording,
+  //         pauseRecording, resumeRecording, stopRecording,
+  //         setCameraBubbleState, setExcalidrawCanvas
+}
+```
 
 ---
 
 ## 新增服务
 
-### VideoConverter
+### VideoConverter (with FFmpeg.wasm)
 
-视频转换服务（FFmpeg 预留）：
-- `load()`: 加载 FFmpeg.wasm
-- `exportToBlob()`: 导出为 Blob
-- `exportToWebM()`: 导出为 WebM
-- `exportToMP4()`: 导出为 MP4
-- `exportToGIF()`: 导出为 GIF
-- `cancel()`: 取消转换
+```typescript
+export class VideoConverter {
+  async load(onProgress?): Promise<void>
+  async exportToBlob(videoBlob, options, onProgress?): Promise<Blob>
+  async exportToMP4(videoBlob, onProgress?): Promise<Blob>
+  async exportToWebM(videoBlob, onProgress?): Promise<Blob>
+  async exportToGIF(videoBlob, onProgress?): Promise<Blob>
+  async cancel(): Promise<void>
+  isReady(): boolean
+}
+```
+
+支持的格式：
+- MP4: H.264 编码，AAC 音频
+- WebM: VP9 编码，Opus 音频
+- GIF: 调色板优化，15fps
+
+---
+
+## 新增页面
+
+### LoginPage
+
+- 邮箱/密码登录表单
+- Google OAuth 登录按钮
+- 错误提示
+- 加载状态
+
+### SignUpPage
+
+- 邮箱/密码注册表单
+- Google OAuth 注册按钮
+- 全名可选字段
+
+### DashboardPage
+
+- 项目列表网格视图
+- 创建新项目按钮
+- 删除项目功能
+- 用户邮箱显示
+- 登出功能
 
 ---
 
@@ -128,14 +145,16 @@ interface CameraBubbleProps {
 
 ### 技术收获
 
-1. **MediaDevices API**: 学习了 getUserMedia 和设备枚举
-2. **MediaRecorder API**: 学习了屏幕录制和媒体记录
-3. **React Hooks**: 学会了创建可复用的自定义 Hooks
+1. **Canvas Compositing**: 学会了如何将多个视觉元素（画布+摄像头气泡）合成单一视频流
+2. **FFmpeg.wasm**: 掌握了浏览器内视频编码技术
+3. **MediaRecorder API**: 深入学习了媒体录制和流处理
+4. **React Context**: 理解了 Context API 在状态管理中的应用
 
 ### 架构优化
 
-1. **关注点分离**: 将设备管理、录制、导出逻辑分离到独立 Hooks
-2. **服务化**: VideoConverter 作为独立服务，便于后续扩展
+1. **服务分离**: CanvasRecorder 独立于 React 组件，便于测试和复用
+2. **FFmpeg 懒加载**: FFmpeg.wasm 仅在需要导出时才加载，减少初始 bundle 大小
+3. **类型安全**: 完善的 TypeScript 类型定义
 
 ---
 
@@ -143,8 +162,9 @@ interface CameraBubbleProps {
 
 | 问题 | 原因 | 解决方案 |
 |-----|-----|---------|
-| 录制功能需要屏幕捕获 | Browser API 限制 | 使用 getDisplayMedia API |
-| FFmpeg.wasm 体积大 | WASM 文件较大 | 先实现 placeholder，后续按需加载 |
+| FFmpeg.wasm Uint8Array 类型不兼容 | TypeScript SharedArrayBuffer 类型定义问题 | 创建新的 ArrayBuffer 拷贝 |
+| @ffmpeg/util 模块未找到 | 需要单独安装 | 执行 npm install @ffmpeg/util@0.12.1 |
+| React 19 与 Excalidraw 类型不兼容 | Excalidraw 尚未支持 React 19 | 使用 `as any` 类型断言 |
 
 ---
 
@@ -152,15 +172,15 @@ interface CameraBubbleProps {
 
 ### 做得好的地方
 
-1. 组件设计考虑了可复用性
-2. Hooks 职责单一，易于测试
-3. 预留了 FFmpeg 扩展接口
+1. 实现了完整的录制管线（捕获->编码->导出）
+2. FFmpeg.wasm 集成支持多种格式
+3. 身份认证流程完整
 
 ### 需要改进的地方
 
-1. 录制功能尚未真正连接到画布
-2. 导出功能需要 FFmpeg.wasm 才能真正工作
-3. 缺少错误处理和用户反馈
+1. CanvasRecorder 需要更好地处理 Excalidraw 动态内容
+2. 录制时需要同步捕捉幻灯片切换事件
+3. 需要测试真实的录制场景
 
 ---
 
@@ -168,17 +188,16 @@ interface CameraBubbleProps {
 
 ### Phase 3: 高级功能
 
-- [ ] AI 虚拟形象集成
-- [ ] 美颜滤镜
-- [ ] 多种格式导出 (WebM, GIF)
+- [ ] AI 虚拟形象集成（AvatarService）
+- [ ] 美颜滤镜（BeautyFilter）
 - [ ] Stripe 订阅集成
 - [ ] 用量限制和计费
 
 ### 注意事项
 
-1. 需要集成 FFmpeg.wasm 实现真正的视频导出
-2. 需要 Supabase 后端支持项目保存
-3. AI 虚拟形象需要第三方 API（如 D-ID 或 HeyGen）
+1. FFmpeg.wasm 需要 CORS 支持，CDN URL 必须支持跨域
+2. 录制功能需要与 Excalidraw 画布深度集成
+3. AI 虚拟形象需要第三方 API 集成
 
 ---
 
@@ -186,12 +205,12 @@ interface CameraBubbleProps {
 
 | Commit | 描述 |
 |--------|------|
-| `ab582d8` | chore: initialize project structure and documentation |
-| `7fa6a8d` | feat: initialize React 19 + Vite + Tailwind CSS project |
-| `9abd4d6` | docs: add phase-1 foundation report |
-| `72ac4c5` | feat: add camera bubble and core hooks |
+| `cc119b1` | feat(auth): add login, signup, and dashboard pages |
+| `bc1e37b` | feat(recording): add CanvasRecorder service and useCanvasRecorder hook |
+| `861360e` | feat(export): integrate FFmpeg.wasm for MP4/GIF export |
+| `652fd6b` | chore(deps): add FFmpeg.wasm packages for video export |
 
 ---
 
-*报告版本：1.0*
+*报告版本：1.1*
 *生成时间：2026-03-23*

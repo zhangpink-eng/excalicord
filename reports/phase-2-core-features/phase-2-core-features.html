@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Phase 2: Core Features - 阶段报告</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+    /* CSS for syntax highlighting */
+    html { -webkit-text-size-adjust: 100%; }
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {   }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+    code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #7d9029; } /* Attribute */
+    code span.bn { color: #40a070; } /* BaseN */
+    code span.bu { color: #008000; } /* BuiltIn */
+    code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4070a0; } /* Char */
+    code span.cn { color: #880000; } /* Constant */
+    code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+    code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+    code span.dt { color: #902000; } /* DataType */
+    code span.dv { color: #40a070; } /* DecVal */
+    code span.er { color: #ff0000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #40a070; } /* Float */
+    code span.fu { color: #06287e; } /* Function */
+    code span.im { color: #008000; font-weight: bold; } /* Import */
+    code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+    code span.op { color: #666666; } /* Operator */
+    code span.ot { color: #007020; } /* Other */
+    code span.pp { color: #bc7a00; } /* Preprocessor */
+    code span.sc { color: #4070a0; } /* SpecialChar */
+    code span.ss { color: #bb6688; } /* SpecialString */
+    code span.st { color: #4070a0; } /* String */
+    code span.va { color: #19177c; } /* Variable */
+    code span.vs { color: #4070a0; } /* VerbatimString */
+    code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/github-markdown-css@5.2.0/github-markdown.min.css" />
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">Phase 2: Core Features - 阶段报告</h1>
+</header>
+<h1 id="phase-2-core-features-阶段报告">Phase 2: Core Features
+阶段报告</h1>
+<blockquote>
+<p><strong>阶段</strong>：2 - 核心功能
+<strong>开始时间</strong>：2026-03-23
+<strong>结束时间</strong>：2026-03-23 <strong>持续时间</strong>：1
+天</p>
+</blockquote>
+<hr />
+<h2 id="阶段概述">阶段概述</h2>
+<p>Phase 2 完成了 Excalicord
+项目的核心功能实现。本阶段实现了完整的画布录制系统、FFmpeg.wasm
+视频导出、身份认证页面和 Supabase 后端集成。</p>
+<h3 id="完成情况">完成情况</h3>
+<h4 id="已完成">已完成</h4>
+<ul class="task-list">
+<li><label><input type="checkbox" checked="" /><strong>CanvasRecorder
+服务</strong></label>
+<ul>
+<li>Excalidraw 画布与 CameraBubble 合成录制</li>
+<li>支持多种气泡形状（圆角矩形、圆形、药丸形）</li>
+<li>MediaRecorder API 集成</li>
+</ul></li>
+<li><label><input type="checkbox" checked="" /><strong>useCanvasRecorder
+Hook</strong></label>
+<ul>
+<li>React 集成录制功能</li>
+<li>录制状态管理（idle, recording, paused, stopped）</li>
+<li>计时器和时长追踪</li>
+</ul></li>
+<li><label><input type="checkbox" checked="" /><strong>FFmpeg.wasm
+视频导出</strong></label>
+<ul>
+<li><span class="citation"
+data-cites="ffmpeg/ffmpeg">@ffmpeg/ffmpeg</span><span class="citation"
+data-cites="0.12.10">@0.12.10</span> 集成</li>
+<li>MP4 (H.264) 导出</li>
+<li>WebM (VP9) 导出</li>
+<li>GIF 导出</li>
+<li>质量预设（low, medium, high, ultra）</li>
+<li>进度报告</li>
+</ul></li>
+<li><label><input type="checkbox"
+checked="" /><strong>身份认证页面</strong></label>
+<ul>
+<li>LoginPage - 邮箱/密码登录 + Google OAuth</li>
+<li>SignUpPage - 注册页面</li>
+<li>DashboardPage - 项目列表管理</li>
+<li>页面路由和状态管理</li>
+</ul></li>
+<li><label><input type="checkbox" checked="" /><strong>Supabase
+后端集成</strong></label>
+<ul>
+<li>完整数据库 Schema（profiles, projects, slides, exports,
+subscription_quotas, usage_records）</li>
+<li>RLS 策略和权限管理</li>
+<li>Auth API（登录、注册、OAuth、登出）</li>
+<li>Projects CRUD 操作</li>
+</ul></li>
+<li><label><input type="checkbox" checked="" /><strong>AuthContext 和
+ProjectContext</strong></label>
+<ul>
+<li>useAuth - 认证状态管理</li>
+<li>useProject - 项目和幻灯片管理</li>
+</ul></li>
+</ul>
+<h4 id="未完成">未完成</h4>
+<ul class="task-list">
+<li><label><input type="checkbox" />AI 虚拟形象集成（Phase
+3）</label></li>
+<li><label><input type="checkbox" />美颜滤镜（Phase 3）</label></li>
+<li><label><input type="checkbox" />Stripe 订阅集成（Phase
+3）</label></li>
+</ul>
+<hr />
+<h2 id="新增组件">新增组件</h2>
+<h3 id="canvasrecorder">CanvasRecorder</h3>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode typescript"><code class="sourceCode typescript"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">export</span> <span class="kw">class</span> CanvasRecorder {</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">initialize</span>(canvas<span class="op">:</span> <span class="bu">HTMLCanvasElement</span>)<span class="op">:</span> <span class="dt">void</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">setExcalidrawCanvas</span>(canvas<span class="op">:</span> <span class="bu">HTMLCanvasElement</span> <span class="op">|</span> <span class="dt">null</span>)<span class="op">:</span> <span class="dt">void</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">setCameraBubble</span>(state<span class="op">:</span> CameraBubbleState <span class="op">|</span> <span class="dt">null</span>)<span class="op">:</span> <span class="dt">void</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">setCameraVideo</span>(video<span class="op">:</span> <span class="bu">HTMLVideoElement</span> <span class="op">|</span> <span class="dt">null</span>)<span class="op">:</span> <span class="dt">void</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">start</span>()<span class="op">:</span> <span class="bu">Promise</span><span class="op">&lt;</span><span class="dt">void</span><span class="op">&gt;</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">stop</span>()<span class="op">:</span> <span class="bu">Promise</span><span class="op">&lt;</span><span class="bu">Blob</span> <span class="op">|</span> <span class="dt">null</span><span class="op">&gt;</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pause</span>()<span class="op">:</span> <span class="dt">void</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">resume</span>()<span class="op">:</span> <span class="dt">void</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">destroy</span>()<span class="op">:</span> <span class="dt">void</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<p>特性： - 画布与摄像头气泡合成 - 可配置帧率（默认 30fps） -
+自动选择支持的 MIME 类型 - 音频轨道同步</p>
+<h3 id="usecanvasrecorder">useCanvasRecorder</h3>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode typescript"><code class="sourceCode typescript"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">export</span> <span class="kw">function</span> <span class="fu">useCanvasRecorder</span>()<span class="op">:</span> UseCanvasRecorderReturn {</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="co">// Returns: state, duration, recordedBlob, startRecording,</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  <span class="co">//         pauseRecording, resumeRecording, stopRecording,</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>  <span class="co">//         setCameraBubbleState, setExcalidrawCanvas</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<hr />
+<h2 id="新增服务">新增服务</h2>
+<h3 id="videoconverter-with-ffmpeg.wasm">VideoConverter (with
+FFmpeg.wasm)</h3>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode typescript"><code class="sourceCode typescript"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="im">export</span> <span class="kw">class</span> VideoConverter {</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">async</span> <span class="fu">load</span>(onProgress<span class="op">?</span>)<span class="op">:</span> <span class="bu">Promise</span><span class="op">&lt;</span><span class="dt">void</span><span class="op">&gt;</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">async</span> <span class="fu">exportToBlob</span>(videoBlob<span class="op">,</span> options<span class="op">,</span> onProgress<span class="op">?</span>)<span class="op">:</span> <span class="bu">Promise</span><span class="op">&lt;</span><span class="bu">Blob</span><span class="op">&gt;</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>  <span class="kw">async</span> <span class="fu">exportToMP4</span>(videoBlob<span class="op">,</span> onProgress<span class="op">?</span>)<span class="op">:</span> <span class="bu">Promise</span><span class="op">&lt;</span><span class="bu">Blob</span><span class="op">&gt;</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>  <span class="kw">async</span> <span class="fu">exportToWebM</span>(videoBlob<span class="op">,</span> onProgress<span class="op">?</span>)<span class="op">:</span> <span class="bu">Promise</span><span class="op">&lt;</span><span class="bu">Blob</span><span class="op">&gt;</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>  <span class="kw">async</span> <span class="fu">exportToGIF</span>(videoBlob<span class="op">,</span> onProgress<span class="op">?</span>)<span class="op">:</span> <span class="bu">Promise</span><span class="op">&lt;</span><span class="bu">Blob</span><span class="op">&gt;</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>  <span class="kw">async</span> <span class="fu">cancel</span>()<span class="op">:</span> <span class="bu">Promise</span><span class="op">&lt;</span><span class="dt">void</span><span class="op">&gt;</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">isReady</span>()<span class="op">:</span> <span class="dt">boolean</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<p>支持的格式： - MP4: H.264 编码，AAC 音频 - WebM: VP9 编码，Opus 音频
+- GIF: 调色板优化，15fps</p>
+<hr />
+<h2 id="新增页面">新增页面</h2>
+<h3 id="loginpage">LoginPage</h3>
+<ul>
+<li>邮箱/密码登录表单</li>
+<li>Google OAuth 登录按钮</li>
+<li>错误提示</li>
+<li>加载状态</li>
+</ul>
+<h3 id="signuppage">SignUpPage</h3>
+<ul>
+<li>邮箱/密码注册表单</li>
+<li>Google OAuth 注册按钮</li>
+<li>全名可选字段</li>
+</ul>
+<h3 id="dashboardpage">DashboardPage</h3>
+<ul>
+<li>项目列表网格视图</li>
+<li>创建新项目按钮</li>
+<li>删除项目功能</li>
+<li>用户邮箱显示</li>
+<li>登出功能</li>
+</ul>
+<hr />
+<h2 id="学习成果">学习成果</h2>
+<h3 id="技术收获">技术收获</h3>
+<ol type="1">
+<li><strong>Canvas Compositing</strong>:
+学会了如何将多个视觉元素（画布+摄像头气泡）合成单一视频流</li>
+<li><strong>FFmpeg.wasm</strong>: 掌握了浏览器内视频编码技术</li>
+<li><strong>MediaRecorder API</strong>: 深入学习了媒体录制和流处理</li>
+<li><strong>React Context</strong>: 理解了 Context API
+在状态管理中的应用</li>
+</ol>
+<h3 id="架构优化">架构优化</h3>
+<ol type="1">
+<li><strong>服务分离</strong>: CanvasRecorder 独立于 React
+组件，便于测试和复用</li>
+<li><strong>FFmpeg 懒加载</strong>: FFmpeg.wasm
+仅在需要导出时才加载，减少初始 bundle 大小</li>
+<li><strong>类型安全</strong>: 完善的 TypeScript 类型定义</li>
+</ol>
+<hr />
+<h2 id="问题与解决方案">问题与解决方案</h2>
+<table>
+<colgroup>
+<col style="width: 26%" />
+<col style="width: 26%" />
+<col style="width: 47%" />
+</colgroup>
+<thead>
+<tr>
+<th>问题</th>
+<th>原因</th>
+<th>解决方案</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FFmpeg.wasm Uint8Array 类型不兼容</td>
+<td>TypeScript SharedArrayBuffer 类型定义问题</td>
+<td>创建新的 ArrayBuffer 拷贝</td>
+</tr>
+<tr>
+<td><span class="citation" data-cites="ffmpeg/util">@ffmpeg/util</span>
+模块未找到</td>
+<td>需要单独安装</td>
+<td>执行 npm install <span class="citation"
+data-cites="ffmpeg/util">@ffmpeg/util</span><span class="citation"
+data-cites="0.12.1">@0.12.1</span></td>
+</tr>
+<tr>
+<td>React 19 与 Excalidraw 类型不兼容</td>
+<td>Excalidraw 尚未支持 React 19</td>
+<td>使用 <code>as any</code> 类型断言</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="复盘与反思">复盘与反思</h2>
+<h3 id="做得好的地方">做得好的地方</h3>
+<ol type="1">
+<li>实现了完整的录制管线（捕获-&gt;编码-&gt;导出）</li>
+<li>FFmpeg.wasm 集成支持多种格式</li>
+<li>身份认证流程完整</li>
+</ol>
+<h3 id="需要改进的地方">需要改进的地方</h3>
+<ol type="1">
+<li>CanvasRecorder 需要更好地处理 Excalidraw 动态内容</li>
+<li>录制时需要同步捕捉幻灯片切换事件</li>
+<li>需要测试真实的录制场景</li>
+</ol>
+<hr />
+<h2 id="下一步计划">下一步计划</h2>
+<h3 id="phase-3-高级功能">Phase 3: 高级功能</h3>
+<ul class="task-list">
+<li><label><input type="checkbox" />AI
+虚拟形象集成（AvatarService）</label></li>
+<li><label><input
+type="checkbox" />美颜滤镜（BeautyFilter）</label></li>
+<li><label><input type="checkbox" />Stripe 订阅集成</label></li>
+<li><label><input type="checkbox" />用量限制和计费</label></li>
+</ul>
+<h3 id="注意事项">注意事项</h3>
+<ol type="1">
+<li>FFmpeg.wasm 需要 CORS 支持，CDN URL 必须支持跨域</li>
+<li>录制功能需要与 Excalidraw 画布深度集成</li>
+<li>AI 虚拟形象需要第三方 API 集成</li>
+</ol>
+<hr />
+<h2 id="提交记录">提交记录</h2>
+<table>
+<colgroup>
+<col style="width: 57%" />
+<col style="width: 42%" />
+</colgroup>
+<thead>
+<tr>
+<th>Commit</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>cc119b1</code></td>
+<td>feat(auth): add login, signup, and dashboard pages</td>
+</tr>
+<tr>
+<td><code>bc1e37b</code></td>
+<td>feat(recording): add CanvasRecorder service and useCanvasRecorder
+hook</td>
+</tr>
+<tr>
+<td><code>861360e</code></td>
+<td>feat(export): integrate FFmpeg.wasm for MP4/GIF export</td>
+</tr>
+<tr>
+<td><code>652fd6b</code></td>
+<td>chore(deps): add FFmpeg.wasm packages for video export</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><em>报告版本：1.1</em> <em>生成时间：2026-03-23</em></p>
+</body>
+</html>
