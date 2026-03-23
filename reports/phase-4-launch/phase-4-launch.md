@@ -9,72 +9,102 @@
 
 ## 阶段概述
 
-Phase 4 是 Excalicord 项目的最终阶段，完成了国际化、部署配置和发布准备工作。
+Phase 4 是 Excalicord 项目的最终阶段，完成了国际化（i18n）、PostHog 分析集成、部署配置和发布准备工作。
 
 ### 完成情况
 
 #### 已完成
 
-- [x] 实现国际化 (i18n)
-  - 英文和简体中文支持
-  - 翻译服务架构
-- [x] 创建 Supabase 客户端占位符
-- [x] 创建 Stripe 客户端占位符
-- [x] 创建 Analytics 服务占位符
-- [x] 添加 Vercel 部署配置
-- [x] 创建环境变量模板 (.env.example)
-- [x] 编写项目 README
+- [x] **useTranslation Hook**
+  - React i18n 集成
+  - 实时语言切换
+
+- [x] **LanguageSelector 组件**
+  - 下拉选择器
+  - 支持英文和简体中文
+
+- [x] **PostHog Analytics 集成**
+  - posthog-js SDK 集成
+  - 事件追踪（sign_up, recording_started, export_completed 等）
+  - 用户识别（identify）
+  - Feature flags 支持
+
+- [x] **Vercel 部署配置更新**
+  - 静态资源缓存 headers
+  - 安全 headers 配置
+
+- [x] **环境变量文档**
+  - 完整的变量参考
+  - 部署指南
+  - 安全注意事项
+
+- [x] **部署检查清单**
+  - 详细的部署步骤
+  - Supabase/Stripe/PostHog 配置指南
+  - 发布前/后检查项
 
 #### 待配置（需要 API 密钥）
 
 - [ ] Supabase 项目创建和配置
 - [ ] Stripe 订阅计划配置
-- [ ] PostHog 分析配置
+- [ ] PostHog 项目创建
 - [ ] AI 虚拟形象 API (D-ID/HeyGen)
 
 ---
 
-## 新增服务
+## 新增组件
 
-### 国际化 (i18n)
+### useTranslation Hook
 
 ```typescript
-import { t, setLocale, getLocale, locales } from "@/services/i18n"
-
-// Usage
-t("app.name")           // "Excalicord"
-t("recording.record")    // "Record"
+const { locale, setLocale, t } = useTranslation()
 
 // Switch locale
 setLocale("zh-CN")
-setLocale("en")
+
+// Translate
+t("app.name")  // "Excalicord"
+t("recording.record")  // "Record"
 ```
 
-支持的语言：
-- English (en)
-- 简体中文 (zh-CN)
+### LanguageSelector
 
-### Analytics 占位符
+```typescript
+import { LanguageSelector } from "@/components/ui"
+
+// Simple dropdown selector
+<LanguageSelector />
+```
+
+---
+
+## PostHog Analytics
+
+### 已实现事件
+
+| 事件 | 触发时机 |
+|------|---------|
+| `sign_up` | 用户注册 |
+| `project_created` | 创建项目 |
+| `recording_started` | 开始录制 |
+| `recording_stopped` | 停止录制 |
+| `export_started` | 开始导出 |
+| `export_completed` | 导出完成 |
+| `subscription_upgraded` | 订阅升级 |
+
+### 使用方法
 
 ```typescript
 import { analytics } from "@/services/api/analytics"
 
+// Initialize
+analytics.init(import.meta.env.VITE_POSTHOG_API_KEY)
+
+// Track events
 analytics.trackSignUp("google", userId)
-analytics.trackProjectCreated(userId, projectId)
 analytics.trackRecordingStarted(projectId)
-analytics.trackExportStarted(projectId, "mp4")
+analytics.trackExportCompleted(projectId, "mp4", 120)
 ```
-
-### Supabase 占位符
-
-Auth 和 Database API 预留接口，等待 Supabase 项目创建后配置。
-
-### Stripe 占位符
-
-订阅计划定义：
-- **Free**: $0/月，10分钟录制/月
-- **Pro**: $19/月，60分钟录制/月，AI 虚拟形象
-- **Team**: $49/月，300分钟录制/月，团队协作
 
 ---
 
@@ -84,22 +114,30 @@ Auth 和 Database API 预留接口，等待 Supabase 项目创建后配置。
 
 `vercel.json` 配置：
 - 构建命令：`npm run build`
-- 开发命令：`npm run dev`
+- 输出目录：`dist`
 - 区域：`iad1` (美东)
 - API 函数超时：30秒
+- 静态资源：永久缓存
+- Service Worker：正确缓存策略
 - 安全 headers
 
 ### 环境变量
 
-`.env.example` 包含：
-- Supabase 配置
-- Stripe 配置
-- PostHog 配置
-- AI Avatar API 密钥（可选）
+```bash
+# Supabase
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key
+
+# Stripe
+VITE_STRIPE_PUBLISHABLE_KEY=pk_test_...
+
+# PostHog
+VITE_POSTHOG_API_KEY=phc_...
+```
 
 ---
 
-## 项目总结
+## 项目完成总结
 
 ### 技术栈
 
@@ -108,47 +146,25 @@ Auth 和 Database API 预留接口，等待 Supabase 项目创建后配置。
 | 前端框架 | React 19 + TypeScript |
 | 构建工具 | Vite |
 | 样式 | Tailwind CSS |
-| 状态管理 | Zustand |
 | UI 组件 | shadcn/ui |
 | 白板 | @excalidraw/excalidraw |
-| 后端 | Supabase |
+| 视频录制 | MediaRecorder API |
+| 视频转换 | FFmpeg.wasm |
+| 后端即服务 | Supabase |
 | 支付 | Stripe |
 | 分析 | PostHog |
 | 部署 | Vercel |
-
-### 已完成功能
-
-| 功能 | 状态 |
-|------|------|
-| React 19 + Vite 项目初始化 | ✅ |
-| Tailwind CSS 配置 | ✅ |
-| 路径别名配置 | ✅ |
-| Excalidraw 画布集成 | ✅ |
-| 摄像头气泡组件 | ✅ |
-| 录制控制栏 | ✅ |
-| 幻灯片导航 | ✅ |
-| 美颜滤镜 | ✅ |
-| AI 虚拟形象（占位符） | ✅ |
-| 导出对话框 | ✅ |
-| 国际化 | ✅ |
-| Analytics 占位符 | ✅ |
-| Supabase 占位符 | ✅ |
-| Stripe 占位符 | ✅ |
-| Vercel 部署配置 | ✅ |
 
 ### Git 提交历史
 
 | Commit | 描述 |
 |--------|------|
-| `ab582d8` | chore: initialize project structure and documentation |
-| `7fa6a8d` | feat: initialize React 19 + Vite + Tailwind CSS project |
-| `9abd4d6` | docs: add phase-1 foundation report |
-| `72ac4c5` | feat: add camera bubble and core hooks |
-| `8fc0220` | docs: add phase-2 core features report |
-| `6f462b2` | feat: add beauty filter, AI avatar placeholder, and export dialog |
-| `e6d96d1` | docs: add phase-3 advanced features report |
-| `72f8c3a` | feat: add i18n, analytics, deployment config |
-| `x3k9m2p` | docs: add phase-4 launch report |
+| `83a13ba` | feat(i18n): add useTranslation hook and LanguageSelector |
+| `20b54b1` | feat(avatar): add WebGL avatar renderer and useAvatar hook |
+| `bf3be7b` | docs: update phase-3 report |
+| `bc1e37b` | feat(recording): add CanvasRecorder service |
+| `cc119b1` | feat(auth): add login, signup, and dashboard pages |
+| `71b24e7` | feat: add Supabase backend integration |
 
 ---
 
@@ -174,11 +190,21 @@ Auth 和 Database API 预留接口，等待 Supabase 项目创建后配置。
 - [ ] 设置 Stripe 仪表板
 - [ ] 配置错误告警
 
-### 文档
+---
 
-- [ ] 更新 README
-- [ ] 更新 API 文档
-- [ ] 创建用户指南
+## 学习成果
+
+### 技术收获
+
+1. **React i18n**: 学会了简单的国际化实现方式
+2. **PostHog Analytics**: 掌握了产品分析集成
+3. **部署配置**: 学会了 Vercel 部署配置优化
+
+### 项目管理
+
+1. **多阶段开发**: 将大型项目分解为可管理的阶段
+2. **持续集成**: 每个阶段完成后及时提交和生成报告
+3. **文档驱动**: 保持文档和代码同步更新
 
 ---
 
@@ -186,36 +212,13 @@ Auth 和 Database API 预留接口，等待 Supabase 项目创建后配置。
 
 ### 可选的改进
 
-1. **FFmpeg.wasm 集成**: 实现真正的视频格式转换
+1. **FFmpeg.wasm 集成**: 实现真正的视频格式转换（已完成）
 2. **WebRTC 实时协作**: 多用户同时编辑
 3. **高级美颜**: 使用 WebGL 加速美颜处理
 4. **AI 功能**: 集成 D-ID 或 HeyGen API
 5. **模板系统**: 预设幻灯片模板
 
-### 维护计划
-
-- 定期更新依赖
-- 监控性能指标
-- 收集用户反馈
-- 迭代功能开发
-
 ---
 
-## 学习成果
-
-### 项目管理
-
-1. **多阶段开发**: 学会了将大型项目分解为可管理的阶段
-2. **持续集成**: 每个阶段完成后及时提交和生成报告
-3. **文档驱动**: 保持文档和代码同步更新
-
-### 技术收获
-
-1. **React 19 新特性**: 掌握了 React 19 的新特性和最佳实践
-2. **服务架构**: 学会了设计可扩展的服务架构
-3. **国际化**: 掌握了简单的 i18n 实现方式
-
----
-
-*报告版本：1.0*
+*报告版本：1.1*
 *生成时间：2026-03-23*
