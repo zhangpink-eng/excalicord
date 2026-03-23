@@ -1,11 +1,10 @@
-import * as ExcalidrawLib from "@excalidraw/excalidraw"
-
-const Excalidraw = ExcalidrawLib
+import { Excalidraw } from "@excalidraw/excalidraw"
+import "@excalidraw/excalidraw/index.css"
 
 export function ExcalidrawCanvas() {
   return (
-    <div className="w-full h-full overflow-hidden bg-canvas-light">
-      <Excalidraw.Excalidraw />
+    <div className="excalidraw-canvas w-full h-full overflow-hidden bg-[#FAFAFA]">
+      <Excalidraw />
     </div>
   )
 }
