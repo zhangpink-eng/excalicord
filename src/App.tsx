@@ -4,7 +4,7 @@ import { SlideRail } from "@/components/slides/SlideRail"
 import { RecordingControls } from "@/components/recording/RecordingControls"
 import { ExcalidrawCanvas, CameraBubble } from "@/components/canvas"
 import { RightPanel } from "@/components/layout/RightPanel"
-import { useMediaDevices, useSlides, useTranslation } from "@/hooks"
+import { useMediaDevices, useSlides, useTranslation, useCanvasRecorder } from "@/hooks"
 import { useAuth } from "@/contexts"
 import { useProject } from "@/contexts"
 import { LoginPage, SignUpPage, DashboardPage, PricingPage } from "@/pages"
@@ -31,11 +31,24 @@ function App() {
     stopMic,
   } = useMediaDevices()
 
+  // Canvas recorder for recording Excalidraw + camera bubble
+  const {
+    state: recorderState,
+    startRecording: startCanvasRecording,
+    pauseRecording: pauseCanvasRecording,
+    resumeRecording: resumeCanvasRecording,
+    stopRecording: stopCanvasRecording,
+    setExcalidrawCanvas,
+    setCameraVideo,
+  } = useCanvasRecorder()
+
   const [isRecording, setIsRecording] = useState(false)
   const [duration, setDuration] = useState(0)
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null)
 
-  const recordingTimerRef = useRef<number | null>(null)
+  const cameraVideoRef = useRef<HTMLVideoElement>(null)
+  const cameraBubblePosition = useRef({ x: 50, y: 50 })
+  const cameraBubbleSize = useRef({ width: 200, height: 150 })
 
   // Initialize analytics
   useEffect(() => {
@@ -71,37 +84,51 @@ function App() {
 
   const handleRecord = useCallback(() => {
     if (isRecording) {
-      setIsRecording(false)
-      if (recordingTimerRef.current) {
-        clearInterval(recordingTimerRef.current)
+      // Pause recording
+      if (recorderState === "recording") {
+        pauseCanvasRecording()
+      } else if (recorderState === "paused") {
+        resumeCanvasRecording()
       }
     } else {
+      // Start recording
       setIsRecording(true)
       setDuration(0)
       startCamera()
       startMic()
 
-      recordingTimerRef.current = window.setInterval(() => {
-        setDuration((d) => d + 1)
-      }, 1000)
+      // Set up video reference for camera bubble
+      if (cameraVideoRef.current) {
+        setCameraVideo(cameraVideoRef.current)
+      }
+
+      // Set up Excalidraw canvas reference
+      const excalidrawCanvas = document.querySelector(".excalidraw-canvas canvas") as HTMLCanvasElement
+      if (excalidrawCanvas) {
+        setExcalidrawCanvas(excalidrawCanvas)
+      }
+
+      // Start canvas recording
+      startCanvasRecording()
 
       analytics.trackRecordingStarted(project?.id || "unknown")
     }
-  }, [isRecording, startCamera, startMic, project])
+  }, [isRecording, recorderState, startCamera, startMic, setCameraVideo, startCanvasRecording, pauseCanvasRecording, resumeCanvasRecording, setExcalidrawCanvas, project])
 
-  const handleStop = useCallback(() => {
+  const handleStop = useCallback(async () => {
     setIsRecording(false)
-    if (recordingTimerRef.current) {
-      clearInterval(recordingTimerRef.current)
-    }
+
     stopCamera()
     stopMic()
 
-    analytics.trackRecordingStopped(project?.id || "unknown", duration)
+    // Stop canvas recording and get the blob
+    const blob = await stopCanvasRecording()
+    if (blob) {
+      setRecordedBlob(blob)
+    }
 
-    const demoBlob = new Blob(["demo recording"], { type: "video/webm" })
-    setRecordedBlob(demoBlob)
-  }, [stopCamera, stopMic, duration, project])
+    analytics.trackRecordingStopped(project?.id || "unknown", duration)
+  }, [stopCamera, stopMic, stopCanvasRecording, project, duration])
 
   const handleExport = useCallback(
     async (format: ExportFormat) => {
@@ -244,7 +271,12 @@ function App() {
         canvas={
           <div className="relative w-full h-full bg-canvas-light">
             <ExcalidrawCanvas />
-            <CameraBubble stream={cameraStream} position={{ x: 50, y: 50 }} />
+            <CameraBubble
+              stream={cameraStream}
+              position={cameraBubblePosition.current}
+              size={cameraBubbleSize.current}
+              videoRef={cameraVideoRef}
+            />
           </div>
         }
         rightPanel={<RightPanel />}

@@ -13,6 +13,7 @@ export interface UseCanvasRecorderReturn {
   stopRecording: () => Promise<Blob | null>
   setCameraBubbleState: (state: CameraBubbleState) => void
   setExcalidrawCanvas: (canvas: HTMLCanvasElement | null) => void
+  setCameraVideo: (video: HTMLVideoElement | null) => void
 }
 
 export function useCanvasRecorder(): UseCanvasRecorderReturn {
@@ -71,9 +72,6 @@ export function useCanvasRecorder(): UseCanvasRecorderReturn {
     cameraVideoRef.current = video
     recorderRef.current?.setCameraVideo(video)
   }, [])
-
-  // Expose setCameraVideo
-  ;(useCanvasRecorder as any).setCameraVideo = setCameraVideo
 
   const startRecording = useCallback(async () => {
     if (!recorderRef.current || state === "recording") return
@@ -142,5 +140,6 @@ export function useCanvasRecorder(): UseCanvasRecorderReturn {
     stopRecording,
     setCameraBubbleState,
     setExcalidrawCanvas,
+    setCameraVideo,
   }
 }

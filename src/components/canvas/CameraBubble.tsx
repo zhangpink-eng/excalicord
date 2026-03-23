@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState, type RefObject } from "react"
 
 export interface CameraBubbleProps {
   stream: MediaStream | null
@@ -10,6 +10,7 @@ export interface CameraBubbleProps {
   borderWidth?: number
   onPositionChange?: (pos: { x: number; y: number }) => void
   onSizeChange?: (size: { width: number; height: number }) => void
+  videoRef?: RefObject<HTMLVideoElement | null>
 }
 
 export function CameraBubble({
@@ -22,8 +23,10 @@ export function CameraBubble({
   borderWidth = 3,
   onPositionChange,
   onSizeChange,
+  videoRef: externalVideoRef,
 }: CameraBubbleProps) {
-  const videoRef = useRef<HTMLVideoElement>(null)
+  const internalVideoRef = useRef<HTMLVideoElement>(null)
+  const videoRef = externalVideoRef || internalVideoRef
   const containerRef = useRef<HTMLDivElement>(null)
   const [pos, setPos] = useState(position)
   const [s, setS] = useState(size)
