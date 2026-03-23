@@ -10,7 +10,6 @@ import { useProject } from "@/contexts"
 import { LoginPage, SignUpPage, DashboardPage, PricingPage } from "@/pages"
 import { analytics } from "@/services/api/analytics"
 import { defaultBeautySettings, type BeautySettings } from "@/services/beauty/BeautyFilter"
-import type { ExportFormat } from "@/types"
 
 type Page = "login" | "signup" | "dashboard" | "editor"
 
@@ -43,7 +42,6 @@ function App() {
 
   const [isRecording, setIsRecording] = useState(false)
   const [duration, setDuration] = useState(0)
-  const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null)
   const [beautyEnabled, setBeautyEnabled] = useState(false)
   const [beautySettings, setBeautySettingsState] = useState<BeautySettings>(defaultBeautySettings)
   const [recordingError, setRecordingError] = useState<string | null>(null)
@@ -54,6 +52,14 @@ function App() {
 
   // MP4 conversion state
   const [mp4Progress, setMp4Progress] = useState("")
+
+  // Right panel visibility (default: hidden)
+  const [rightPanelVisible, setRightPanelVisible] = useState(false)
+
+  // Toggle right panel
+  const toggleRightPanel = useCallback(() => {
+    setRightPanelVisible((v) => !v)
+  }, [])
 
   const cameraVideoRef = useRef<HTMLVideoElement>(null)
   const cameraBubblePosition = useRef({ x: 50, y: 50 })
@@ -133,7 +139,6 @@ function App() {
     const blob = await stopCanvasRecording()
 
     if (blob) {
-      setRecordedBlob(blob)
       console.log("[handleStop] Recording stopped, blob:", blob.size, "bytes, type:", blob.type)
 
       // Check if already MP4 (native recording on Safari)
@@ -279,52 +284,6 @@ function App() {
     }
   }, [micEnabled, startMic, stopMic])
 
-  const handleExport = useCallback(
-    async (format: ExportFormat) => {
-      analytics.trackExportStarted(project?.id || "unknown", format)
-
-      if (!recordedBlob) {
-        console.error("No recording available. Please record first.")
-        return
-      }
-
-      // Use FFmpeg.wasm to convert if available
-      const { videoConverter } = await import("@/services/video/VideoConverter")
-
-      try {
-        await videoConverter.load()
-        let blob: Blob
-
-        if (format === "gif") {
-          blob = await videoConverter.exportToGIF(recordedBlob)
-        } else if (format === "webm") {
-          blob = await videoConverter.exportToWebM(recordedBlob)
-        } else {
-          blob = await videoConverter.exportToMP4(recordedBlob)
-        }
-
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement("a")
-        a.href = url
-        a.download = `recording-${Date.now()}.${format}`
-        a.click()
-        URL.revokeObjectURL(url)
-
-        analytics.trackExportCompleted(project?.id || "unknown", format, duration)
-      } catch (err) {
-        console.error("Export failed:", err)
-        // Fallback to direct download of original recording
-        const url = URL.createObjectURL(recordedBlob)
-        const a = document.createElement("a")
-        a.href = url
-        a.download = `recording-${Date.now()}.webm`
-        a.click()
-        URL.revokeObjectURL(url)
-      }
-    },
-    [recordedBlob, project, duration]
-  )
-
   const handleShare = useCallback(() => {
     console.log("Share clicked")
   }, [])
@@ -407,9 +366,10 @@ function App() {
         header={
           <Header
             projectName={project?.title || projectName}
-            onExport={() => handleExport("mp4")}
+            onTogglePanel={toggleRightPanel}
             onShare={handleShare}
             onPricing={handlePricing}
+            panelVisible={rightPanelVisible}
           />
         }
         slideRail={
@@ -432,13 +392,15 @@ function App() {
           </div>
         }
         rightPanel={
-          <RightPanel
-            beautyEnabled={beautyEnabled}
-            beautySettings={beautySettings}
-            onBeautySettingChange={(key, value) => setBeautySettingsState((prev) => ({ ...prev, [key]: value }))}
-            onBeautyToggle={() => setBeautyEnabled((v) => !v)}
-            onBeautyReset={() => setBeautySettingsState(defaultBeautySettings)}
-          />
+          rightPanelVisible ? (
+            <RightPanel
+              beautyEnabled={beautyEnabled}
+              beautySettings={beautySettings}
+              onBeautySettingChange={(key, value) => setBeautySettingsState((prev) => ({ ...prev, [key]: value }))}
+              onBeautyToggle={() => setBeautyEnabled((v) => !v)}
+              onBeautyReset={() => setBeautySettingsState(defaultBeautySettings)}
+            />
+          ) : null
         }
         controlBar={
           <>
