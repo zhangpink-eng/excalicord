@@ -1,4 +1,4 @@
-import { useCallback } from "react"
+import { useCallback, useState, useEffect } from "react"
 import { t, setLocale, getLocale, type Locale } from "@/services/i18n"
 
 export interface UseTranslationReturn {
@@ -8,10 +8,19 @@ export interface UseTranslationReturn {
 }
 
 export function useTranslation(): UseTranslationReturn {
-  const locale = getLocale()
+  const [locale, setLocaleState] = useState<Locale>(getLocale())
+
+  useEffect(() => {
+    const handleLocaleChange = () => {
+      setLocaleState(getLocale())
+    }
+    window.addEventListener("localechange", handleLocaleChange)
+    return () => window.removeEventListener("localechange", handleLocaleChange)
+  }, [])
 
   const handleSetLocale = useCallback((newLocale: Locale) => {
     setLocale(newLocale)
+    setLocaleState(newLocale)
     // Force re-render by triggering a custom event
     window.dispatchEvent(new Event("localechange"))
   }, [])

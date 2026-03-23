@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { Button } from "@/components/ui"
+import { useTranslation } from "@/hooks/useTranslation"
 import { APP_NAME } from "@/lib/constants"
 
 interface HeaderProps {
@@ -21,6 +22,7 @@ export function Header({
   panelVisible,
   languageSelector,
 }: HeaderProps) {
+  const { t } = useTranslation()
   const [isEditing, setIsEditing] = useState(false)
   const [editName, setEditName] = useState(projectName || "")
 
@@ -70,7 +72,7 @@ export function Header({
               <span
                 onClick={handleStartEdit}
                 className="text-sm text-muted-foreground cursor-pointer hover:text-foreground"
-                title="点击修改项目名称"
+                title={t("header.editProjectName")}
               >
                 {projectName}
               </span>
@@ -80,10 +82,10 @@ export function Header({
       </div>
       <div className="flex items-center gap-1">
         {languageSelector}
-        <span className="text-xs text-muted-foreground mr-2">Auto-saved</span>
+        <span className="text-xs text-muted-foreground mr-2">{t("header.autoSaved")}</span>
 
         {/* Pricing icon */}
-        <Button variant="ghost" size="icon" onClick={onPricing} title="价格">
+        <Button variant="ghost" size="icon" onClick={onPricing} title={t("header.pricing")}>
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="18"
@@ -101,7 +103,7 @@ export function Header({
         </Button>
 
         {/* Share icon */}
-        <Button variant="ghost" size="icon" onClick={onShare} title="分享">
+        <Button variant="ghost" size="icon" onClick={onShare} title={t("header.share")}>
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="18"
@@ -126,7 +128,7 @@ export function Header({
           variant="ghost"
           size="icon"
           onClick={onTogglePanel}
-          title={panelVisible ? "隐藏设置" : "显示设置"}
+          title={panelVisible ? t("header.hideSettings") : t("header.showSettings")}
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
