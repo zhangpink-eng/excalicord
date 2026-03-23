@@ -1,4 +1,3 @@
-import { StrictMode } from "react"
 import { createRoot } from "react-dom/client"
 import "./index.css"
 import App from "./App"
@@ -14,11 +13,9 @@ if (supabaseUrl && supabaseAnonKey) {
 }
 
 createRoot(document.getElementById("root")!).render(
-  <StrictMode>
-    <AuthProvider>
-      <ProjectProvider>
-        <App />
-      </ProjectProvider>
-    </AuthProvider>
-  </StrictMode>
+  <AuthProvider>
+    <ProjectProvider>
+      <App />
+    </ProjectProvider>
+  </AuthProvider>
 )
