@@ -35,15 +35,24 @@ export function DashboardPage({ onOpenProject, onCreateProject, onSignOut }: Das
     loadProjects()
   }, [])
 
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+
   const handleDeleteProject = async (projectId: string) => {
     if (!confirm("Are you sure you want to delete this project?")) return
 
     try {
+      setDeleteError(null)
       const { error } = await db.projects.delete(projectId)
       if (error) throw error
-      setProjects((prev) => prev.filter((p) => p.id !== projectId))
+      // Remove the deleted project from the list
+      setProjects((prev) => {
+        const remaining = prev.filter((p) => p.id !== projectId)
+        console.log(`Deleted project ${projectId}, remaining: ${remaining.length}`)
+        return remaining
+      })
     } catch (err) {
       console.error("Failed to delete project:", err)
+      setDeleteError(err instanceof Error ? err.message : "Failed to delete project")
     }
   }
 
@@ -77,6 +86,11 @@ export function DashboardPage({ onOpenProject, onCreateProject, onSignOut }: Das
 
       {/* Content */}
       <main className="max-w-6xl mx-auto px-6 py-8">
+        {deleteError && (
+          <div className="mb-4 p-3 bg-destructive/10 text-destructive text-sm rounded-lg">
+            {deleteError}
+          </div>
+        )}
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-2xl font-bold">Your Projects</h1>
@@ -166,7 +180,9 @@ export function DashboardPage({ onOpenProject, onCreateProject, onSignOut }: Das
                       </p>
                     </div>
                     <button
+                      type="button"
                       onClick={(e) => {
+                        e.preventDefault()
                         e.stopPropagation()
                         handleDeleteProject(project.id)
                       }}
