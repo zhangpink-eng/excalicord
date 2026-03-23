@@ -1,5 +1,6 @@
 export { useMediaDevices } from "./useMediaDevices"
 export { useRecording } from "./useRecording"
+export { useCanvasRecorder } from "./useCanvasRecorder"
 export { useExport } from "./useExport"
 export { useSlides } from "./useSlides"
 export { useBeauty } from "./useBeauty"
