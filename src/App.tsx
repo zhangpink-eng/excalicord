@@ -22,7 +22,7 @@ function App() {
   const [projectName, setProjectName] = useState("Untitled Project")
 
   // Use slides from ProjectContext (synced with database)
-  const { project, slides, addSlide: addSlideToProject, createProject, loadProject, updateProject } = useProject()
+  const { project, slides, addSlide: addSlideToProject, deleteSlide, updateSlide, createProject, loadProject, updateProject } = useProject()
 
   // Handle project name change - save to database if project exists
   const handleProjectNameChange = useCallback((name: string) => {
@@ -46,6 +46,21 @@ function App() {
   const handleAddSlide = useCallback(() => {
     addSlideToProject()
   }, [addSlideToProject])
+
+  const handleDeleteSlide = useCallback((id: string) => {
+    deleteSlide(id)
+  }, [deleteSlide])
+
+  // Save elements to current slide when they change
+  const handleElementsChange = useCallback((elements: any[]) => {
+    const currentSlide = slides[currentSlideIndex]
+    if (currentSlide) {
+      updateSlide(currentSlide.id, { content: { elements } })
+    }
+  }, [slides, currentSlideIndex, updateSlide])
+
+  // Get current slide's elements
+  const currentSlideElements = slides[currentSlideIndex]?.content?.elements as any[] | undefined
 
   const {
     cameraStream,
@@ -405,11 +420,15 @@ function App() {
             currentIndex={currentSlideIndex}
             onSelect={goToSlide}
             onAdd={handleAddSlide}
+            onDelete={handleDeleteSlide}
           />
         }
         canvas={
           <div className="relative w-full h-full bg-canvas-light">
-            <ExcalidrawCanvas />
+            <ExcalidrawCanvas
+              elements={currentSlideElements}
+              onElementsChange={handleElementsChange}
+            />
             <CameraBubble
               stream={cameraEnabled ? cameraStream : null}
               position={cameraBubblePosition.current}

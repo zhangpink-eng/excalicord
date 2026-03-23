@@ -9,24 +9,38 @@ interface SlideRailProps {
   currentIndex: number
   onSelect: (index: number) => void
   onAdd: () => void
+  onDelete?: (id: string) => void
 }
 
-export function SlideRail({ slides, currentIndex, onSelect, onAdd }: SlideRailProps) {
+export function SlideRail({ slides, currentIndex, onSelect, onAdd, onDelete }: SlideRailProps) {
   return (
     <div className="h-full flex flex-col items-center py-2 gap-2">
       {slides.map((slide, index) => (
-        <button
-          key={slide.id}
-          onClick={() => onSelect(index)}
-          className={`w-12 h-10 rounded border-2 transition-colors ${
-            currentIndex === index
-              ? "border-primary bg-primary/10"
-              : "border-transparent hover:border-border"
-          }`}
-          title={slide.name}
-        >
-          <span className="text-xs">{index + 1}</span>
-        </button>
+        <div key={slide.id} className="relative group">
+          <button
+            onClick={() => onSelect(index)}
+            className={`w-12 h-10 rounded border-2 transition-colors ${
+              currentIndex === index
+                ? "border-primary bg-primary/10"
+                : "border-transparent hover:border-border"
+            }`}
+            title={slide.name}
+          >
+            <span className="text-xs">{index + 1}</span>
+          </button>
+          {slides.length > 1 && onDelete && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                onDelete(slide.id)
+              }}
+              className="absolute -top-1 -right-1 w-4 h-4 bg-destructive text-destructive-foreground rounded-full text-[8px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+              title="Delete slide"
+            >
+              ×
+            </button>
+          )}
+        </div>
       ))}
       <button
         onClick={onAdd}

@@ -42,6 +42,7 @@
   "export.cancel": "Cancel",
   "export.exporting": "Exporting your video...",
   "slides.add": "Add slide",
+  "slides.delete": "Delete slide",
   "settings.title": "Settings",
   "settings.language": "Language",
   "settings.theme": "Theme",

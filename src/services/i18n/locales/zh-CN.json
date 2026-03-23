@@ -42,6 +42,7 @@
   "export.cancel": "取消",
   "export.exporting": "正在导出视频...",
   "slides.add": "添加幻灯片",
+  "slides.delete": "删除幻灯片",
   "settings.title": "设置",
   "settings.language": "语言",
   "settings.theme": "主题",
