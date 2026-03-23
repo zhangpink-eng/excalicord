@@ -1,21 +1,52 @@
+import { useState } from "react"
+import { BeautyPanel } from "@/components/beauty/BeautyPanel"
+import { defaultBeautySettings } from "@/services/beauty/BeautyFilter"
 import type { ReactNode } from "react"
 
 export function RightPanel() {
-  return (
-    <div className="p-4">
-      <h3 className="font-semibold text-sm mb-4">Tools</h3>
-      <div className="space-y-1">
-        <ToolButton icon="pencil" label="Draw" active />
-        <ToolButton icon="type" label="Text" />
-        <ToolButton icon="square" label="Shapes" />
-        <ToolButton icon="image" label="Image" />
-      </div>
+  const [beautyEnabled, setBeautyEnabled] = useState(false)
+  const [beautySettings, setBeautySettings] = useState(defaultBeautySettings)
 
-      <h3 className="font-semibold text-sm mb-4 mt-6">Beautify</h3>
-      <div className="space-y-1">
-        <ToolButton icon="sparkles" label="Effects" />
-        <ToolButton icon="sliders" label="Adjustments" />
-      </div>
+  const updateBeautySetting = <K extends keyof typeof beautySettings>(
+    key: K,
+    value: (typeof beautySettings)[K]
+  ) => {
+    setBeautySettings((prev) => ({ ...prev, [key]: value }))
+  }
+
+  return (
+    <div className="p-4 space-y-6">
+      <section>
+        <h3 className="font-semibold text-sm mb-4">Tools</h3>
+        <div className="space-y-1">
+          <ToolButton icon="pencil" label="Draw" active />
+          <ToolButton icon="type" label="Text" />
+          <ToolButton icon="square" label="Shapes" />
+          <ToolButton icon="image" label="Image" />
+        </div>
+      </section>
+
+      <section>
+        <BeautyPanel
+          settings={beautySettings}
+          isEnabled={beautyEnabled}
+          onSettingChange={updateBeautySetting}
+          onToggle={() => setBeautyEnabled((v) => !v)}
+          onReset={() => setBeautySettings(defaultBeautySettings)}
+        />
+      </section>
+
+      <section>
+        <h3 className="font-semibold text-sm mb-4">AI Avatar</h3>
+        <div className="space-y-2">
+          <AvatarOption id="alex" name="Alex (Illustrated)" />
+          <AvatarOption id="sam" name="Sam (Anime)" />
+          <AvatarOption id="jordan" name="Jordan (Realistic)" />
+        </div>
+        <p className="text-xs text-muted-foreground mt-2">
+          AI avatars require API configuration
+        </p>
+      </section>
     </div>
   )
 }
@@ -54,24 +85,6 @@ function ToolButton({
         <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
       </svg>
     ),
-    sparkles: (
-      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
-      </svg>
-    ),
-    sliders: (
-      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <line x1="4" x2="4" y1="21" y2="14" />
-        <line x1="4" x2="4" y1="10" y2="3" />
-        <line x1="12" x2="12" y1="21" y2="12" />
-        <line x1="12" x2="12" y1="8" y2="3" />
-        <line x1="20" x2="20" y1="21" y2="16" />
-        <line x1="20" x2="20" y1="12" y2="3" />
-        <line x1="2" x2="6" y1="14" y2="14" />
-        <line x1="10" x2="14" y1="8" y2="8" />
-        <line x1="18" x2="22" y1="16" y2="16" />
-      </svg>
-    ),
   }
 
   return (
@@ -85,5 +98,20 @@ function ToolButton({
       {icons[icon]}
       <span>{label}</span>
     </button>
+  )
+}
+
+function AvatarOption({ id, name }: { id: string; name: string }) {
+  return (
+    <label className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted cursor-pointer transition-colors">
+      <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-medium">
+        {name[0]}
+      </div>
+      <span className="text-sm flex-1">{name}</span>
+      <input type="radio" name="avatar" value={id} className="sr-only" />
+      <div className="w-4 h-4 rounded-full border border-muted-foreground/30 flex items-center justify-center">
+        <div className="w-2 h-2 rounded-full bg-primary opacity-0" />
+      </div>
+    </label>
   )
 }
