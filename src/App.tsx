@@ -41,6 +41,7 @@ function App() {
     stopRecording: stopCanvasRecording,
     setExcalidrawCanvas,
     setCameraVideo,
+    setCameraBubbleState,
     setBeautySettings,
   } = useCanvasRecorder()
 
@@ -117,6 +118,17 @@ function App() {
         setCameraVideo(cameraVideoRef.current)
       }
 
+      // Set up camera bubble state for the recorder
+      setCameraBubbleState({
+        stream: cameraStream,
+        position: cameraBubblePosition.current,
+        size: cameraBubbleSize.current,
+        shape: "rounded-rect",
+        borderRadius: 16,
+        borderColor: "#ffffff",
+        borderWidth: 3,
+      })
+
       // Set up Excalidraw canvas reference
       const excalidrawCanvas = document.querySelector(".excalidraw-canvas canvas") as HTMLCanvasElement
       if (excalidrawCanvas) {
@@ -131,7 +143,7 @@ function App() {
 
       analytics.trackRecordingStarted(project?.id || "unknown")
     }
-  }, [isRecording, recorderState, startCamera, startMic, setCameraVideo, setBeautySettings, beautyEnabled, beautySettings, startCanvasRecording, pauseCanvasRecording, resumeCanvasRecording, setExcalidrawCanvas, project])
+  }, [isRecording, recorderState, startCamera, startMic, cameraStream, setCameraVideo, setCameraBubbleState, setBeautySettings, beautyEnabled, beautySettings, startCanvasRecording, pauseCanvasRecording, resumeCanvasRecording, setExcalidrawCanvas, project])
 
   const handleStop = useCallback(async () => {
     setIsRecording(false)
