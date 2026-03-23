@@ -1,3 +1,5 @@
+import { webGLAvatarRenderer, AVATAR_STYLES, type AvatarStyle } from "./WebGLAvatarRenderer"
+
 export type AvatarType = "illustrated" | "photorealistic" | "anime"
 
 export interface AvatarPreset {
@@ -5,7 +7,7 @@ export interface AvatarPreset {
   name: string
   type: AvatarType
   thumbnail: string
-  modelUrl: string
+  avatarStyle: AvatarStyle
 }
 
 export interface AvatarConfig {
@@ -13,68 +15,167 @@ export interface AvatarConfig {
   voiceId?: string
 }
 
-// Preset avatars (placeholder)
+// Preset avatars
 export const AVATAR_PRESETS: AvatarPreset[] = [
   {
     id: "avatar-1",
     name: "Alex (Illustrated)",
     type: "illustrated",
     thumbnail: "/avatars/alex.png",
-    modelUrl: "/models/alex.glb",
+    avatarStyle: AVATAR_STYLES.illustrated,
   },
   {
     id: "avatar-2",
     name: "Sam (Anime)",
     type: "anime",
     thumbnail: "/avatars/sam.png",
-    modelUrl: "/models/sam.glb",
+    avatarStyle: AVATAR_STYLES.anime,
   },
   {
     id: "avatar-3",
     name: "Jordan (Realistic)",
     type: "photorealistic",
     thumbnail: "/avatars/jordan.png",
-    modelUrl: "/models/jordan.glb",
+    avatarStyle: AVATAR_STYLES.realistic,
   },
 ]
 
 export class AvatarService {
   private currentStream: MediaStream | null = null
   private selectedAvatar: AvatarPreset | null = null
+  private avatarCanvas: HTMLCanvasElement | null = null
+  private isActive = false
 
-  async selectAvatar(presetId: string): Promise<void> {
+  /**
+   * Initialize the avatar system with a canvas
+   */
+  initialize(canvas: HTMLCanvasElement): void {
+    this.avatarCanvas = canvas
+    webGLAvatarRenderer.initialize(canvas)
+  }
+
+  /**
+   * Select an avatar preset
+   */
+  selectAvatar(presetId: string): void {
     const preset = AVATAR_PRESETS.find((p) => p.id === presetId)
     if (preset) {
       this.selectedAvatar = preset
+      webGLAvatarRenderer.setAvatarStyle(preset.avatarStyle)
       console.log(`Avatar selected: ${preset.name}`)
     }
   }
 
+  /**
+   * List all available presets
+   */
   listPresets(): AvatarPreset[] {
     return AVATAR_PRESETS
   }
 
-  async generateAvatar(
-    _imageUrl: string,
-    _type: AvatarType
-  ): Promise<MediaStream | null> {
-    // This would integrate with AI avatar APIs like D-ID, HeyGen, or Synthesia
-    // For now, return null as this requires external API
-    console.warn("Avatar generation requires external API integration")
-    return null
+  /**
+   * Set the source video for avatar overlay
+   */
+  setSourceVideo(video: HTMLVideoElement | null): void {
+    webGLAvatarRenderer.setVideoElement(video)
   }
 
-  getCurrentAvatar(): AvatarPreset | null {
-    return this.selectedAvatar
+  /**
+   * Set avatar position (normalized 0-1)
+   */
+  setPosition(x: number, y: number): void {
+    webGLAvatarRenderer.setAvatarPosition(x, y)
   }
 
-  // Stop avatar stream and release resources
+  /**
+   * Set avatar scale (0.5 - 2.0)
+   */
+  setScale(scale: number): void {
+    webGLAvatarRenderer.setAvatarScale(scale)
+  }
+
+  /**
+   * Start avatar rendering and return the output stream
+   */
+  start(sourceStream: MediaStream): MediaStream | null {
+    if (!this.avatarCanvas) {
+      console.error("AvatarService: Canvas not initialized")
+      return null
+    }
+
+    // Create a video element from the source stream
+    const video = document.createElement("video")
+    video.srcObject = sourceStream
+    video.autoplay = true
+    video.playsInline = true
+    video.muted = true // Mute to avoid feedback
+    video.play().catch(console.error)
+
+    // Set the video as the source
+    webGLAvatarRenderer.setVideoElement(video)
+
+    // Start rendering
+    webGLAvatarRenderer.start()
+
+    // Create output stream from canvas
+    this.currentStream = this.avatarCanvas.captureStream(30)
+
+    // Copy audio from source stream
+    const audioTracks = sourceStream.getAudioTracks()
+    audioTracks.forEach((track) => {
+      this.currentStream!.addTrack(track.clone())
+    })
+
+    this.isActive = true
+    return this.currentStream
+  }
+
+  /**
+   * Stop avatar rendering
+   */
   stop(): void {
+    webGLAvatarRenderer.stop()
+    this.isActive = false
+
     if (this.currentStream) {
       this.currentStream.getTracks().forEach((track) => track.stop())
       this.currentStream = null
     }
-    this.selectedAvatar = null
+  }
+
+  /**
+   * Get current avatar preset
+   */
+  getCurrentAvatar(): AvatarPreset | null {
+    return this.selectedAvatar
+  }
+
+  /**
+   * Check if avatar is active
+   */
+  isRunning(): boolean {
+    return this.isActive
+  }
+
+  /**
+   * Generate avatar from image (placeholder for AI integration)
+   * In production, this would call D-ID, HeyGen, or similar API
+   */
+  async generateAvatar(
+    _imageUrl: string,
+    _type: AvatarType
+  ): Promise<MediaStream | null> {
+    // This requires external AI API integration
+    console.warn("Avatar generation requires external AI API integration (D-ID, HeyGen, etc.)")
+    return null
+  }
+
+  /**
+   * Clean up resources
+   */
+  destroy(): void {
+    this.stop()
+    this.avatarCanvas = null
   }
 }
 
