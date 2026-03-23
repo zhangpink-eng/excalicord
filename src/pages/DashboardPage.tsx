@@ -44,12 +44,7 @@ export function DashboardPage({ onOpenProject, onCreateProject, onSignOut }: Das
       setDeleteError(null)
       const { error } = await db.projects.delete(projectId)
       if (error) throw error
-      // Remove the deleted project from the list
-      setProjects((prev) => {
-        const remaining = prev.filter((p) => p.id !== projectId)
-        console.log(`Deleted project ${projectId}, remaining: ${remaining.length}`)
-        return remaining
-      })
+      setProjects((prev) => prev.filter((p) => p.id !== projectId))
     } catch (err) {
       console.error("Failed to delete project:", err)
       setDeleteError(err instanceof Error ? err.message : "Failed to delete project")
@@ -65,38 +60,54 @@ export function DashboardPage({ onOpenProject, onCreateProject, onSignOut }: Das
   }
 
   return (
-    <div className="min-h-screen bg-slate-50/50">
-      {/* Header */}
-      <header className="bg-white border-b border-slate-200/60">
+    <div className="min-h-screen bg-[#0F0E11]">
+      {/* Navigation Bar */}
+      <header className="bg-[#0F0E11] border-b border-white/5">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-sm">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-600 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/20">
               <span className="text-white font-bold text-sm">E</span>
             </div>
-            <span className="font-semibold text-slate-900">Excalicord</span>
+            <span className="font-semibold text-white bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+              Excalicord
+            </span>
           </div>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-slate-500">{userEmail}</span>
-            <Button variant="ghost" size="sm" onClick={onSignOut} className="text-slate-600 hover:text-slate-900">
-              Sign out
-            </Button>
+          <div className="flex items-center gap-6">
+            <nav className="hidden md:flex items-center gap-6">
+              <a href="#" className="text-sm text-white/60 hover:text-white transition-colors">Product</a>
+              <a href="#" className="text-sm text-white/60 hover:text-white transition-colors">Solutions</a>
+              <a href="#" className="text-sm text-white/60 hover:text-white transition-colors">Resources</a>
+              <a href="#" className="text-sm text-white/60 hover:text-white transition-colors">Pricing</a>
+            </nav>
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-white/40 hidden sm:block">{userEmail}</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onSignOut}
+                className="text-white/60 hover:text-white hover:bg-white/5"
+              >
+                Sign out
+              </Button>
+            </div>
           </div>
         </div>
       </header>
 
-      {/* Content */}
-      <main className="max-w-7xl mx-auto px-6 py-8">
-        {deleteError && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-100 text-red-600 text-sm rounded-lg">
-            {deleteError}
-          </div>
-        )}
-        <div className="flex items-center justify-between mb-6">
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-6 py-12">
+        {/* Page Header */}
+        <div className="flex items-center justify-between mb-10">
           <div>
-            <h1 className="text-xl font-semibold text-slate-900">Your Projects</h1>
-            <p className="text-sm text-slate-500 mt-0.5">{projects.length} project{projects.length !== 1 ? "s" : ""}</p>
+            <h1 className="text-2xl font-semibold text-white mb-1">Your Projects</h1>
+            <p className="text-sm text-white/40">
+              {projects.length} project{projects.length !== 1 ? "s" : ""} • Create and manage your video projects
+            </p>
           </div>
-          <Button onClick={onCreateProject} className="bg-indigo-600 hover:bg-indigo-700">
+          <Button
+            onClick={onCreateProject}
+            className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white border-0 shadow-lg shadow-purple-500/20"
+          >
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="16"
@@ -115,58 +126,75 @@ export function DashboardPage({ onOpenProject, onCreateProject, onSignOut }: Das
           </Button>
         </div>
 
+        {deleteError && (
+          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">
+            {deleteError}
+          </div>
+        )}
+
+        {/* Loading State */}
         {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-48 bg-muted rounded-xl animate-pulse" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-48 bg-white/5 rounded-2xl animate-pulse" />
             ))}
           </div>
         ) : projects.length === 0 ? (
-          <div className="text-center py-16">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
+          /* Empty State */
+          <div className="text-center py-24">
+            <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-purple-600/20 to-pink-600/20 border border-purple-500/20 flex items-center justify-center">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                width="32"
-                height="32"
+                width="36"
+                height="36"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="1.5"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="text-muted-foreground"
+                className="text-purple-400"
               >
                 <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
                 <polyline points="14 2 14 8 20 8" />
+                <path d="M12 18v-6" />
+                <path d="M9 15h6" />
               </svg>
             </div>
-            <h2 className="text-lg font-semibold mb-2">No projects yet</h2>
-            <p className="text-muted-foreground mb-6">Create your first project to get started</p>
-            <Button onClick={onCreateProject}>Create Project</Button>
+            <h2 className="text-xl font-semibold text-white mb-2">No projects yet</h2>
+            <p className="text-white/40 mb-8 max-w-md mx-auto">
+              Create your first project to start turning your ideas into engaging whiteboard videos
+            </p>
+            <Button
+              onClick={onCreateProject}
+              className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white border-0"
+            >
+              Create Project
+            </Button>
           </div>
         ) : (
+          /* Projects Grid */
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             {projects.map((project) => (
               <div
                 key={project.id}
-                className="group relative bg-white rounded-xl border border-slate-200/80 hover:border-slate-300 hover:shadow-md hover:shadow-slate-200/50 transition-all duration-200 cursor-pointer overflow-hidden"
+                className="group relative bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-2xl overflow-hidden transition-all duration-200 cursor-pointer"
                 onClick={() => onOpenProject(project.id)}
               >
-                {/* Thumbnail area with gradient */}
-                <div className="h-32 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 relative">
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+                {/* Thumbnail */}
+                <div className="h-36 bg-gradient-to-br from-purple-600/30 via-pink-600/20 to-purple-600/10 relative">
                   <div className="absolute inset-0 flex items-center justify-center">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
-                      width="36"
-                      height="36"
+                      width="40"
+                      height="40"
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="white"
                       strokeWidth="1.5"
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      className="opacity-60"
+                      className="opacity-30"
                     >
                       <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
                       <polyline points="14 2 14 8 20 8" />
@@ -174,7 +202,7 @@ export function DashboardPage({ onOpenProject, onCreateProject, onSignOut }: Das
                   </div>
                 </div>
 
-                {/* Delete button - top right corner */}
+                {/* Delete Button */}
                 <button
                   type="button"
                   onClick={(e) => {
@@ -182,15 +210,15 @@ export function DashboardPage({ onOpenProject, onCreateProject, onSignOut }: Das
                     e.stopPropagation()
                     handleDeleteProject(project.id)
                   }}
-                  className="absolute top-2 right-2 z-10 w-8 h-8 flex items-center justify-center rounded-lg bg-white/90 backdrop-blur-sm shadow-sm opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:text-red-600 transition-all duration-150"
+                  className="absolute top-3 right-3 z-10 w-8 h-8 flex items-center justify-center rounded-lg bg-black/40 backdrop-blur-sm opacity-0 group-hover:opacity-100 hover:bg-red-500/80 transition-all duration-150"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    width="15"
-                    height="15"
+                    width="14"
+                    height="14"
                     viewBox="0 0 24 24"
                     fill="none"
-                    stroke="currentColor"
+                    stroke="white"
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -201,12 +229,12 @@ export function DashboardPage({ onOpenProject, onCreateProject, onSignOut }: Das
                   </svg>
                 </button>
 
-                {/* Info area */}
-                <div className="p-3.5">
-                  <h3 className="font-medium text-slate-900 text-sm truncate leading-tight">
+                {/* Info */}
+                <div className="p-4">
+                  <h3 className="font-medium text-white text-sm truncate leading-tight mb-1">
                     {project.title}
                   </h3>
-                  <p className="text-xs text-slate-500 mt-1">
+                  <p className="text-xs text-white/40">
                     {formatDate(project.updatedAt)}
                   </p>
                 </div>
