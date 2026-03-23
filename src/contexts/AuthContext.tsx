@@ -27,12 +27,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.warn("Supabase not initialized, skipping refreshUser")
         return
       }
-      const { data, error } = await db.profile.get()
-      if (error) throw error
-      setUser(data)
+      const { data: sessionData } = await supabase.auth.getSession()
+      if (sessionData.session?.user) {
+        const authUser = sessionData.session.user
+        // Try to get profile, but if it fails, use auth user data
+        const { data: profileData, error: profileError } = await db.profile.get()
+        if (profileError) {
+          // Profile doesn't exist, create a basic user from auth data
+          console.warn("Profile not found, using auth user data:", profileError.message)
+          setUser({
+            id: authUser.id,
+            email: authUser.email || "",
+            fullName: authUser.user_metadata?.full_name,
+            avatarUrl: authUser.user_metadata?.avatar_url,
+            subscriptionTier: "free",
+            subscriptionStatus: "active",
+          })
+        } else {
+          setUser(profileData)
+        }
+      }
     } catch (err) {
       console.error("Failed to refresh user:", err)
-      setUser(null)
+      // Don't set user to null on error - try to use auth session
+      const supabase = getSupabase()
+      if (!supabase) return
+      const { data: sessionData } = await supabase.auth.getSession()
+      if (sessionData.session?.user) {
+        const authUser = sessionData.session.user
+        setUser({
+          id: authUser.id,
+          email: authUser.email || "",
+          fullName: authUser.user_metadata?.full_name,
+          avatarUrl: authUser.user_metadata?.avatar_url,
+          subscriptionTier: "free",
+          subscriptionStatus: "active",
+        })
+      }
     }
   }
 
