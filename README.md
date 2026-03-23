@@ -56,10 +56,10 @@ npm run dev
 
 See `.env.example` for required environment variables:
 
-- `NEXT_PUBLIC_SUPABASE_URL` - Supabase project URL
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Supabase anonymous key
-- `STRIPE_PUBLISHABLE_KEY` - Stripe publishable key
-- `NEXT_PUBLIC_POSTHOG_KEY` - PostHog project key
+- `VITE_SUPABASE_URL` - Supabase project URL
+- `VITE_SUPABASE_ANON_KEY` - Supabase anonymous key
+- `VITE_STRIPE_PUBLISHABLE_KEY` - Stripe publishable key
+- `VITE_POSTHOG_KEY` - PostHog project key
 
 ## Project Structure
 
