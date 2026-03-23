@@ -45,15 +45,10 @@ function App() {
     }
   }, [])
 
-  // Redirect based on auth state (only on user change, not on authLoading)
+  // Track analytics when user changes
   useEffect(() => {
-    if (!authLoading) {
-      if (user) {
-        setCurrentPage("editor")
-        analytics.identify(user.id, { email: user.email })
-      }
-      // Don't auto-redirect to login when authLoading becomes false
-      // This allows manual page navigation (login/signup) to work
+    if (!authLoading && user) {
+      analytics.identify(user.id, { email: user.email })
     }
   }, [authLoading, user])
 
