@@ -1,4 +1,5 @@
-// Analytics service (placeholder for PostHog integration)
+import posthog from "posthog-js"
+
 export interface AnalyticsEvent {
   name: string
   properties?: Record<string, unknown>
@@ -7,23 +8,36 @@ export interface AnalyticsEvent {
 class Analytics {
   private enabled = false
 
-  init(apiKey: string): void {
-    if (apiKey) {
-      this.enabled = true
-      console.log("Analytics initialized with key:", apiKey.slice(0, 8) + "...")
+  init(apiKey: string, options?: { debug?: boolean }): void {
+    if (!apiKey) {
+      console.warn("Analytics: No API key provided")
+      return
     }
+
+    posthog.init(apiKey, {
+      debug: options?.debug ?? false,
+      loaded: (ph) => {
+        console.log("PostHog loaded:", ph)
+      },
+    })
+
+    this.enabled = true
+    console.log("Analytics initialized with PostHog")
   }
 
   track(event: AnalyticsEvent): void {
     if (!this.enabled) return
-    // In production, this would send to PostHog
-    console.log("Analytics event:", event)
+    posthog.capture(event.name, event.properties)
   }
 
   identify(userId: string, traits?: Record<string, unknown>): void {
     if (!this.enabled) return
-    // In production, this would identify user in PostHog
-    console.log("Analytics identify:", userId, traits)
+    posthog.identify(userId, traits)
+  }
+
+  reset(): void {
+    if (!this.enabled) return
+    posthog.reset()
   }
 
   // Common events
@@ -39,6 +53,10 @@ class Analytics {
     this.track({ name: "recording_started", properties: { projectId } })
   }
 
+  trackRecordingStopped(projectId: string, duration: number): void {
+    this.track({ name: "recording_stopped", properties: { projectId, duration } })
+  }
+
   trackExportStarted(projectId: string, format: string): void {
     this.track({ name: "export_started", properties: { projectId, format } })
   }
@@ -49,6 +67,16 @@ class Analytics {
 
   trackSubscriptionUpgraded(userId: string, fromTier: string, toTier: string): void {
     this.track({ name: "subscription_upgraded", properties: { userId, fromTier, toTier } })
+  }
+
+  trackPageView(page: string): void {
+    this.track({ name: "$pageview", properties: { page } })
+  }
+
+  // Feature flags
+  isFeatureEnabled(flag: string): boolean {
+    if (!this.enabled) return false
+    return posthog.isFeatureEnabled(flag) ?? false
   }
 }
 
