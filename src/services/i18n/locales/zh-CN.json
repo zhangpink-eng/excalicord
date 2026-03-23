@@ -1,6 +1,12 @@
 {
   "app.name": "Excalicord",
   "app.slogan": "将你的想法变成视频",
+  "common.loading": "加载中...",
+  "common.save": "保存",
+  "common.cancel": "取消",
+  "common.delete": "删除",
+  "common.edit": "编辑",
+  "common.close": "关闭",
   "header.autoSaved": "已自动保存",
   "header.share": "分享",
   "header.export": "导出",

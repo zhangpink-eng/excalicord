@@ -1,6 +1,12 @@
 {
   "app.name": "Excalicord",
   "app.slogan": "Turn Your Ideas Into Videos",
+  "common.loading": "Loading...",
+  "common.save": "Save",
+  "common.cancel": "Cancel",
+  "common.delete": "Delete",
+  "common.edit": "Edit",
+  "common.close": "Close",
   "header.autoSaved": "Auto-saved",
   "header.share": "Share",
   "header.export": "Export",

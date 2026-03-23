@@ -4,18 +4,21 @@ import { SlideRail } from "@/components/slides/SlideRail"
 import { RecordingControls } from "@/components/recording/RecordingControls"
 import { ExcalidrawCanvas, CameraBubble } from "@/components/canvas"
 import { RightPanel } from "@/components/layout/RightPanel"
-import { useMediaDevices, useSlides } from "@/hooks"
+import { useMediaDevices, useSlides, useTranslation } from "@/hooks"
 import { useAuth } from "@/contexts"
 import { useProject } from "@/contexts"
-import { LoginPage, SignUpPage, DashboardPage } from "@/pages"
+import { LoginPage, SignUpPage, DashboardPage, PricingPage } from "@/pages"
+import { analytics } from "@/services/api/analytics"
 import type { ExportFormat } from "@/types"
 
 type Page = "login" | "signup" | "dashboard" | "editor"
 
 function App() {
+  const { t } = useTranslation()
   const { user, isLoading: authLoading } = useAuth()
   const { project, createProject, loadProject } = useProject()
   const [currentPage, setCurrentPage] = useState<Page>(user ? "editor" : "login")
+  const [showPricing, setShowPricing] = useState(false)
   const [projectName] = useState("Untitled Project")
 
   const { slides, currentSlideIndex, addSlide, goToSlide } = useSlides()
@@ -34,11 +37,20 @@ function App() {
 
   const recordingTimerRef = useRef<number | null>(null)
 
+  // Initialize analytics
+  useEffect(() => {
+    const posthogKey = import.meta.env.VITE_POSTHOG_API_KEY
+    if (posthogKey) {
+      analytics.init(posthogKey)
+    }
+  }, [])
+
   // Redirect based on auth state
   useEffect(() => {
     if (!authLoading) {
       if (user) {
         setCurrentPage("editor")
+        analytics.identify(user.id, { email: user.email })
       } else {
         setCurrentPage("login")
       }
@@ -60,8 +72,10 @@ function App() {
       recordingTimerRef.current = window.setInterval(() => {
         setDuration((d) => d + 1)
       }, 1000)
+
+      analytics.trackRecordingStarted(project?.id || "unknown")
     }
-  }, [isRecording, startCamera, startMic])
+  }, [isRecording, startCamera, startMic, project])
 
   const handleStop = useCallback(() => {
     setIsRecording(false)
@@ -71,22 +85,53 @@ function App() {
     stopCamera()
     stopMic()
 
+    analytics.trackRecordingStopped(project?.id || "unknown", duration)
+
     const demoBlob = new Blob(["demo recording"], { type: "video/webm" })
     setRecordedBlob(demoBlob)
-  }, [stopCamera, stopMic])
+  }, [stopCamera, stopMic, duration, project])
 
   const handleExport = useCallback(
-    (format: ExportFormat) => {
+    async (format: ExportFormat) => {
+      analytics.trackExportStarted(project?.id || "unknown", format)
+
       if (recordedBlob) {
-        const url = URL.createObjectURL(recordedBlob)
-        const a = document.createElement("a")
-        a.href = url
-        a.download = `recording-${Date.now()}.${format}`
-        a.click()
-        URL.revokeObjectURL(url)
+        // Use FFmpeg.wasm to convert if available
+        const { videoConverter } = await import("@/services/video/VideoConverter")
+
+        try {
+          await videoConverter.load()
+          let blob: Blob
+
+          if (format === "gif") {
+            blob = await videoConverter.exportToGIF(recordedBlob)
+          } else if (format === "webm") {
+            blob = await videoConverter.exportToWebM(recordedBlob)
+          } else {
+            blob = await videoConverter.exportToMP4(recordedBlob)
+          }
+
+          const url = URL.createObjectURL(blob)
+          const a = document.createElement("a")
+          a.href = url
+          a.download = `recording-${Date.now()}.${format}`
+          a.click()
+          URL.revokeObjectURL(url)
+
+          analytics.trackExportCompleted(project?.id || "unknown", format, duration)
+        } catch (err) {
+          console.error("Export failed:", err)
+          // Fallback to direct download
+          const url = URL.createObjectURL(recordedBlob)
+          const a = document.createElement("a")
+          a.href = url
+          a.download = `recording-${Date.now()}.webm`
+          a.click()
+          URL.revokeObjectURL(url)
+        }
       }
     },
-    [recordedBlob]
+    [recordedBlob, project, duration]
   )
 
   const handleShare = useCallback(() => {
@@ -112,12 +157,24 @@ function App() {
   const handleCreateProject = useCallback(async () => {
     await createProject("Untitled Project")
     setCurrentPage("editor")
-  }, [createProject])
+    analytics.trackProjectCreated(user?.id || "unknown", project?.id || "unknown")
+  }, [createProject, user, project])
 
   const handleOpenProject = useCallback(async (projectId: string) => {
     await loadProject(projectId)
     setCurrentPage("editor")
   }, [loadProject])
+
+  // Pricing handler
+  const handlePricing = useCallback(() => {
+    setShowPricing(true)
+  }, [])
+
+  const handleSelectPlan = useCallback(async (planId: string) => {
+    console.log("Selected plan:", planId)
+    // In production, this would initiate Stripe checkout
+    setShowPricing(false)
+  }, [])
 
   // Loading state
   if (authLoading) {
@@ -125,7 +182,7 @@ function App() {
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
           <div className="w-8 h-8 mx-auto mb-4 rounded-full bg-primary animate-pulse" />
-          <p className="text-muted-foreground">Loading...</p>
+          <p className="text-muted-foreground">{t("common.loading") || "Loading..."}</p>
         </div>
       </div>
     )
@@ -152,38 +209,47 @@ function App() {
 
   // Editor page
   return (
-    <MainLayout
-      header={
-        <Header
-          projectName={project?.title || projectName}
-          onExport={() => handleExport("mp4")}
-          onShare={handleShare}
+    <>
+      <MainLayout
+        header={
+          <Header
+            projectName={project?.title || projectName}
+            onExport={() => handleExport("mp4")}
+            onShare={handleShare}
+            onPricing={handlePricing}
+          />
+        }
+        slideRail={
+          <SlideRail
+            slides={slides.map((s) => ({ id: s.id, name: `Slide ${s.position + 1}`, thumbnail: "" }))}
+            currentIndex={currentSlideIndex}
+            onSelect={goToSlide}
+            onAdd={handleAddSlide}
+          />
+        }
+        canvas={
+          <div className="relative w-full h-full bg-canvas-light">
+            <ExcalidrawCanvas />
+            <CameraBubble stream={cameraStream} position={{ x: 50, y: 50 }} />
+          </div>
+        }
+        rightPanel={<RightPanel />}
+        controlBar={
+          <RecordingControls
+            state={isRecording ? "recording" : "idle"}
+            duration={duration}
+            onRecord={handleRecord}
+            onStop={handleStop}
+          />
+        }
+      />
+      {showPricing && (
+        <PricingPage
+          onSelectPlan={handleSelectPlan}
+          onClose={() => setShowPricing(false)}
         />
-      }
-      slideRail={
-        <SlideRail
-          slides={slides.map((s) => ({ id: s.id, name: `Slide ${s.position + 1}`, thumbnail: "" }))}
-          currentIndex={currentSlideIndex}
-          onSelect={goToSlide}
-          onAdd={handleAddSlide}
-        />
-      }
-      canvas={
-        <div className="relative w-full h-full bg-canvas-light">
-          <ExcalidrawCanvas />
-          <CameraBubble stream={cameraStream} position={{ x: 50, y: 50 }} />
-        </div>
-      }
-      rightPanel={<RightPanel />}
-      controlBar={
-        <RecordingControls
-          state={isRecording ? "recording" : "idle"}
-          duration={duration}
-          onRecord={handleRecord}
-          onStop={handleStop}
-        />
-      }
-    />
+      )}
+    </>
   )
 }
 

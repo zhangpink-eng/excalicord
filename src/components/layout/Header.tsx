@@ -1,13 +1,14 @@
-import { Button } from "@/components/ui"
+import { Button, LanguageSelector } from "@/components/ui"
 import { APP_NAME } from "@/lib/constants"
 
 interface HeaderProps {
   projectName?: string
   onExport?: () => void
   onShare?: () => void
+  onPricing?: () => void
 }
 
-export function Header({ projectName, onExport, onShare }: HeaderProps) {
+export function Header({ projectName, onExport, onShare, onPricing }: HeaderProps) {
   return (
     <header className="h-12 border-b bg-background flex items-center justify-between px-4">
       <div className="flex items-center gap-3">
@@ -25,7 +26,11 @@ export function Header({ projectName, onExport, onShare }: HeaderProps) {
         )}
       </div>
       <div className="flex items-center gap-2">
+        <LanguageSelector />
         <span className="text-xs text-muted-foreground">Auto-saved</span>
+        <Button variant="ghost" size="sm" onClick={onPricing}>
+          Pricing
+        </Button>
         <Button variant="ghost" size="sm" onClick={onShare}>
           Share
         </Button>
