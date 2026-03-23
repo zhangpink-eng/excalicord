@@ -15,21 +15,53 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+// Prevent simultaneous refreshUser calls
+let refreshInProgress = false
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const refreshUser = async () => {
+    // Skip if already refreshing to prevent lock conflicts
+    if (refreshInProgress) {
+      console.log("refreshUser already in progress, skipping")
+      return
+    }
+
+    refreshInProgress = true
+
     try {
       const supabase = getSupabase()
       if (!supabase) {
         console.warn("Supabase not initialized, skipping refreshUser")
         return
       }
-      const { data: sessionData } = await supabase.auth.getSession()
-      if (sessionData.session?.user) {
-        const authUser = sessionData.session.user
+
+      // Use getUser() instead of getSession() to avoid token lock issues
+      const { data: userData, error: userError } = await supabase.auth.getUser()
+
+      if (userError) {
+        console.error("getUser error:", userError.message)
+        // If getUser fails, try getSession as fallback
+        const { data: sessionData } = await supabase.auth.getSession()
+        if (sessionData.session?.user) {
+          const authUser = sessionData.session.user
+          setUser({
+            id: authUser.id,
+            email: authUser.email || "",
+            fullName: authUser.user_metadata?.full_name,
+            avatarUrl: authUser.user_metadata?.avatar_url,
+            subscriptionTier: "free",
+            subscriptionStatus: "active",
+          })
+        }
+        return
+      }
+
+      if (userData.user) {
+        const authUser = userData.user
         // Try to get profile, but if it fails, use auth user data
         const { data: profileData, error: profileError } = await db.profile.get()
         if (profileError) {
@@ -50,20 +82,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (err) {
       console.error("Failed to refresh user:", err)
       // Don't set user to null on error - try to use auth session
-      const supabase = getSupabase()
-      if (!supabase) return
-      const { data: sessionData } = await supabase.auth.getSession()
-      if (sessionData.session?.user) {
-        const authUser = sessionData.session.user
-        setUser({
-          id: authUser.id,
-          email: authUser.email || "",
-          fullName: authUser.user_metadata?.full_name,
-          avatarUrl: authUser.user_metadata?.avatar_url,
-          subscriptionTier: "free",
-          subscriptionStatus: "active",
-        })
+      try {
+        const supabase = getSupabase()
+        if (!supabase) return
+        const { data: sessionData } = await supabase.auth.getSession()
+        if (sessionData.session?.user) {
+          const authUser = sessionData.session.user
+          setUser({
+            id: authUser.id,
+            email: authUser.email || "",
+            fullName: authUser.user_metadata?.full_name,
+            avatarUrl: authUser.user_metadata?.avatar_url,
+            subscriptionTier: "free",
+            subscriptionStatus: "active",
+          })
+        }
+      } catch (fallbackErr) {
+        console.error("Fallback also failed:", fallbackErr)
       }
+    } finally {
+      refreshInProgress = false
     }
   }
 

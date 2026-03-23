@@ -3,7 +3,25 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js"
 let supabaseClient: SupabaseClient | null = null
 
 export function initSupabase(url: string, anonKey: string): SupabaseClient {
-  supabaseClient = createClient(url, anonKey)
+  // Prevent re-initialization
+  if (supabaseClient) {
+    console.log("Supabase already initialized")
+    return supabaseClient
+  }
+
+  supabaseClient = createClient(url, anonKey, {
+    auth: {
+      // Use implicit flow which is more reliable for OAuth
+      flowType: "implicit",
+      // Auto-refresh token before expiration (default: 10 seconds)
+      autoRefreshToken: true,
+      // Persist session in localStorage
+      persistSession: true,
+      // Detect session changes in other tabs
+      detectSessionInUrl: true,
+    },
+  })
+
   console.log("Supabase initialized:", url)
   return supabaseClient
 }
