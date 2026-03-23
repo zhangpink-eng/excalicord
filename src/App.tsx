@@ -5,7 +5,7 @@ import { RecordingControls } from "@/components/recording/RecordingControls"
 import { ExcalidrawCanvas, CameraBubble } from "@/components/canvas"
 import { RightPanel } from "@/components/layout/RightPanel"
 import { LanguageSelector } from "@/components/ui"
-import { useMediaDevices, useSlides, useTranslation, useCanvasRecorder } from "@/hooks"
+import { useMediaDevices, useTranslation, useCanvasRecorder } from "@/hooks"
 import { useAuth } from "@/contexts"
 import { useProject } from "@/contexts"
 import { LoginPage, SignUpPage, DashboardPage, PricingPage } from "@/pages"
@@ -17,10 +17,12 @@ type Page = "login" | "signup" | "dashboard" | "editor"
 function App() {
   const { t } = useTranslation()
   const { user, isLoading: authLoading } = useAuth()
-  const { project, createProject, loadProject, updateProject } = useProject()
   const [currentPage, setCurrentPage] = useState<Page>(user ? "editor" : "login")
   const [showPricing, setShowPricing] = useState(false)
   const [projectName, setProjectName] = useState("Untitled Project")
+
+  // Use slides from ProjectContext (synced with database)
+  const { project, slides, addSlide: addSlideToProject, createProject, loadProject, updateProject } = useProject()
 
   // Handle project name change - save to database if project exists
   const handleProjectNameChange = useCallback((name: string) => {
@@ -30,8 +32,20 @@ function App() {
       updateProject({ title: name })
     }
   }, [project, updateProject])
+  const [currentSlideIndex, setCurrentSlideIndex] = useState(0)
 
-  const { slides, currentSlideIndex, addSlide, goToSlide } = useSlides()
+  // Sync currentSlideIndex when project changes
+  useEffect(() => {
+    setCurrentSlideIndex(0)
+  }, [project?.id])
+
+  const goToSlide = useCallback((index: number) => {
+    setCurrentSlideIndex(index)
+  }, [])
+
+  const handleAddSlide = useCallback(() => {
+    addSlideToProject()
+  }, [addSlideToProject])
 
   const {
     cameraStream,
@@ -296,10 +310,6 @@ function App() {
   const handleShare = useCallback(() => {
     console.log("Share clicked")
   }, [])
-
-  const handleAddSlide = useCallback(() => {
-    addSlide()
-  }, [addSlide])
 
   // Back to projects handler
   const handleBackToProjects = useCallback(() => {
