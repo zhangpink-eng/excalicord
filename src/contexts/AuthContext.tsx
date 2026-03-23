@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
 import type { User } from "@/types"
-import { auth, db } from "@/services/api/supabase"
+import { auth, db, getSupabase } from "@/services/api/supabase"
 
 interface AuthContextType {
   user: User | null
@@ -22,6 +22,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshUser = async () => {
     try {
+      const supabase = getSupabase()
+      if (!supabase) {
+        console.warn("Supabase not initialized, skipping refreshUser")
+        return
+      }
       const { data, error } = await db.profile.get()
       if (error) throw error
       setUser(data)
@@ -32,6 +37,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => {
+    // Check if Supabase is initialized
+    const supabase = getSupabase()
+    if (!supabase) {
+      console.warn("Supabase not initialized, skipping auth init")
+      setIsLoading(false)
+      return
+    }
+
     // Check for existing session
     const initAuth = async () => {
       try {
