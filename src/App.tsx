@@ -17,15 +17,19 @@ type Page = "login" | "signup" | "dashboard" | "editor"
 function App() {
   const { t } = useTranslation()
   const { user, isLoading: authLoading } = useAuth()
-  const { project, createProject, loadProject } = useProject()
+  const { project, createProject, loadProject, updateProject } = useProject()
   const [currentPage, setCurrentPage] = useState<Page>(user ? "editor" : "login")
   const [showPricing, setShowPricing] = useState(false)
   const [projectName, setProjectName] = useState("Untitled Project")
 
-  // Handle project name change
+  // Handle project name change - save to database if project exists
   const handleProjectNameChange = useCallback((name: string) => {
     setProjectName(name)
-  }, [])
+    // Save to database if we have a loaded project
+    if (project) {
+      updateProject({ title: name })
+    }
+  }, [project, updateProject])
 
   const { slides, currentSlideIndex, addSlide, goToSlide } = useSlides()
 
