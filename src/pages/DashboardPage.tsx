@@ -65,19 +65,19 @@ export function DashboardPage({ onOpenProject, onCreateProject, onSignOut }: Das
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-slate-50/50">
       {/* Header */}
-      <header className="border-b bg-white">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+      <header className="bg-white border-b border-slate-200/60">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-sm">
               <span className="text-white font-bold text-sm">E</span>
             </div>
-            <span className="font-semibold">Excalicord</span>
+            <span className="font-semibold text-slate-900">Excalicord</span>
           </div>
           <div className="flex items-center gap-4">
-            <span className="text-sm text-muted-foreground">{userEmail}</span>
-            <Button variant="outline" size="sm" onClick={onSignOut}>
+            <span className="text-sm text-slate-500">{userEmail}</span>
+            <Button variant="ghost" size="sm" onClick={onSignOut} className="text-slate-600 hover:text-slate-900">
               Sign out
             </Button>
           </div>
@@ -85,18 +85,18 @@ export function DashboardPage({ onOpenProject, onCreateProject, onSignOut }: Das
       </header>
 
       {/* Content */}
-      <main className="max-w-6xl mx-auto px-6 py-8">
+      <main className="max-w-7xl mx-auto px-6 py-8">
         {deleteError && (
-          <div className="mb-4 p-3 bg-destructive/10 text-destructive text-sm rounded-lg">
+          <div className="mb-4 p-3 bg-red-50 border border-red-100 text-red-600 text-sm rounded-lg">
             {deleteError}
           </div>
         )}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold">Your Projects</h1>
-            <p className="text-muted-foreground mt-1">Create and manage your video projects</p>
+            <h1 className="text-xl font-semibold text-slate-900">Your Projects</h1>
+            <p className="text-sm text-slate-500 mt-0.5">{projects.length} project{projects.length !== 1 ? "s" : ""}</p>
           </div>
-          <Button onClick={onCreateProject}>
+          <Button onClick={onCreateProject} className="bg-indigo-600 hover:bg-indigo-700">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="16"
@@ -145,67 +145,70 @@ export function DashboardPage({ onOpenProject, onCreateProject, onSignOut }: Das
             <Button onClick={onCreateProject}>Create Project</Button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             {projects.map((project) => (
               <div
                 key={project.id}
-                className="group bg-white rounded-xl border hover:shadow-lg transition-shadow cursor-pointer"
+                className="group relative bg-white rounded-xl border border-slate-200/80 hover:border-slate-300 hover:shadow-md hover:shadow-slate-200/50 transition-all duration-200 cursor-pointer overflow-hidden"
                 onClick={() => onOpenProject(project.id)}
               >
-                <div className="aspect-video bg-gradient-to-br from-blue-50 to-indigo-100 rounded-t-xl flex items-center justify-center">
+                {/* Thumbnail area with gradient */}
+                <div className="h-32 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 relative">
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="36"
+                      height="36"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="white"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="opacity-60"
+                    >
+                      <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+                      <polyline points="14 2 14 8 20 8" />
+                    </svg>
+                  </div>
+                </div>
+
+                {/* Delete button - top right corner */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    handleDeleteProject(project.id)
+                  }}
+                  className="absolute top-2 right-2 z-10 w-8 h-8 flex items-center justify-center rounded-lg bg-white/90 backdrop-blur-sm shadow-sm opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:text-red-600 transition-all duration-150"
+                >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    width="48"
-                    height="48"
+                    width="15"
+                    height="15"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
-                    strokeWidth="1"
+                    strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    className="text-primary/30"
                   >
-                    <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
-                    <polyline points="14 2 14 8 20 8" />
-                    <path d="M12 18v-6" />
-                    <path d="M9 15h6" />
+                    <path d="M3 6h18" />
+                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
                   </svg>
-                </div>
-                <div className="p-4">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h3 className="font-semibold truncate">{project.title}</h3>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {formatDate(project.updatedAt)}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault()
-                        e.stopPropagation()
-                        handleDeleteProject(project.id)
-                      }}
-                      className="opacity-0 group-hover:opacity-100 p-1 hover:bg-destructive/10 rounded transition-opacity"
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="text-destructive"
-                      >
-                        <path d="M3 6h18" />
-                        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-                        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-                      </svg>
-                    </button>
-                  </div>
+                </button>
+
+                {/* Info area */}
+                <div className="p-3.5">
+                  <h3 className="font-medium text-slate-900 text-sm truncate leading-tight">
+                    {project.title}
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-1">
+                    {formatDate(project.updatedAt)}
+                  </p>
                 </div>
               </div>
             ))}
