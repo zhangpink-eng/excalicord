@@ -4,7 +4,7 @@ const Excalidraw = ExcalidrawLib
 
 export function ExcalidrawCanvas() {
   return (
-    <div className="w-full h-full bg-canvas-light">
+    <div className="w-full h-full overflow-hidden bg-canvas-light">
       <Excalidraw.Excalidraw />
     </div>
   )
