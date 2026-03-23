@@ -97,7 +97,7 @@ export function useRecording(): UseRecordingReturn {
       startTimer()
       setState("recording")
     }
-  }, [duration, startTimer])
+  }, [startTimer])
 
   const stopRecording = useCallback(async (): Promise<Blob | null> => {
     return new Promise((resolve) => {
