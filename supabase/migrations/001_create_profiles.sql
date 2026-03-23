@@ -1,4 +1,4 @@
--- Create profiles table for user data
+-- Create profiles table for user data (if not exists)
 CREATE TABLE IF NOT EXISTS public.profiles (
   id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
   email TEXT,
@@ -10,25 +10,24 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Enable Row Level Security
+-- Enable Row Level Security (if not already enabled)
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
--- Create policy: users can view their own profile
-CREATE POLICY "Users can view own profile"
+-- Create policies (use OR REPLACE to avoid duplicate errors)
+CREATE OR REPLACE POLICY "Users can view own profile"
   ON public.profiles FOR SELECT
   USING (auth.uid() = id);
 
--- Create policy: users can update their own profile
-CREATE POLICY "Users can update own profile"
+CREATE OR REPLACE POLICY "Users can update own profile"
   ON public.profiles FOR UPDATE
   USING (auth.uid() = id);
 
--- Create policy: users can insert their own profile (on signup)
-CREATE POLICY "Users can insert own profile"
+CREATE OR REPLACE POLICY "Users can insert own profile"
   ON public.profiles FOR INSERT
   WITH CHECK (auth.uid() = id);
 
--- Function to automatically create profile on signup
+-- Function to automatically create profile on signup (drop first if exists)
+DROP FUNCTION IF EXISTS public.handle_new_user();
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -42,7 +41,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Trigger to call the function on user signup
+-- Trigger to call the function on user signup (drop first if exists)
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
