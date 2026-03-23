@@ -41,6 +41,19 @@ function App() {
 
   const goToSlide = useCallback((index: number) => {
     setCurrentSlideIndex(index)
+    // Scroll the selected slide into center of view
+    setTimeout(() => {
+      if (!slidesContainerRef.current) return
+      const container = slidesContainerRef.current
+      const slideElements = container.querySelectorAll('[data-slide-index]')
+      const slide = slideElements[index] as HTMLElement
+      if (slide) {
+        const containerRect = container.getBoundingClientRect()
+        const slideRect = slide.getBoundingClientRect()
+        const scrollLeft = slide.offsetLeft - (containerRect.width / 2) + (slideRect.width / 2)
+        container.scrollTo({ left: scrollLeft, behavior: 'smooth' })
+      }
+    }, 50)
   }, [])
 
   const handleAddSlide = useCallback(() => {
@@ -90,6 +103,7 @@ function App() {
   }, [])
 
   const cameraVideoRef = useRef<HTMLVideoElement>(null)
+  const slidesContainerRef = useRef<HTMLDivElement>(null)
   const cameraBubblePosition = useRef({ x: 50, y: 50 })
   const cameraBubbleSize = useRef({ width: 200, height: 150 })
 
@@ -413,50 +427,71 @@ function App() {
           />
         }
         canvas={
-          <div className="relative w-full h-full bg-canvas-light overflow-auto">
-            <div className="flex gap-4 p-4 min-h-full">
-              {slides.map((slide, index) => (
-                <div
-                  key={slide.id}
-                  className={`flex-shrink-0 border-2 rounded-lg overflow-hidden transition-colors ${
-                    currentSlideIndex === index
-                      ? "border-primary shadow-lg"
-                      : "border-border hover:border-primary/50"
-                  }`}
-                  style={{ width: "400px", height: "300px" }}
-                  onClick={() => goToSlide(index)}
-                >
-                  <div className="w-full h-full bg-white">
-                    <ExcalidrawCanvas
-                      elements={slide.content?.elements as any[] || []}
-                      onElementsChange={(elements) => {
-                        updateSlide(slide.id, { content: { elements } })
-                      }}
+          <div className="relative w-full h-full bg-canvas-light">
+            {/* Single shared Excalidraw canvas - shows only current slide's elements */}
+            <ExcalidrawCanvas
+              key={slides[currentSlideIndex]?.id}
+              elements={slides[currentSlideIndex]?.content?.elements as any[] || []}
+              onElementsChange={(elements) => {
+                const currentSlide = slides[currentSlideIndex]
+                if (!currentSlide) return
+                // Filter elements to only include those belonging to current slide
+                // This ensures elements don't leak between slides
+                const boundElements = elements
+                  .filter((el: any) => !el.slideId || el.slideId === currentSlide.id)
+                  .map((el: any) => ({
+                    ...el,
+                    slideId: currentSlide.id,
+                  }))
+                updateSlide(currentSlide.id, { content: { elements: boundElements } })
+              }}
+            />
+
+            {/* Slide frames as purely visual overlays - scrollable container */}
+            <div
+              ref={slidesContainerRef}
+              className="absolute inset-0 flex items-center overflow-x-auto pointer-events-none"
+              style={{ scrollBehavior: 'smooth' }}
+            >
+              <div className="flex items-center gap-4 px-4 min-w-max">
+                {slides.map((slide, index) => (
+                  <div
+                    key={slide.id}
+                    data-slide-index={index}
+                    className={`relative transition-all duration-200 ${
+                      currentSlideIndex === index
+                        ? "z-20"
+                        : "z-10"
+                    }`}
+                    style={{
+                      width: "480px",
+                      height: "360px",
+                      transform: currentSlideIndex === index ? "scale(1.02)" : "scale(1)",
+                    }}
+                  >
+                    {/* Pure visual border - no pointer events */}
+                    <div
+                      className={`absolute inset-0 rounded-lg transition-all duration-200 pointer-events-none ${
+                        currentSlideIndex === index
+                          ? "border-4 border-primary shadow-2xl"
+                          : "border-2 border-border/70"
+                      }`}
                     />
+                    {/* Slide number label */}
+                    <div
+                      className={`absolute -top-8 left-1/2 -translate-x-1/2 text-sm font-medium px-3 py-1 rounded-full transition-colors pointer-events-none ${
+                        currentSlideIndex === index
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      {index + 1}
+                    </div>
                   </div>
-                </div>
-              ))}
-              {/* Add slide button */}
-              <button
-                onClick={handleAddSlide}
-                className="flex-shrink-0 border-2 border-dashed border-border hover:border-primary rounded-lg flex items-center justify-center text-muted-foreground hover:text-primary transition-colors"
-                style={{ width: "400px", height: "300px" }}
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="48"
-                  height="48"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M12 5v14M5 12h14" />
-                </svg>
-              </button>
+                ))}
+              </div>
             </div>
+
             <CameraBubble
               stream={cameraEnabled ? cameraStream : null}
               position={cameraBubblePosition.current}
