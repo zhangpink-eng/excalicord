@@ -9,6 +9,7 @@ interface HeaderProps {
   onTogglePanel?: () => void
   onShare?: () => void
   onPricing?: () => void
+  onBackToProjects?: () => void
   panelVisible?: boolean
   languageSelector?: React.ReactNode
 }
@@ -19,6 +20,7 @@ export function Header({
   onTogglePanel,
   onShare,
   onPricing,
+  onBackToProjects,
   panelVisible,
   languageSelector,
 }: HeaderProps) {
@@ -49,6 +51,23 @@ export function Header({
   return (
     <header className="h-12 border-b bg-background flex items-center justify-between px-4">
       <div className="flex items-center gap-3">
+        {onBackToProjects && (
+          <Button variant="ghost" size="icon" onClick={onBackToProjects} title={t("common.backToProjects")} className="mr-1">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="m15 18-6-6 6-6" />
+            </svg>
+          </Button>
+        )}
         <div className="flex items-center gap-2">
           <div className="w-6 h-6 rounded bg-primary flex items-center justify-center">
             <span className="text-white text-xs font-bold">E</span>

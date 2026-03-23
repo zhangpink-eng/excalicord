@@ -301,6 +301,11 @@ function App() {
     addSlide()
   }, [addSlide])
 
+  // Back to projects handler
+  const handleBackToProjects = useCallback(() => {
+    setCurrentPage("dashboard")
+  }, [])
+
   // Auth handlers
   const handleAuthSuccess = useCallback(() => {
     setCurrentPage("dashboard")
@@ -379,6 +384,7 @@ function App() {
             onTogglePanel={toggleRightPanel}
             onShare={handleShare}
             onPricing={handlePricing}
+            onBackToProjects={handleBackToProjects}
             panelVisible={rightPanelVisible}
             languageSelector={<LanguageSelector />}
           />
