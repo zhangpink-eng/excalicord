@@ -151,10 +151,8 @@ export class CanvasRecorder {
     this.mediaRecorder.start(100) // Collect data every 100ms
     this.isRecording = true
 
-    // Start the composite render loop if we have camera bubble
-    if (this.cameraBubble) {
-      this.startRenderLoop()
-    }
+    // Start the composite render loop
+    this.startRenderLoop()
   }
 
   /**
@@ -212,15 +210,9 @@ export class CanvasRecorder {
    * Start the render loop to composite canvas + camera bubble
    */
   private startRenderLoop(): void {
-    const render = () => {
-      if (!this.isRecording) return
-
-      this.compositeFrame()
-      this.animationId = requestAnimationFrame(render)
-    }
-
-    // Use setInterval instead of rAF for consistent FPS
+    // Use setInterval for consistent FPS
     const intervalMs = 1000 / this.fps
+
     const intervalId = setInterval(() => {
       if (this.isRecording) {
         this.compositeFrame()

@@ -37,69 +37,164 @@ export class BeautyFilter {
     // Create a copy of the image data
     const data = new Uint8ClampedArray(imageData.data)
 
-    // Apply smoothing (simple Gaussian blur approximation)
+    // Apply smoothing (bilateral filter approximation for skin smoothing)
     if (settings.smoothing > 0) {
-      this.applySmoothing(data, imageData.width, imageData.height, settings.smoothing / 100)
+      this.applySkinSmoothing(data, imageData.width, imageData.height, settings.smoothing / 100)
     }
 
-    // Apply whitening
+    // Apply whitening (exposure correction + color adjustment)
     if (settings.whitening > 0) {
       this.applyWhitening(data, settings.whitening / 100)
     }
 
+    // Apply face slimming (simple horizontal scaling of face region)
+    if (settings.faceSlimming > 0) {
+      this.applyFaceSlimming(data, imageData.width, imageData.height, settings.faceSlimming / 100)
+    }
+
     // Apply skin tone adjustment
     if (settings.skinTone !== 50) {
-      this.applySkinToneAdjustment(data, settings.skinTone / 100)
+      this.applySkinToneAdjustment(data, imageData.width, imageData.height, settings.skinTone / 100)
     }
 
     return new ImageData(data, imageData.width, imageData.height)
   }
 
-  private applySmoothing(data: Uint8ClampedArray, width: number, height: number, strength: number): void {
-    // Simple box blur for smoothing effect
-    const radius = Math.floor(strength * 3) + 1
+  private applySkinSmoothing(data: Uint8ClampedArray, width: number, height: number, strength: number): void {
+    // Bilateral-like filter that preserves edges while smoothing
+    const radius = Math.floor(strength * 3) + 2
     const tempData = new Uint8ClampedArray(data)
+    const sigma = strength * 0.5
 
     for (let y = radius; y < height - radius; y++) {
       for (let x = radius; x < width - radius; x++) {
-        let r = 0, g = 0, b = 0, count = 0
+        let r = 0, g = 0, b = 0, weightSum = 0
 
         for (let dy = -radius; dy <= radius; dy++) {
           for (let dx = -radius; dx <= radius; dx++) {
             const idx = ((y + dy) * width + (x + dx)) * 4
-            r += tempData[idx]
-            g += tempData[idx + 1]
-            b += tempData[idx + 2]
-            count++
+            const centerIdx = (y * width + x) * 4
+
+            // Spatial weight
+            const spatialDist = dx * dx + dy * dy
+            const spatialWeight = Math.exp(-spatialDist / (2 * sigma * sigma))
+
+            // Range weight (intensity difference)
+            const intensityDiff = Math.abs(tempData[idx] - tempData[centerIdx]) +
+                                  Math.abs(tempData[idx + 1] - tempData[centerIdx + 1]) +
+                                  Math.abs(tempData[idx + 2] - tempData[centerIdx + 2])
+            const rangeWeight = Math.exp(-intensityDiff * intensityDiff / (2 * 30 * 30))
+
+            const weight = spatialWeight * rangeWeight
+
+            r += tempData[idx] * weight
+            g += tempData[idx + 1] * weight
+            b += tempData[idx + 2] * weight
+            weightSum += weight
           }
         }
 
         const idx = (y * width + x) * 4
-        data[idx] = r / count
-        data[idx + 1] = g / count
-        data[idx + 2] = b / count
+        data[idx] = r / weightSum
+        data[idx + 1] = g / weightSum
+        data[idx + 2] = b / weightSum
       }
     }
   }
 
   private applyWhitening(data: Uint8ClampedArray, strength: number): void {
-    const factor = 1 + strength * 0.5
+    // Apply exposure correction and color shift for whitening effect
+    const exposure = 1 + strength * 0.3
 
     for (let i = 0; i < data.length; i += 4) {
-      // Apply whitening to each channel
-      data[i] = Math.min(255, data[i] * factor)
-      data[i + 1] = Math.min(255, data[i + 1] * factor)
-      data[i + 2] = Math.min(255, data[i + 2] * factor)
+      // Exposure correction (simulate underexposure recovery)
+      let r = data[i] / 255
+      let g = data[i + 1] / 255
+      let b = data[i + 2] / 255
+
+      // Apply exposure
+      r = r * exposure
+      g = g * exposure
+      b = b * exposure
+
+      // Apply white balance correction (shift towards neutral)
+      const avg = (r + g + b) / 3
+      const wbStrength = strength * 0.2
+      r = r + (avg - r) * wbStrength
+      g = g + (avg - g) * wbStrength
+      b = b + (avg - b) * wbStrength
+
+      // Convert back and clamp
+      data[i] = Math.min(255, Math.max(0, r * 255))
+      data[i + 1] = Math.min(255, Math.max(0, g * 255))
+      data[i + 2] = Math.min(255, Math.max(0, b * 255))
     }
   }
 
-  private applySkinToneAdjustment(data: Uint8ClampedArray, strength: number): void {
-    // Warm up or cool down the image based on skin tone setting
-    const warmth = strength * 10
+  private applyFaceSlimming(data: Uint8ClampedArray, width: number, height: number, strength: number): void {
+    // Simple face slimming by horizontally scaling the face region
+    // Assumes face is roughly in the center of the frame
+    const centerX = width / 2
+    const centerY = height / 2
+    const faceRadiusX = width * 0.3
+    const faceRadiusY = height * 0.4
+    const scaleFactor = 1 - strength * 0.15 // Reduce width by up to 15%
+
+    const tempData = new Uint8ClampedArray(data)
+
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        // Check if point is in face ellipse
+        const dx = (x - centerX) / faceRadiusX
+        const dy = (y - centerY) / faceRadiusY
+        const distSq = dx * dx + dy * dy
+
+        if (distSq < 1) {
+          // Point is inside face region - apply horizontal scaling
+          const scaleDist = Math.sqrt(distSq)
+          const localScale = 1 - (1 - scaleFactor) * (1 - scaleDist)
+
+          // Calculate source x position
+          const srcX = Math.round(centerX + (x - centerX) / localScale)
+          const srcY = Math.round(y)
+
+          if (srcX >= 0 && srcX < width) {
+            const dstIdx = (y * width + x) * 4
+            const srcIdx = (srcY * width + srcX) * 4
+            data[dstIdx] = tempData[srcIdx]
+            data[dstIdx + 1] = tempData[srcIdx + 1]
+            data[dstIdx + 2] = tempData[srcIdx + 2]
+          }
+        }
+      }
+    }
+  }
+
+  private applySkinToneAdjustment(data: Uint8ClampedArray, _width: number, _height: number, strength: number): void {
+    // Adjust warmth/coolness of the image
+    const warmth = (strength - 0.5) * 30 // -15 to +15
 
     for (let i = 0; i < data.length; i += 4) {
-      data[i] = Math.min(255, data[i] + warmth) // Red
-      data[i + 2] = Math.max(0, data[i + 2] - warmth) // Blue
+      // Simple skin-tone aware adjustment
+      const r = data[i]
+      const g = data[i + 1]
+      const b = data[i + 2]
+
+      // Detect skin-like pixels (simplified)
+      const isSkinLike = r > 95 && g > 40 && b > 20 &&
+                         r > g && r > b &&
+                         Math.abs(r - g) > 15 &&
+                         r - b > 15
+
+      if (isSkinLike) {
+        // Apply stronger adjustment to skin tones
+        data[i] = Math.min(255, Math.max(0, r + warmth * 1.2)) // Red
+        data[i + 2] = Math.min(255, Math.max(0, b - warmth * 0.8)) // Blue
+      } else {
+        // Apply subtle adjustment to non-skin
+        data[i] = Math.min(255, Math.max(0, r + warmth * 0.3))
+        data[i + 2] = Math.min(255, Math.max(0, b - warmth * 0.2))
+      }
     }
   }
 

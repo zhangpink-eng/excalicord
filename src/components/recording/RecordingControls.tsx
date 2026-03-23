@@ -6,6 +6,10 @@ interface RecordingControlsProps {
   duration: number
   onRecord: () => void
   onStop: () => void
+  cameraEnabled?: boolean
+  micEnabled?: boolean
+  onCameraToggle?: () => void
+  onMicToggle?: () => void
 }
 
 function formatDuration(seconds: number): string {
@@ -19,48 +23,18 @@ export function RecordingControls({
   duration,
   onRecord,
   onStop,
+  cameraEnabled = false,
+  micEnabled = false,
+  onCameraToggle,
+  onMicToggle,
 }: RecordingControlsProps) {
   const isRecording = state === "recording"
-  const isPaused = state === "paused"
   const isCountdown = state === "countdown"
 
   return (
     <div className="h-full flex items-center justify-center gap-4">
       <div className="flex items-center gap-2">
-        {isRecording || isPaused ? (
-          <Button
-            variant={isRecording ? "default" : "secondary"}
-            onClick={onRecord}
-          >
-            {isRecording ? (
-              <>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                >
-                  <rect x="6" y="6" width="12" height="12" rx="2" />
-                </svg>
-                Pause
-              </>
-            ) : (
-              <>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                >
-                  <polygon points="5 3 19 12 5 21 5 3" />
-                </svg>
-                Resume
-              </>
-            )}
-          </Button>
-        ) : (
+        {!isRecording ? (
           <Button
             variant="recording"
             onClick={onRecord}
@@ -94,8 +68,7 @@ export function RecordingControls({
               </>
             )}
           </Button>
-        )}
-        {(isRecording || isPaused) && (
+        ) : (
           <Button variant="destructive" onClick={onStop}>
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -119,13 +92,19 @@ export function RecordingControls({
         </div>
 
         <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onCameraToggle}
+            className={cameraEnabled ? "text-primary" : "text-muted-foreground"}
+            title={cameraEnabled ? "关闭摄像头" : "开启摄像头"}
+          >
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="18"
               height="18"
               viewBox="0 0 24 24"
-              fill="none"
+              fill={cameraEnabled ? "currentColor" : "none"}
               stroke="currentColor"
               strokeWidth="2"
               strokeLinecap="round"
@@ -135,13 +114,19 @@ export function RecordingControls({
               <circle cx="12" cy="13" r="4" />
             </svg>
           </Button>
-          <Button variant="ghost" size="icon">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onMicToggle}
+            className={micEnabled ? "text-primary" : "text-muted-foreground"}
+            title={micEnabled ? "关闭麦克风" : "开启麦克风"}
+          >
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="18"
               height="18"
               viewBox="0 0 24 24"
-              fill="none"
+              fill={micEnabled ? "currentColor" : "none"}
               stroke="currentColor"
               strokeWidth="2"
               strokeLinecap="round"

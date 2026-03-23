@@ -92,6 +92,11 @@ export function CameraBubble({
 
   const isCircle = shape === "circle"
 
+  // Don't render anything when stream is null (hidden by default)
+  if (!stream) {
+    return null
+  }
+
   return (
     <div
       ref={containerRef}

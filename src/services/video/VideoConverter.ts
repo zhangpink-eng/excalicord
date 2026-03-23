@@ -71,7 +71,7 @@ export class VideoConverter {
       throw new Error("FFmpeg not loaded")
     }
 
-    const { format, quality = "high" } = options
+    const { format, quality = "high", width, height } = options
 
     // Write input file to FFmpeg filesystem
     const inputData = await fetchFile(videoBlob)
@@ -110,7 +110,16 @@ export class VideoConverter {
       ])
     } else {
       // MP4 with H.264
-      await this.ffmpeg.exec([
+      const vfParams: string[] = []
+      if (width && height) {
+        vfParams.push(`scale=${width}:${height}:flags=lanczos`)
+      } else if (width) {
+        vfParams.push(`scale=${width}:-2`)
+      } else if (height) {
+        vfParams.push(`scale=-2:${height}`)
+      }
+
+      const args = [
         "-i", "input.webm",
         "-c:v", "libx264",
         "-crf", preset.crf,
@@ -118,8 +127,15 @@ export class VideoConverter {
         "-c:a", "aac",
         "-b:a", "128k",
         "-movflags", "+faststart",
-        "output.mp4",
-      ])
+      ]
+
+      if (vfParams.length > 0) {
+        args.push("-vf", vfParams.join(","))
+      }
+
+      args.push("output.mp4")
+
+      await this.ffmpeg.exec(args)
     }
 
     onProgress?.({ phase: "finalizing", percent: 100 })
@@ -158,6 +174,14 @@ export class VideoConverter {
     onProgress?: (progress: VideoConverterProgress) => void
   ): Promise<Blob> {
     return this.exportToBlob(videoBlob, { format: "mp4", quality: "high", fps: 30 }, onProgress)
+  }
+
+  // Fast 480P export for quick downloads
+  async exportTo480P(
+    videoBlob: Blob,
+    onProgress?: (progress: VideoConverterProgress) => void
+  ): Promise<Blob> {
+    return this.exportToBlob(videoBlob, { format: "mp4", quality: "low", fps: 30, width: 854, height: 480 }, onProgress)
   }
 
   async exportToGIF(

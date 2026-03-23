@@ -34,13 +34,9 @@ function App() {
 
   // Canvas recorder for recording Excalidraw + camera bubble
   const {
-    state: recorderState,
     startRecording: startCanvasRecording,
-    pauseRecording: pauseCanvasRecording,
-    resumeRecording: resumeCanvasRecording,
     stopRecording: stopCanvasRecording,
     setExcalidrawCanvas,
-    setCameraVideo,
     setCameraBubbleState,
     setBeautySettings,
   } = useCanvasRecorder()
@@ -50,6 +46,11 @@ function App() {
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null)
   const [beautyEnabled, setBeautyEnabled] = useState(false)
   const [beautySettings, setBeautySettingsState] = useState<BeautySettings>(defaultBeautySettings)
+  const [recordingError, setRecordingError] = useState<string | null>(null)
+
+  // Camera and mic toggle state (for control bar icons)
+  const [cameraEnabled, setCameraEnabled] = useState(false)
+  const [micEnabled, setMicEnabled] = useState(false)
 
   const cameraVideoRef = useRef<HTMLVideoElement>(null)
   const cameraBubblePosition = useRef({ x: 50, y: 50 })
@@ -88,44 +89,21 @@ function App() {
   }, [authLoading, user])
 
   const handleRecord = useCallback(async () => {
-    if (isRecording) {
-      // Pause recording
-      if (recorderState === "recording") {
-        pauseCanvasRecording()
-      } else if (recorderState === "paused") {
-        resumeCanvasRecording()
-      }
-    } else {
-      // Start recording
-      setIsRecording(true)
-      setDuration(0)
+    // Start recording - camera/mic should already be running if enabled
+    setIsRecording(true)
+    setDuration(0)
+    setRecordingError(null)
 
-      let camStream: MediaStream | null = null
-      let audioStream: MediaStream | null = null
+    // Set up Excalidraw canvas reference
+    const excalidrawCanvas = document.querySelector(".excalidraw-canvas canvas") as HTMLCanvasElement
+    if (excalidrawCanvas) {
+      setExcalidrawCanvas(excalidrawCanvas)
+    }
 
-      try {
-        // Start camera and mic - wait for them to be ready
-        camStream = await startCamera()
-        audioStream = await startMic()
-        console.log("Camera and mic started, streams:", camStream?.getVideoTracks().length, audioStream?.getAudioTracks().length)
-      } catch (err) {
-        console.error("Failed to start camera/mic:", err)
-        setIsRecording(false)
-        return
-      }
-
-      // Wait a bit for the video element to be ready in DOM
-      await new Promise(resolve => setTimeout(resolve, 200))
-
-      // Set up video reference for camera bubble
-      if (cameraVideoRef.current) {
-        console.log("Setting camera video ref")
-        setCameraVideo(cameraVideoRef.current)
-      }
-
-      // Set up camera bubble state for the recorder
+    // Set up camera bubble state if camera is enabled
+    if (cameraEnabled && cameraStream) {
       setCameraBubbleState({
-        stream: camStream,
+        stream: cameraStream,
         position: cameraBubblePosition.current,
         size: cameraBubbleSize.current,
         shape: "rounded-rect",
@@ -133,77 +111,166 @@ function App() {
         borderColor: "#ffffff",
         borderWidth: 3,
       })
-      console.log("Camera bubble state set with stream:", !!camStream)
-
-      // Set up Excalidraw canvas reference
-      const excalidrawCanvas = document.querySelector(".excalidraw-canvas canvas") as HTMLCanvasElement
-      if (excalidrawCanvas) {
-        setExcalidrawCanvas(excalidrawCanvas)
-      }
-
-      // Apply beauty settings to recorder
-      setBeautySettings(beautyEnabled, beautySettings)
-
-      // Start canvas recording
-      startCanvasRecording()
-
-      analytics.trackRecordingStarted(project?.id || "unknown")
     }
-  }, [isRecording, recorderState, startCamera, startMic, setCameraVideo, setCameraBubbleState, setBeautySettings, beautyEnabled, beautySettings, startCanvasRecording, pauseCanvasRecording, resumeCanvasRecording, setExcalidrawCanvas, project])
+
+    // Apply beauty settings to recorder
+    setBeautySettings(beautyEnabled, beautySettings)
+
+    // Start canvas recording
+    startCanvasRecording()
+
+    analytics.trackRecordingStarted(project?.id || "unknown")
+  }, [cameraEnabled, cameraStream, setExcalidrawCanvas, setCameraBubbleState, setBeautySettings, beautyEnabled, beautySettings, startCanvasRecording, project])
 
   const handleStop = useCallback(async () => {
     setIsRecording(false)
 
-    stopCamera()
-    stopMic()
-
     // Stop canvas recording and get the blob
     const blob = await stopCanvasRecording()
+    console.log("[handleStop] Recording stopped, blob:", blob ? `${blob.size} bytes, type: ${blob.type}` : "null")
+
     if (blob) {
       setRecordedBlob(blob)
+      console.log("[handleStop] Blob received, size:", blob.size)
+
+      // Immediately convert and download as MP4 (480P for faster transcoding)
+      try {
+        console.log("[handleStop] Loading video converter...")
+        const { videoConverter } = await import("@/services/video/VideoConverter")
+        await videoConverter.load()
+        console.log("[handleStop] Video converter loaded, starting 480P export...")
+        const mp4Blob = await videoConverter.exportTo480P(blob)
+        console.log("[handleStop] Export complete, MP4 size:", mp4Blob.size)
+
+        const url = URL.createObjectURL(mp4Blob)
+        const a = document.createElement("a")
+        a.href = url
+        a.download = `recording-${Date.now()}.mp4`
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        URL.revokeObjectURL(url)
+        console.log("[handleStop] Download triggered")
+      } catch (err) {
+        console.error("[handleStop] MP4 conversion failed, falling back to WebM:", err)
+        // Fallback to WebM
+        try {
+          const url = URL.createObjectURL(blob)
+          const a = document.createElement("a")
+          a.href = url
+          a.download = `recording-${Date.now()}.webm`
+          document.body.appendChild(a)
+          a.click()
+          document.body.removeChild(a)
+          URL.revokeObjectURL(url)
+          console.log("[handleStop] WebM fallback download triggered")
+        } catch (fallbackErr) {
+          console.error("[handleStop] WebM fallback also failed:", fallbackErr)
+        }
+      }
+    } else {
+      console.warn("[handleStop] No blob received from recording")
     }
 
     analytics.trackRecordingStopped(project?.id || "unknown", duration)
-  }, [stopCamera, stopMic, stopCanvasRecording, project, duration])
+  }, [stopCanvasRecording, project, duration])
+
+  // Toggle camera on/off (for control bar icon)
+  const handleToggleCamera = useCallback(async () => {
+    if (cameraEnabled) {
+      // Turn off camera
+      stopCamera()
+      setCameraEnabled(false)
+      setCameraBubbleState({
+        stream: null,
+        position: cameraBubblePosition.current,
+        size: cameraBubbleSize.current,
+        shape: "rounded-rect",
+        borderRadius: 16,
+        borderColor: "#ffffff",
+        borderWidth: 3,
+      })
+    } else {
+      // Turn on camera
+      try {
+        const stream = await startCamera()
+        setCameraEnabled(true)
+        // Set up camera bubble state
+        setCameraBubbleState({
+          stream: stream,
+          position: cameraBubblePosition.current,
+          size: cameraBubbleSize.current,
+          shape: "rounded-rect",
+          borderRadius: 16,
+          borderColor: "#ffffff",
+          borderWidth: 3,
+        })
+      } catch (err) {
+        console.error("Failed to start camera:", err)
+        setRecordingError(err instanceof Error ? err.message : "无法访问摄像头")
+      }
+    }
+  }, [cameraEnabled, startCamera, stopCamera, setCameraBubbleState])
+
+  // Toggle mic on/off (for control bar icon)
+  const handleToggleMic = useCallback(async () => {
+    if (micEnabled) {
+      // Turn off mic
+      stopMic()
+      setMicEnabled(false)
+    } else {
+      // Turn on mic
+      try {
+        await startMic()
+        setMicEnabled(true)
+      } catch (err) {
+        console.error("Failed to start mic:", err)
+        setRecordingError(err instanceof Error ? err.message : "无法访问麦克风")
+      }
+    }
+  }, [micEnabled, startMic, stopMic])
 
   const handleExport = useCallback(
     async (format: ExportFormat) => {
       analytics.trackExportStarted(project?.id || "unknown", format)
 
-      if (recordedBlob) {
-        // Use FFmpeg.wasm to convert if available
-        const { videoConverter } = await import("@/services/video/VideoConverter")
+      if (!recordedBlob) {
+        console.error("No recording available. Please record first.")
+        return
+      }
 
-        try {
-          await videoConverter.load()
-          let blob: Blob
+      // Use FFmpeg.wasm to convert if available
+      const { videoConverter } = await import("@/services/video/VideoConverter")
 
-          if (format === "gif") {
-            blob = await videoConverter.exportToGIF(recordedBlob)
-          } else if (format === "webm") {
-            blob = await videoConverter.exportToWebM(recordedBlob)
-          } else {
-            blob = await videoConverter.exportToMP4(recordedBlob)
-          }
+      try {
+        await videoConverter.load()
+        let blob: Blob
 
-          const url = URL.createObjectURL(blob)
-          const a = document.createElement("a")
-          a.href = url
-          a.download = `recording-${Date.now()}.${format}`
-          a.click()
-          URL.revokeObjectURL(url)
-
-          analytics.trackExportCompleted(project?.id || "unknown", format, duration)
-        } catch (err) {
-          console.error("Export failed:", err)
-          // Fallback to direct download
-          const url = URL.createObjectURL(recordedBlob)
-          const a = document.createElement("a")
-          a.href = url
-          a.download = `recording-${Date.now()}.webm`
-          a.click()
-          URL.revokeObjectURL(url)
+        if (format === "gif") {
+          blob = await videoConverter.exportToGIF(recordedBlob)
+        } else if (format === "webm") {
+          blob = await videoConverter.exportToWebM(recordedBlob)
+        } else {
+          blob = await videoConverter.exportToMP4(recordedBlob)
         }
+
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement("a")
+        a.href = url
+        a.download = `recording-${Date.now()}.${format}`
+        a.click()
+        URL.revokeObjectURL(url)
+
+        analytics.trackExportCompleted(project?.id || "unknown", format, duration)
+      } catch (err) {
+        console.error("Export failed:", err)
+        // Fallback to direct download of original recording
+        const url = URL.createObjectURL(recordedBlob)
+        const a = document.createElement("a")
+        a.href = url
+        a.download = `recording-${Date.now()}.webm`
+        a.click()
+        URL.revokeObjectURL(url)
       }
     },
     [recordedBlob, project, duration]
@@ -308,7 +375,7 @@ function App() {
           <div className="relative w-full h-full bg-canvas-light">
             <ExcalidrawCanvas />
             <CameraBubble
-              stream={cameraStream}
+              stream={cameraEnabled ? cameraStream : null}
               position={cameraBubblePosition.current}
               size={cameraBubbleSize.current}
               videoRef={cameraVideoRef}
@@ -325,12 +392,23 @@ function App() {
           />
         }
         controlBar={
-          <RecordingControls
-            state={isRecording ? "recording" : "idle"}
-            duration={duration}
-            onRecord={handleRecord}
-            onStop={handleStop}
-          />
+          <>
+            {recordingError && (
+              <div className="px-4 py-2 bg-destructive/10 text-destructive text-sm text-center">
+                {recordingError}
+              </div>
+            )}
+            <RecordingControls
+              state={isRecording ? "recording" : "idle"}
+              duration={duration}
+              onRecord={handleRecord}
+              onStop={handleStop}
+              cameraEnabled={cameraEnabled}
+              micEnabled={micEnabled}
+              onCameraToggle={handleToggleCamera}
+              onMicToggle={handleToggleMic}
+            />
+          </>
         }
       />
       {showPricing && (

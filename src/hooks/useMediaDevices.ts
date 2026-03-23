@@ -62,20 +62,32 @@ export function useMediaDevices(): UseMediaDevicesReturn {
     setIsLoading(true)
     setError(null)
     try {
-      console.log("Starting camera...")
-      const constraints: MediaStreamConstraints = {
-        video: selectedCamera
-          ? { deviceId: { exact: selectedCamera } }
-          : { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } },
+      let stream: MediaStream
+
+      // First try with specific device if selected
+      if (selectedCamera) {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { deviceId: { exact: selectedCamera } },
+          })
+        } catch (firstError) {
+          // Clear the invalid selection and try default
+          setSelectedCamera("")
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+          })
+        }
+      } else {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+        })
       }
-      const stream = await navigator.mediaDevices.getUserMedia(constraints)
-      console.log("Camera stream obtained:", stream.getVideoTracks().length, "video tracks")
+
       cameraStreamRef.current = stream
       setCameraStream(stream)
       return stream
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to access camera")
-      console.error("Camera error:", err)
       throw err
     } finally {
       setIsLoading(false)
@@ -86,20 +98,32 @@ export function useMediaDevices(): UseMediaDevicesReturn {
     if (micStreamRef.current) return micStreamRef.current // Already running
     setError(null)
     try {
-      console.log("Starting microphone...")
-      const constraints: MediaStreamConstraints = {
-        audio: selectedMic
-          ? { deviceId: { exact: selectedMic } }
-          : { echoCancellation: true, noiseSuppression: true },
+      let stream: MediaStream
+
+      // First try with specific device if selected
+      if (selectedMic) {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            audio: { deviceId: { exact: selectedMic } },
+          })
+        } catch (firstError) {
+          // Clear the invalid selection and try default
+          setSelectedMic("")
+          stream = await navigator.mediaDevices.getUserMedia({
+            audio: true,
+          })
+        }
+      } else {
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: true,
+        })
       }
-      const stream = await navigator.mediaDevices.getUserMedia(constraints)
-      console.log("Mic stream obtained:", stream.getAudioTracks().length, "audio tracks")
+
       micStreamRef.current = stream
       setMicStream(stream)
       return stream
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to access microphone")
-      console.error("Microphone error:", err)
       throw err
     }
   }, [selectedMic])
