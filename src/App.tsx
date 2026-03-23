@@ -134,64 +134,89 @@ function App() {
 
     if (blob) {
       setRecordedBlob(blob)
-      console.log("[handleStop] Recording stopped, blob:", blob.size, "bytes")
+      console.log("[handleStop] Recording stopped, blob:", blob.size, "bytes, type:", blob.type)
 
-      // 1. Immediately download WebM (fast, no conversion)
-      try {
-        const webmUrl = URL.createObjectURL(blob)
-        const webmA = document.createElement("a")
-        webmA.href = webmUrl
-        webmA.download = `recording-${Date.now()}.webm`
-        document.body.appendChild(webmA)
-        webmA.click()
-        document.body.removeChild(webmA)
-        URL.revokeObjectURL(webmUrl)
-        console.log("[handleStop] WebM downloaded immediately")
-      } catch (err) {
-        console.error("[handleStop] WebM download failed:", err)
-      }
+      // Check if already MP4 (native recording on Safari)
+      const isMP4 = blob.type === "video/mp4"
 
-      // 2. Start MP4 conversion in background (async)
-      setMp4Progress("正在生成 MP4...")
-
-      // Use setTimeout to not block UI
-      setTimeout(async () => {
+      if (isMP4) {
+        // Native MP4 - instant download!
+        setMp4Progress("正在下载 MP4...")
         try {
-          const { videoConverter } = await import("@/services/video/VideoConverter")
-          await videoConverter.load()
-
-          setMp4Progress("正在转码为 MP4 (480P)...")
-
-          const mp4Blob = await videoConverter.exportTo480P(blob, (progress) => {
-            setMp4Progress(`正在转码... ${progress.percent}%`)
-          })
-
-          console.log("[handleStop] MP4 generated, size:", mp4Blob.size)
-
-          const mp4Url = URL.createObjectURL(mp4Blob)
-          const mp4A = document.createElement("a")
-          mp4A.href = mp4Url
-          mp4A.download = `recording-${Date.now()}.mp4`
-          document.body.appendChild(mp4A)
-          mp4A.click()
-          document.body.removeChild(mp4A)
-          URL.revokeObjectURL(mp4Url)
-
-          setMp4Progress("MP4 生成完成！")
-          console.log("[handleStop] MP4 download triggered")
-
-          // Clear progress after 3 seconds
-          setTimeout(() => {
-            setMp4Progress("")
-          }, 3000)
+          const url = URL.createObjectURL(blob)
+          const a = document.createElement("a")
+          a.href = url
+          a.download = `recording-${Date.now()}.mp4`
+          document.body.appendChild(a)
+          a.click()
+          document.body.removeChild(a)
+          URL.revokeObjectURL(url)
+          setMp4Progress("MP4 下载完成！")
+          console.log("[handleStop] Native MP4 downloaded instantly")
+          setTimeout(() => setMp4Progress(""), 3000)
         } catch (err) {
-          console.error("[handleStop] MP4 conversion failed:", err)
-          setMp4Progress("MP4 生成失败，但 WebM 已下载")
-          setTimeout(() => {
-            setMp4Progress("")
-          }, 5000)
+          console.error("[handleStop] MP4 download failed:", err)
+          setMp4Progress("")
         }
-      }, 100) // Small delay to let UI update first
+      } else {
+        // WebM recording - need to convert
+        // 1. Immediately download WebM
+        setMp4Progress("正在下载 WebM...")
+        try {
+          const webmUrl = URL.createObjectURL(blob)
+          const webmA = document.createElement("a")
+          webmA.href = webmUrl
+          webmA.download = `recording-${Date.now()}.webm`
+          document.body.appendChild(webmA)
+          webmA.click()
+          document.body.removeChild(webmA)
+          URL.revokeObjectURL(webmUrl)
+          console.log("[handleStop] WebM downloaded immediately")
+        } catch (err) {
+          console.error("[handleStop] WebM download failed:", err)
+        }
+
+        // 2. Start MP4 conversion in background (async)
+        setMp4Progress("正在后台生成 MP4...")
+
+        setTimeout(async () => {
+          try {
+            const { videoConverter } = await import("@/services/video/VideoConverter")
+            await videoConverter.load()
+
+            setMp4Progress("正在转码为 MP4...")
+
+            const mp4Blob = await videoConverter.exportTo480P(blob, (progress) => {
+              setMp4Progress(`正在转码... ${progress.percent}%`)
+            })
+
+            console.log("[handleStop] MP4 generated, size:", mp4Blob.size)
+
+            const mp4Url = URL.createObjectURL(mp4Blob)
+            const mp4A = document.createElement("a")
+            mp4A.href = mp4Url
+            mp4A.download = `recording-${Date.now()}.mp4`
+            document.body.appendChild(mp4A)
+            mp4A.click()
+            document.body.removeChild(mp4A)
+            URL.revokeObjectURL(mp4Url)
+
+            setMp4Progress("MP4 生成完成！")
+            console.log("[handleStop] MP4 download triggered")
+
+            // Clear progress after 3 seconds
+            setTimeout(() => {
+              setMp4Progress("")
+            }, 3000)
+          } catch (err) {
+            console.error("[handleStop] MP4 conversion failed:", err)
+            setMp4Progress("MP4 生成失败，但 WebM 已下载")
+            setTimeout(() => {
+              setMp4Progress("")
+            }, 5000)
+          }
+        }, 100) // Small delay to let UI update first
+      }
     } else {
       console.warn("[handleStop] No blob received from recording")
     }

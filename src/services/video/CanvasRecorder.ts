@@ -129,15 +129,28 @@ export class CanvasRecorder {
       })
     }
 
-    // Determine supported MIME type
-    let mimeType = this.mimeType
-    if (!MediaRecorder.isTypeSupported(mimeType)) {
+    // Determine supported MIME type - try MP4 first for instant download, then fall back to WebM
+    let mimeType = ""
+
+    // Try MP4 first (Safari supports it natively, gives instant MP4)
+    if (MediaRecorder.isTypeSupported("video/mp4")) {
+      mimeType = "video/mp4"
+      console.log("[CanvasRecorder] Using native MP4 recording")
+    }
+    // Try WebM with VP9
+    else if (MediaRecorder.isTypeSupported("video/webm;codecs=vp9")) {
+      mimeType = "video/webm;codecs=vp9"
+      console.log("[CanvasRecorder] Using WebM VP9 recording")
+    }
+    // Fall back to basic WebM
+    else if (MediaRecorder.isTypeSupported("video/webm")) {
       mimeType = "video/webm"
-      if (!MediaRecorder.isTypeSupported(mimeType)) {
-        mimeType = ""
-      }
+      console.log("[CanvasRecorder] Using WebM recording")
+    } else {
+      console.warn("[CanvasRecorder] No supported MIME type found")
     }
 
+    this.mimeType = mimeType // Store actual mimeType used
     const options: MediaRecorderOptions = mimeType ? { mimeType } : {}
 
     this.mediaRecorder = new MediaRecorder(canvasStream, options)
@@ -169,6 +182,7 @@ export class CanvasRecorder {
 
       this.mediaRecorder.onstop = () => {
         const blob = new Blob(this.chunks, { type: this.mimeType || "video/webm" })
+        console.log("[CanvasRecorder] Recording stopped, blob:", blob.size, "bytes, type:", blob.type)
         this.isRecording = false
         resolve(blob)
       }
