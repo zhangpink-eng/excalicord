@@ -15,14 +15,19 @@ export function LoginPage({ onSignUp, onSuccess }: LoginPageProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    console.log("Login: handleSubmit called", { email })
     setIsLoading(true)
     setError(null)
 
     try {
+      console.log("Login: calling auth.signInWithPassword")
       const { error } = await auth.signInWithPassword(email, password)
+      console.log("Login: signInWithPassword result", { error })
       if (error) throw error
+      console.log("Login: success, calling onSuccess")
       onSuccess()
     } catch (err) {
+      console.error("Login: error", err)
       setError(err instanceof Error ? err.message : "Login failed")
     } finally {
       setIsLoading(false)

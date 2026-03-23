@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 
 export interface MediaDevice {
   deviceId: string
@@ -14,8 +14,8 @@ export interface UseMediaDevicesReturn {
   error: string | null
   selectCamera: (deviceId: string) => Promise<void>
   selectMic: (deviceId: string) => Promise<void>
-  startCamera: () => Promise<void>
-  startMic: () => Promise<void>
+  startCamera: () => Promise<MediaStream>
+  startMic: () => Promise<MediaStream>
   stopCamera: () => void
   stopMic: () => void
 }
@@ -29,7 +29,10 @@ export function useMediaDevices(): UseMediaDevicesReturn {
   const [selectedCamera, setSelectedCamera] = useState<string>("")
   const [selectedMic, setSelectedMic] = useState<string>("")
 
-  // Enumerate devices
+  // Use refs to store streams for immediate access (bypass React state batching)
+  const cameraStreamRef = useRef<MediaStream | null>(null)
+  const micStreamRef = useRef<MediaStream | null>(null)
+
   const refreshDevices = useCallback(async () => {
     try {
       const deviceList = await navigator.mediaDevices.enumerateDevices()
@@ -54,74 +57,86 @@ export function useMediaDevices(): UseMediaDevicesReturn {
     }
   }, [refreshDevices])
 
-  const startCamera = useCallback(async () => {
-    if (cameraStream) return // Already running
+  const startCamera = useCallback(async (): Promise<MediaStream> => {
+    if (cameraStreamRef.current) return cameraStreamRef.current // Already running
     setIsLoading(true)
     setError(null)
     try {
+      console.log("Starting camera...")
       const constraints: MediaStreamConstraints = {
         video: selectedCamera
           ? { deviceId: { exact: selectedCamera } }
           : { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } },
       }
       const stream = await navigator.mediaDevices.getUserMedia(constraints)
+      console.log("Camera stream obtained:", stream.getVideoTracks().length, "video tracks")
+      cameraStreamRef.current = stream
       setCameraStream(stream)
+      return stream
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to access camera")
       console.error("Camera error:", err)
-      throw err // Re-throw so caller can handle
+      throw err
     } finally {
       setIsLoading(false)
     }
-  }, [selectedCamera, cameraStream])
+  }, [selectedCamera])
 
-  const startMic = useCallback(async () => {
-    if (micStream) return // Already running
+  const startMic = useCallback(async (): Promise<MediaStream> => {
+    if (micStreamRef.current) return micStreamRef.current // Already running
     setError(null)
     try {
+      console.log("Starting microphone...")
       const constraints: MediaStreamConstraints = {
         audio: selectedMic
           ? { deviceId: { exact: selectedMic } }
           : { echoCancellation: true, noiseSuppression: true },
       }
       const stream = await navigator.mediaDevices.getUserMedia(constraints)
+      console.log("Mic stream obtained:", stream.getAudioTracks().length, "audio tracks")
+      micStreamRef.current = stream
       setMicStream(stream)
+      return stream
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to access microphone")
       console.error("Microphone error:", err)
       throw err
     }
-  }, [selectedMic, micStream])
+  }, [selectedMic])
 
   const stopCamera = useCallback(() => {
-    if (cameraStream) {
-      cameraStream.getTracks().forEach((track) => track.stop())
+    if (cameraStreamRef.current) {
+      cameraStreamRef.current.getTracks().forEach((track) => track.stop())
+      cameraStreamRef.current = null
       setCameraStream(null)
+      console.log("Camera stopped")
     }
-  }, [cameraStream])
+  }, [])
 
   const stopMic = useCallback(() => {
-    if (micStream) {
-      micStream.getTracks().forEach((track) => track.stop())
+    if (micStreamRef.current) {
+      micStreamRef.current.getTracks().forEach((track) => track.stop())
+      micStreamRef.current = null
       setMicStream(null)
+      console.log("Microphone stopped")
     }
-  }, [micStream])
+  }, [])
 
   const selectCamera = useCallback(async (deviceId: string) => {
     setSelectedCamera(deviceId)
-    if (cameraStream) {
+    if (cameraStreamRef.current) {
       stopCamera()
       await startCamera()
     }
-  }, [cameraStream, stopCamera, startCamera])
+  }, [stopCamera, startCamera])
 
   const selectMic = useCallback(async (deviceId: string) => {
     setSelectedMic(deviceId)
-    if (micStream) {
+    if (micStreamRef.current) {
       stopMic()
       await startMic()
     }
-  }, [micStream, stopMic, startMic])
+  }, [stopMic, startMic])
 
   // Cleanup on unmount
   useEffect(() => {

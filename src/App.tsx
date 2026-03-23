@@ -100,10 +100,14 @@ function App() {
       setIsRecording(true)
       setDuration(0)
 
+      let camStream: MediaStream | null = null
+      let audioStream: MediaStream | null = null
+
       try {
         // Start camera and mic - wait for them to be ready
-        await startCamera()
-        await startMic()
+        camStream = await startCamera()
+        audioStream = await startMic()
+        console.log("Camera and mic started, streams:", camStream?.getVideoTracks().length, audioStream?.getAudioTracks().length)
       } catch (err) {
         console.error("Failed to start camera/mic:", err)
         setIsRecording(false)
@@ -111,16 +115,17 @@ function App() {
       }
 
       // Wait a bit for the video element to be ready in DOM
-      await new Promise(resolve => setTimeout(resolve, 100))
+      await new Promise(resolve => setTimeout(resolve, 200))
 
       // Set up video reference for camera bubble
       if (cameraVideoRef.current) {
+        console.log("Setting camera video ref")
         setCameraVideo(cameraVideoRef.current)
       }
 
       // Set up camera bubble state for the recorder
       setCameraBubbleState({
-        stream: cameraStream,
+        stream: camStream,
         position: cameraBubblePosition.current,
         size: cameraBubbleSize.current,
         shape: "rounded-rect",
@@ -128,6 +133,7 @@ function App() {
         borderColor: "#ffffff",
         borderWidth: 3,
       })
+      console.log("Camera bubble state set with stream:", !!camStream)
 
       // Set up Excalidraw canvas reference
       const excalidrawCanvas = document.querySelector(".excalidraw-canvas canvas") as HTMLCanvasElement
@@ -143,7 +149,7 @@ function App() {
 
       analytics.trackRecordingStarted(project?.id || "unknown")
     }
-  }, [isRecording, recorderState, startCamera, startMic, cameraStream, setCameraVideo, setCameraBubbleState, setBeautySettings, beautyEnabled, beautySettings, startCanvasRecording, pauseCanvasRecording, resumeCanvasRecording, setExcalidrawCanvas, project])
+  }, [isRecording, recorderState, startCamera, startMic, setCameraVideo, setCameraBubbleState, setBeautySettings, beautyEnabled, beautySettings, startCanvasRecording, pauseCanvasRecording, resumeCanvasRecording, setExcalidrawCanvas, project])
 
   const handleStop = useCallback(async () => {
     setIsRecording(false)
