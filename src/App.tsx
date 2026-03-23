@@ -45,14 +45,31 @@ function App() {
     }
   }, [])
 
-  // Redirect based on auth state
+  // Redirect based on auth state (only on user change, not on authLoading)
   useEffect(() => {
     if (!authLoading) {
       if (user) {
         setCurrentPage("editor")
         analytics.identify(user.id, { email: user.email })
-      } else {
-        setCurrentPage("login")
+      }
+      // Don't auto-redirect to login when authLoading becomes false
+      // This allows manual page navigation (login/signup) to work
+    }
+  }, [authLoading, user])
+
+  // Track if this is the initial mount
+  const isInitialMount = useRef(true)
+
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false
+      // On initial mount, set page based on auth state
+      if (!authLoading) {
+        if (user) {
+          setCurrentPage("editor")
+        } else {
+          setCurrentPage("login")
+        }
       }
     }
   }, [authLoading, user])
@@ -189,7 +206,7 @@ function App() {
   }
 
   // Render pages
-  if (!user || currentPage === "login") {
+  if (currentPage === "login" || (!user && currentPage !== "signup")) {
     return <LoginPage onSignUp={() => setCurrentPage("signup")} onSuccess={handleAuthSuccess} />
   }
 
