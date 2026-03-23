@@ -1,0 +1,142 @@
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
+import type { User } from "@/types"
+import { auth, db } from "@/services/api/supabase"
+
+interface AuthContextType {
+  user: User | null
+  isLoading: boolean
+  error: string | null
+  signInWithGoogle: () => Promise<void>
+  signInWithPassword: (email: string, password: string) => Promise<void>
+  signUp: (email: string, password: string, fullName?: string) => Promise<void>
+  signOut: () => Promise<void>
+  refreshUser: () => Promise<void>
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined)
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  const refreshUser = async () => {
+    try {
+      const { data, error } = await db.profile.get()
+      if (error) throw error
+      setUser(data)
+    } catch (err) {
+      console.error("Failed to refresh user:", err)
+      setUser(null)
+    }
+  }
+
+  useEffect(() => {
+    // Check for existing session
+    const initAuth = async () => {
+      try {
+        const { data } = await auth.getSession()
+        if (data.session) {
+          await refreshUser()
+        }
+      } catch (err) {
+        console.error("Auth init error:", err)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    initAuth()
+
+    // Listen for auth changes
+    const { data: { subscription } } = auth.onAuthStateChange(async (event, session) => {
+      if (event === "SIGNED_IN" && session) {
+        await refreshUser()
+      } else if (event === "SIGNED_OUT") {
+        setUser(null)
+      }
+    })
+
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [])
+
+  const signInWithGoogle = async () => {
+    setIsLoading(true)
+    setError(null)
+    try {
+      const { error } = await auth.signInWithGoogle()
+      if (error) throw error
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Sign in failed")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const signInWithPassword = async (email: string, password: string) => {
+    setIsLoading(true)
+    setError(null)
+    try {
+      const { error } = await auth.signInWithPassword(email, password)
+      if (error) throw error
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Sign in failed")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const signUp = async (email: string, password: string, fullName?: string) => {
+    setIsLoading(true)
+    setError(null)
+    try {
+      const { error } = await auth.signUp(email, password, fullName)
+      if (error) throw error
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Sign up failed")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const signOut = async () => {
+    setIsLoading(true)
+    setError(null)
+    try {
+      const { error } = await auth.signOut()
+      if (error) throw error
+      setUser(null)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Sign out failed")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        isLoading,
+        error,
+        signInWithGoogle,
+        signInWithPassword,
+        signUp,
+        signOut,
+        refreshUser,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  )
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext)
+  if (context === undefined) {
+    throw new Error("useAuth must be used within an AuthProvider")
+  }
+  return context
+}
