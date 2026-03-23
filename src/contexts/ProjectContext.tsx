@@ -105,10 +105,11 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   const updateSlide = useCallback(async (id: string, updates: Partial<Slide>) => {
     setError(null)
     try {
-      const { data, error } = await db.slides.update(id, updates)
+      const { error } = await db.slides.update(id, updates)
       if (error) throw error
+      // Update local state optimistically
       setSlides((prev) =>
-        prev.map((s) => (s.id === id ? { ...s, ...data } : s))
+        prev.map((s) => (s.id === id ? { ...s, ...updates } : s))
       )
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update slide")

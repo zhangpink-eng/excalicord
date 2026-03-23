@@ -117,7 +117,7 @@ export const db = {
     },
     update: async (id: string, updates: Record<string, unknown>) => {
       if (!supabaseClient) throw new Error("Supabase not initialized")
-      return supabaseClient.from("slides").update(updates).eq("id", id).select().single()
+      return supabaseClient.from("slides").update(updates).eq("id", id)
     },
     delete: async (id: string) => {
       if (!supabaseClient) throw new Error("Supabase not initialized")

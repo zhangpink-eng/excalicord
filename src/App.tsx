@@ -51,17 +51,6 @@ function App() {
     deleteSlide(id)
   }, [deleteSlide])
 
-  // Save elements to current slide when they change
-  const handleElementsChange = useCallback((elements: any[]) => {
-    const currentSlide = slides[currentSlideIndex]
-    if (currentSlide) {
-      updateSlide(currentSlide.id, { content: { elements } })
-    }
-  }, [slides, currentSlideIndex, updateSlide])
-
-  // Get current slide's elements
-  const currentSlideElements = slides[currentSlideIndex]?.content?.elements as any[] | undefined
-
   const {
     cameraStream,
     startCamera,
@@ -424,11 +413,50 @@ function App() {
           />
         }
         canvas={
-          <div className="relative w-full h-full bg-canvas-light">
-            <ExcalidrawCanvas
-              elements={currentSlideElements}
-              onElementsChange={handleElementsChange}
-            />
+          <div className="relative w-full h-full bg-canvas-light overflow-auto">
+            <div className="flex gap-4 p-4 min-h-full">
+              {slides.map((slide, index) => (
+                <div
+                  key={slide.id}
+                  className={`flex-shrink-0 border-2 rounded-lg overflow-hidden transition-colors ${
+                    currentSlideIndex === index
+                      ? "border-primary shadow-lg"
+                      : "border-border hover:border-primary/50"
+                  }`}
+                  style={{ width: "400px", height: "300px" }}
+                  onClick={() => goToSlide(index)}
+                >
+                  <div className="w-full h-full bg-white">
+                    <ExcalidrawCanvas
+                      elements={slide.content?.elements as any[] || []}
+                      onElementsChange={(elements) => {
+                        updateSlide(slide.id, { content: { elements } })
+                      }}
+                    />
+                  </div>
+                </div>
+              ))}
+              {/* Add slide button */}
+              <button
+                onClick={handleAddSlide}
+                className="flex-shrink-0 border-2 border-dashed border-border hover:border-primary rounded-lg flex items-center justify-center text-muted-foreground hover:text-primary transition-colors"
+                style={{ width: "400px", height: "300px" }}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="48"
+                  height="48"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
+              </button>
+            </div>
             <CameraBubble
               stream={cameraEnabled ? cameraStream : null}
               position={cameraBubblePosition.current}
