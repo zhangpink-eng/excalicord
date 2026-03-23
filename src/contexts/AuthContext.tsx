@@ -15,98 +15,65 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-// Prevent simultaneous refreshUser calls
-let refreshInProgress = false
+// Build user object from auth user data (no lock needed)
+function buildUserFromAuthUser(authUser: { id: string; email?: string; user_metadata?: Record<string, unknown> }): User {
+  return {
+    id: authUser.id,
+    email: authUser.email || "",
+    fullName: authUser.user_metadata?.full_name as string | undefined,
+    avatarUrl: authUser.user_metadata?.avatar_url as string | undefined,
+    subscriptionTier: "free",
+    subscriptionStatus: "active",
+  }
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // Fetch profile from database (this is where lock issues can occur)
+  // Only call this after we've confirmed we have a valid session
+  const fetchProfile = async (_userId: string): Promise<User | null> => {
+    try {
+      const { data: profileData, error: profileError } = await db.profile.get()
+      if (profileError) {
+        console.warn("Profile fetch failed, using auth data:", profileError.message)
+        return null
+      }
+      return profileData
+    } catch (err) {
+      console.warn("Profile fetch error:", err)
+      return null
+    }
+  }
+
   const refreshUser = async () => {
-    // Skip if already refreshing to prevent lock conflicts
-    if (refreshInProgress) {
-      console.log("refreshUser already in progress, skipping")
+    // Get session without calling getUser() to avoid lock
+    const supabase = getSupabase()
+    if (!supabase) {
+      console.warn("Supabase not initialized, skipping refreshUser")
       return
     }
 
-    refreshInProgress = true
-
     try {
-      const supabase = getSupabase()
-      if (!supabase) {
-        console.warn("Supabase not initialized, skipping refreshUser")
-        return
-      }
-
-      // Use getUser() instead of getSession() to avoid token lock issues
-      const { data: userData, error: userError } = await supabase.auth.getUser()
-
-      if (userError) {
-        console.error("getUser error:", userError.message)
-        // If getUser fails, try getSession as fallback
-        const { data: sessionData } = await supabase.auth.getSession()
-        if (sessionData.session?.user) {
-          const authUser = sessionData.session.user
-          setUser({
-            id: authUser.id,
-            email: authUser.email || "",
-            fullName: authUser.user_metadata?.full_name,
-            avatarUrl: authUser.user_metadata?.avatar_url,
-            subscriptionTier: "free",
-            subscriptionStatus: "active",
-          })
-        }
-        return
-      }
-
-      if (userData.user) {
-        const authUser = userData.user
-        // Try to get profile, but if it fails, use auth user data
-        const { data: profileData, error: profileError } = await db.profile.get()
-        if (profileError) {
-          // Profile doesn't exist, create a basic user from auth data
-          console.warn("Profile not found, using auth user data:", profileError.message)
-          setUser({
-            id: authUser.id,
-            email: authUser.email || "",
-            fullName: authUser.user_metadata?.full_name,
-            avatarUrl: authUser.user_metadata?.avatar_url,
-            subscriptionTier: "free",
-            subscriptionStatus: "active",
-          })
+      const { data: sessionData } = await supabase.auth.getSession()
+      if (sessionData.session?.user) {
+        const authUser = sessionData.session.user
+        // Try to get profile (may fail if profiles table doesn't exist)
+        const profile = await fetchProfile(authUser.id)
+        if (profile) {
+          setUser(profile)
         } else {
-          setUser(profileData)
+          setUser(buildUserFromAuthUser(authUser))
         }
       }
     } catch (err) {
       console.error("Failed to refresh user:", err)
-      // Don't set user to null on error - try to use auth session
-      try {
-        const supabase = getSupabase()
-        if (!supabase) return
-        const { data: sessionData } = await supabase.auth.getSession()
-        if (sessionData.session?.user) {
-          const authUser = sessionData.session.user
-          setUser({
-            id: authUser.id,
-            email: authUser.email || "",
-            fullName: authUser.user_metadata?.full_name,
-            avatarUrl: authUser.user_metadata?.avatar_url,
-            subscriptionTier: "free",
-            subscriptionStatus: "active",
-          })
-        }
-      } catch (fallbackErr) {
-        console.error("Fallback also failed:", fallbackErr)
-      }
-    } finally {
-      refreshInProgress = false
     }
   }
 
   useEffect(() => {
-    // Check if Supabase is initialized
     const supabase = getSupabase()
     if (!supabase) {
       console.warn("Supabase not initialized, skipping auth init")
@@ -114,12 +81,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return
     }
 
-    // Check for existing session
+    // Initial session check - use getSession which doesn't require lock
     const initAuth = async () => {
       try {
-        const { data } = await auth.getSession()
-        if (data.session) {
-          await refreshUser()
+        const { data: sessionData } = await supabase.auth.getSession()
+        if (sessionData.session?.user) {
+          const authUser = sessionData.session.user
+          const profile = await fetchProfile(authUser.id)
+          if (profile) {
+            setUser(profile)
+          } else {
+            setUser(buildUserFromAuthUser(authUser))
+          }
         }
       } catch (err) {
         console.error("Auth init error:", err)
@@ -130,10 +103,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     initAuth()
 
-    // Listen for auth changes
-    const { data: { subscription } } = auth.onAuthStateChange(async (event, session) => {
-      if (event === "SIGNED_IN" && session) {
-        await refreshUser()
+    // Listen for auth changes - update user directly from session to avoid lock
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("Auth state changed:", event)
+      if (event === "SIGNED_IN" && session?.user) {
+        // Don't call refreshUser() - just use session data directly
+        const authUser = session.user
+        const profile = await fetchProfile(authUser.id)
+        if (profile) {
+          setUser(profile)
+        } else {
+          setUser(buildUserFromAuthUser(authUser))
+        }
       } else if (event === "SIGNED_OUT") {
         setUser(null)
       }
