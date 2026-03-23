@@ -9,6 +9,7 @@ import { useAuth } from "@/contexts"
 import { useProject } from "@/contexts"
 import { LoginPage, SignUpPage, DashboardPage, PricingPage } from "@/pages"
 import { analytics } from "@/services/api/analytics"
+import { defaultBeautySettings, type BeautySettings } from "@/services/beauty/BeautyFilter"
 import type { ExportFormat } from "@/types"
 
 type Page = "login" | "signup" | "dashboard" | "editor"
@@ -40,11 +41,14 @@ function App() {
     stopRecording: stopCanvasRecording,
     setExcalidrawCanvas,
     setCameraVideo,
+    setBeautySettings,
   } = useCanvasRecorder()
 
   const [isRecording, setIsRecording] = useState(false)
   const [duration, setDuration] = useState(0)
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null)
+  const [beautyEnabled, setBeautyEnabled] = useState(false)
+  const [beautySettings, setBeautySettingsState] = useState<BeautySettings>(defaultBeautySettings)
 
   const cameraVideoRef = useRef<HTMLVideoElement>(null)
   const cameraBubblePosition = useRef({ x: 50, y: 50 })
@@ -108,12 +112,15 @@ function App() {
         setExcalidrawCanvas(excalidrawCanvas)
       }
 
+      // Apply beauty settings to recorder
+      setBeautySettings(beautyEnabled, beautySettings)
+
       // Start canvas recording
       startCanvasRecording()
 
       analytics.trackRecordingStarted(project?.id || "unknown")
     }
-  }, [isRecording, recorderState, startCamera, startMic, setCameraVideo, startCanvasRecording, pauseCanvasRecording, resumeCanvasRecording, setExcalidrawCanvas, project])
+  }, [isRecording, recorderState, startCamera, startMic, setCameraVideo, setBeautySettings, beautyEnabled, beautySettings, startCanvasRecording, pauseCanvasRecording, resumeCanvasRecording, setExcalidrawCanvas, project])
 
   const handleStop = useCallback(async () => {
     setIsRecording(false)
@@ -279,7 +286,15 @@ function App() {
             />
           </div>
         }
-        rightPanel={<RightPanel />}
+        rightPanel={
+          <RightPanel
+            beautyEnabled={beautyEnabled}
+            beautySettings={beautySettings}
+            onBeautySettingChange={(key, value) => setBeautySettingsState((prev) => ({ ...prev, [key]: value }))}
+            onBeautyToggle={() => setBeautyEnabled((v) => !v)}
+            onBeautyReset={() => setBeautySettingsState(defaultBeautySettings)}
+          />
+        }
         controlBar={
           <RecordingControls
             state={isRecording ? "recording" : "idle"}

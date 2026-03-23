@@ -5,6 +5,8 @@
  * overlay and encoding it as a video using MediaRecorder API.
  */
 
+import { BeautyFilter, type BeautySettings } from "@/services/beauty/BeautyFilter"
+
 export interface CameraBubbleState {
   stream: MediaStream | null
   position: { x: number; y: number }
@@ -35,6 +37,17 @@ export class CanvasRecorder {
   private excalidrawCanvas: HTMLCanvasElement | null = null
   private cameraBubble: CameraBubbleState | null = null
   private cameraVideo: HTMLVideoElement | null = null
+
+  // Beauty filter
+  private beautyFilter: BeautyFilter | null = null
+  private beautyEnabled = false
+  private beautySettings: BeautySettings = {
+    smoothing: 30,
+    whitening: 20,
+    faceSlimming: 0,
+    skinTone: 50,
+  }
+  private beautyCanvas: OffscreenCanvas | null = null
 
   // Dimensions
   private width = 1920
@@ -74,6 +87,20 @@ export class CanvasRecorder {
    */
   setCameraVideo(video: HTMLVideoElement | null): void {
     this.cameraVideo = video
+  }
+
+  /**
+   * Set beauty filter settings
+   */
+  setBeautySettings(enabled: boolean, settings?: BeautySettings): void {
+    this.beautyEnabled = enabled
+    if (settings) {
+      this.beautySettings = settings
+    }
+    if (enabled && !this.beautyFilter) {
+      this.beautyFilter = new BeautyFilter(this.width, this.height)
+      this.beautyCanvas = new OffscreenCanvas(this.width, this.height)
+    }
   }
 
   /**
@@ -284,8 +311,38 @@ export class CanvasRecorder {
 
       // Draw video (flip horizontally for mirror effect)
       this.ctx.scale(-1, 1)
-      this.ctx.drawImage(this.cameraVideo, -x - width, y, width, height)
-      this.ctx.setTransform(1, 0, 0, 1, 0, 0)
+
+      // Apply beauty filter if enabled
+      if (this.beautyEnabled && this.beautyFilter && this.beautyCanvas) {
+        const tempCtx = this.beautyCanvas.getContext("2d")
+        if (tempCtx) {
+          // Draw video to temp canvas (mirrored)
+          tempCtx.save()
+          tempCtx.scale(-1, 1)
+          tempCtx.drawImage(this.cameraVideo, -width, 0, width, height)
+          tempCtx.restore()
+
+          // Get image data and apply beauty filter
+          const imageData = tempCtx.getImageData(0, 0, width, height)
+          const processedData = this.beautyFilter.applyBeautyFilter(imageData, this.beautySettings)
+
+          // Put processed data back
+          tempCtx.putImageData(processedData, 0, 0)
+
+          // Draw the processed canvas (note: mirror is already applied in tempCtx)
+          this.ctx.save()
+          this.ctx.scale(-1, 1)
+          this.ctx.drawImage(this.beautyCanvas, -x - width, y, width, height)
+          this.ctx.restore()
+          this.ctx.setTransform(1, 0, 0, 1, 0, 0)
+        } else {
+          this.ctx.drawImage(this.cameraVideo, -x - width, y, width, height)
+          this.ctx.setTransform(1, 0, 0, 1, 0, 0)
+        }
+      } else {
+        this.ctx.drawImage(this.cameraVideo, -x - width, y, width, height)
+        this.ctx.setTransform(1, 0, 0, 1, 0, 0)
+      }
 
       this.ctx.restore()
     }

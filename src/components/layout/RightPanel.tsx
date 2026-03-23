@@ -1,19 +1,22 @@
-import { useState } from "react"
+import { type ReactNode } from "react"
 import { BeautyPanel } from "@/components/beauty/BeautyPanel"
-import { defaultBeautySettings } from "@/services/beauty/BeautyFilter"
-import type { ReactNode } from "react"
+import type { BeautySettings } from "@/services/beauty/BeautyFilter"
 
-export function RightPanel() {
-  const [beautyEnabled, setBeautyEnabled] = useState(false)
-  const [beautySettings, setBeautySettings] = useState(defaultBeautySettings)
+export interface RightPanelProps {
+  beautyEnabled: boolean
+  beautySettings: BeautySettings
+  onBeautySettingChange: <K extends keyof BeautySettings>(key: K, value: BeautySettings[K]) => void
+  onBeautyToggle: () => void
+  onBeautyReset: () => void
+}
 
-  const updateBeautySetting = <K extends keyof typeof beautySettings>(
-    key: K,
-    value: (typeof beautySettings)[K]
-  ) => {
-    setBeautySettings((prev) => ({ ...prev, [key]: value }))
-  }
-
+export function RightPanel({
+  beautyEnabled,
+  beautySettings,
+  onBeautySettingChange,
+  onBeautyToggle,
+  onBeautyReset,
+}: RightPanelProps) {
   return (
     <div className="p-4 space-y-6">
       <section>
@@ -30,9 +33,9 @@ export function RightPanel() {
         <BeautyPanel
           settings={beautySettings}
           isEnabled={beautyEnabled}
-          onSettingChange={updateBeautySetting}
-          onToggle={() => setBeautyEnabled((v) => !v)}
-          onReset={() => setBeautySettings(defaultBeautySettings)}
+          onSettingChange={onBeautySettingChange}
+          onToggle={onBeautyToggle}
+          onReset={onBeautyReset}
         />
       </section>
 

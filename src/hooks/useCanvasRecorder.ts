@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { CanvasRecorder, type CameraBubbleState } from "@/services/video/CanvasRecorder"
+import type { BeautySettings } from "@/services/beauty/BeautyFilter"
 
 export type RecorderState = "idle" | "recording" | "paused" | "stopped"
 
@@ -14,6 +15,7 @@ export interface UseCanvasRecorderReturn {
   setCameraBubbleState: (state: CameraBubbleState) => void
   setExcalidrawCanvas: (canvas: HTMLCanvasElement | null) => void
   setCameraVideo: (video: HTMLVideoElement | null) => void
+  setBeautySettings: (enabled: boolean, settings?: BeautySettings) => void
 }
 
 export function useCanvasRecorder(): UseCanvasRecorderReturn {
@@ -71,6 +73,10 @@ export function useCanvasRecorder(): UseCanvasRecorderReturn {
   const setCameraVideo = useCallback((video: HTMLVideoElement | null) => {
     cameraVideoRef.current = video
     recorderRef.current?.setCameraVideo(video)
+  }, [])
+
+  const setBeautySettings = useCallback((enabled: boolean, settings?: BeautySettings) => {
+    recorderRef.current?.setBeautySettings(enabled, settings)
   }, [])
 
   const startRecording = useCallback(async () => {
@@ -141,5 +147,6 @@ export function useCanvasRecorder(): UseCanvasRecorderReturn {
     setCameraBubbleState,
     setExcalidrawCanvas,
     setCameraVideo,
+    setBeautySettings,
   }
 }
