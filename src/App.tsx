@@ -4,6 +4,7 @@ import { SlideRail } from "@/components/slides/SlideRail"
 import { RecordingControls } from "@/components/recording/RecordingControls"
 import { ExcalidrawCanvas, CameraBubble } from "@/components/canvas"
 import { RightPanel } from "@/components/layout/RightPanel"
+import { LanguageSelector } from "@/components/ui"
 import { useMediaDevices, useSlides, useTranslation, useCanvasRecorder } from "@/hooks"
 import { useAuth } from "@/contexts"
 import { useProject } from "@/contexts"
@@ -19,7 +20,12 @@ function App() {
   const { project, createProject, loadProject } = useProject()
   const [currentPage, setCurrentPage] = useState<Page>(user ? "editor" : "login")
   const [showPricing, setShowPricing] = useState(false)
-  const [projectName] = useState("Untitled Project")
+  const [projectName, setProjectName] = useState("Untitled Project")
+
+  // Handle project name change
+  const handleProjectNameChange = useCallback((name: string) => {
+    setProjectName(name)
+  }, [])
 
   const { slides, currentSlideIndex, addSlide, goToSlide } = useSlides()
 
@@ -364,11 +370,13 @@ function App() {
       <MainLayout
         header={
           <Header
-            projectName={project?.title || projectName}
+            projectName={projectName}
+            onProjectNameChange={handleProjectNameChange}
             onTogglePanel={toggleRightPanel}
             onShare={handleShare}
             onPricing={handlePricing}
             panelVisible={rightPanelVisible}
+            languageSelector={<LanguageSelector />}
           />
         }
         slideRail={

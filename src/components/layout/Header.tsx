@@ -1,15 +1,49 @@
-import { Button, LanguageSelector } from "@/components/ui"
+import { useState } from "react"
+import { Button } from "@/components/ui"
 import { APP_NAME } from "@/lib/constants"
 
 interface HeaderProps {
   projectName?: string
+  onProjectNameChange?: (name: string) => void
   onTogglePanel?: () => void
   onShare?: () => void
   onPricing?: () => void
   panelVisible?: boolean
+  languageSelector?: React.ReactNode
 }
 
-export function Header({ projectName, onTogglePanel, onShare, onPricing, panelVisible }: HeaderProps) {
+export function Header({
+  projectName,
+  onProjectNameChange,
+  onTogglePanel,
+  onShare,
+  onPricing,
+  panelVisible,
+  languageSelector,
+}: HeaderProps) {
+  const [isEditing, setIsEditing] = useState(false)
+  const [editName, setEditName] = useState(projectName || "")
+
+  const handleStartEdit = () => {
+    setEditName(projectName || "")
+    setIsEditing(true)
+  }
+
+  const handleSave = () => {
+    if (editName.trim()) {
+      onProjectNameChange?.(editName.trim())
+    }
+    setIsEditing(false)
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      handleSave()
+    } else if (e.key === "Escape") {
+      setIsEditing(false)
+    }
+  }
+
   return (
     <header className="h-12 border-b bg-background flex items-center justify-between px-4">
       <div className="flex items-center gap-3">
@@ -19,15 +53,33 @@ export function Header({ projectName, onTogglePanel, onShare, onPricing, panelVi
           </div>
           <span className="font-semibold text-sm">{APP_NAME}</span>
         </div>
-        {projectName && (
+        {projectName !== undefined && (
           <>
             <span className="text-border">|</span>
-            <span className="text-sm text-muted-foreground">{projectName}</span>
+            {isEditing ? (
+              <input
+                type="text"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                onBlur={handleSave}
+                onKeyDown={handleKeyDown}
+                autoFocus
+                className="text-sm bg-background border border-input rounded px-2 py-1 outline-none focus:ring-2 focus:ring-ring"
+              />
+            ) : (
+              <span
+                onClick={handleStartEdit}
+                className="text-sm text-muted-foreground cursor-pointer hover:text-foreground"
+                title="点击修改项目名称"
+              >
+                {projectName}
+              </span>
+            )}
           </>
         )}
       </div>
       <div className="flex items-center gap-1">
-        <LanguageSelector />
+        {languageSelector}
         <span className="text-xs text-muted-foreground mr-2">Auto-saved</span>
 
         {/* Pricing icon */}
