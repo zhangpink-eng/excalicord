@@ -182,7 +182,7 @@ export function RecordingPreview({
         {/* Size adjust handle - top right corner */}
         <div
           onMouseDown={handleResizeMouseDown}
-          className={`absolute -top-2 -right-2 w-4 h-4 ${isPreview ? "bg-yellow-500" : "bg-red-500"} rounded cursor-se-resize pointer-events-auto`}
+          className={`absolute -top-2 -right-2 w-4 h-4 bg-red-500 rounded cursor-se-resize pointer-events-auto`}
           style={{ cursor: "se-resize" }}
         />
 
