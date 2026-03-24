@@ -563,11 +563,11 @@ function App() {
               }}
             />
 
-            {/* Slide frames as visual overlays */}
+            {/* Slide frames - clickable overlays */}
             <div
               ref={slidesContainerRef}
-              className="absolute inset-0 flex items-center overflow-x-auto pointer-events-none"
-              style={{ scrollBehavior: 'smooth' }}
+              className="absolute inset-0 flex items-center overflow-x-auto"
+              style={{ scrollBehavior: 'smooth', pointerEvents: 'none' }}
             >
               <div className="flex items-center gap-4 px-4 min-w-max">
                 {slides.map((slide, index) => {
@@ -576,25 +576,25 @@ function App() {
                     <div
                       key={slide.id}
                       data-slide-index={index}
-                      className={`relative flex-shrink-0 cursor-pointer transition-all duration-200 ${
-                        isActive ? "z-20 scale-105" : "z-10"
+                      className={`relative flex-shrink-0 transition-all duration-200 ${
+                        isActive ? "z-20" : "z-10"
                       }`}
                       style={{
                         width: "720px",
                         height: "540px",
                       }}
-                      onClick={() => {
-                        goToSlide(index)
-                        setTimeout(() => {
-                          const container = slidesContainerRef.current
-                          const slideEl = container?.querySelector(`[data-slide-index="${index}"]`)
-                          slideEl?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
-                        }, 50)
-                      }}
                     >
+                      {/* Clickable area */}
+                      <div
+                        className="absolute inset-0 cursor-pointer"
+                        onClick={() => {
+                          goToSlide(index)
+                        }}
+                      />
+
                       {/* Border overlay */}
                       <div
-                        className={`absolute inset-0 rounded-lg transition-all duration-200 ${
+                        className={`absolute inset-0 rounded-lg transition-all duration-200 pointer-events-none ${
                           isActive
                             ? "border-4 border-primary shadow-2xl"
                             : "border-2 border-border/70"
@@ -603,7 +603,7 @@ function App() {
 
                       {/* Slide number label */}
                       <div
-                        className={`absolute -top-8 left-1/2 -translate-x-1/2 text-sm font-medium px-3 py-1 rounded-full transition-colors ${
+                        className={`absolute -top-8 left-1/2 -translate-x-1/2 text-sm font-medium px-3 py-1 rounded-full transition-colors pointer-events-none ${
                           isActive
                             ? "bg-primary text-primary-foreground"
                             : "bg-muted text-muted-foreground"
