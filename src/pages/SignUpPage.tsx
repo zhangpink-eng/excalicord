@@ -47,7 +47,7 @@ export function SignUpPage({ onSignIn, onSuccess }: SignUpPageProps) {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
       <div className="w-full max-w-md p-8 bg-white rounded-xl shadow-lg">
         <div className="text-center mb-8">
-          <div className="w-12 h-12 mx-auto mb-4 rounded-xl bg-gradient-to-br from-purple-600 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/20">
+          <div className="w-12 h-12 mx-auto mb-4 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
             <span className="text-white text-xl font-bold">E</span>
           </div>
           <h1 className="text-2xl font-bold">Create an account</h1>

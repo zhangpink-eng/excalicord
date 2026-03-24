@@ -74,7 +74,7 @@ export function DashboardPage({ onOpenProject, onCreateProject, onSignOut }: Das
       <header className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-600 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/20">
+            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
               <span className="text-white font-bold text-sm">E</span>
             </div>
             <span className="font-semibold text-gray-900">
