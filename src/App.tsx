@@ -83,15 +83,27 @@ function App() {
   const pendingProjectNameRef = useRef<string | null>(null)
 
   // Sync currentPage with user state when auth changes
+  // Auto-load last project if available
   useEffect(() => {
     if (!authLoading) {
       if (user) {
-        setCurrentPage("editor")
+        // Try to load the last opened project from localStorage
+        const lastProjectId = localStorage.getItem("lastProjectId")
+        if (lastProjectId) {
+          loadProject(lastProjectId).then(() => {
+            setCurrentPage("editor")
+          }).catch(() => {
+            // If loading fails, just go to editor with empty state
+            setCurrentPage("editor")
+          })
+        } else {
+          setCurrentPage("editor")
+        }
       } else {
         setCurrentPage("login")
       }
     }
-  }, [user, authLoading])
+  }, [user, authLoading, loadProject])
 
   // Use slides from ProjectContext (synced with database)
   const { project, slides, addSlide: addSlideToProject, deleteSlide, updateSlide, reorderSlides, createProject, loadProject, updateProject } = useProject()
@@ -102,6 +114,9 @@ function App() {
 
   // Initialize frame positions when slides change
   useEffect(() => {
+    // Only initialize if we have slides
+    if (slides.length === 0) return
+
     slides.forEach((_, index) => {
       if (!framePositionsRef.current[index]) {
         framePositionsRef.current[index] = {
@@ -548,12 +563,16 @@ function App() {
   // Project handlers
   const handleCreateProject = useCallback(async () => {
     const project = await createProject("Untitled Project")
+    if (project) {
+      localStorage.setItem("lastProjectId", project.id)
+    }
     setCurrentPage("editor")
     analytics.trackProjectCreated(user?.id || "unknown", project?.id || "unknown")
   }, [createProject, user])
 
   const handleOpenProject = useCallback(async (projectId: string) => {
     await loadProject(projectId)
+    localStorage.setItem("lastProjectId", projectId)
     setCurrentPage("editor")
   }, [loadProject])
 
