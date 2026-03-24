@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { Header, MainLayout } from "@/components/layout"
 import { SlideRail } from "@/components/slides/SlideRail"
-import { RecordingControls } from "@/components/recording/RecordingControls"
+import { DraggableRecordingControls } from "@/components/recording/DraggableRecordingControls"
 import { PreviewPlayer } from "@/components/recording/PreviewPlayer"
 import { ExcalidrawCanvas, CameraBubble, CanvasOverlay, type Tool } from "@/components/canvas"
 import { RightPanel } from "@/components/layout/RightPanel"
@@ -139,14 +139,10 @@ function App() {
   const [isRecording, setIsRecording] = useState(false)
   const [beautyEnabled, setBeautyEnabled] = useState(false)
   const [beautySettings, setBeautySettingsState] = useState<BeautySettings>(defaultBeautySettings)
-  const [recordingError, setRecordingError] = useState<string | null>(null)
 
   // Camera and mic toggle state (for control bar icons)
   const [cameraEnabled, setCameraEnabled] = useState(false)
   const [micEnabled, setMicEnabled] = useState(false)
-
-  // MP4 conversion state
-  const [mp4Progress, setMp4Progress] = useState("")
 
   // Preview state
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
@@ -216,7 +212,6 @@ function App() {
   const handleRecord = useCallback(async () => {
     // Start recording - camera/mic should already be running if enabled
     setIsRecording(true)
-    setRecordingError(null)
 
     // Set up Excalidraw canvas reference
     const excalidrawCanvas = document.querySelector(".excalidraw-canvas canvas") as HTMLCanvasElement
@@ -248,7 +243,6 @@ function App() {
 
   const handleStop = useCallback(async () => {
     setIsRecording(false)
-    setMp4Progress("") // Clear previous progress
 
     // Stop canvas recording and get the blob
     const blob = await stopCanvasRecording()
@@ -279,7 +273,6 @@ function App() {
 
   const handlePreviewExport = useCallback(async () => {
     if (!previewUrl) return
-    setMp4Progress("正在转码为 MP4...")
 
     try {
       const { videoConverter } = await import("@/services/video/VideoConverter")
@@ -290,7 +283,7 @@ function App() {
       const blob = await response.blob()
 
       const mp4Blob = await videoConverter.exportTo480P(blob, (progress) => {
-        setMp4Progress(`正在转码... ${progress.percent}%`)
+        console.log(`[handlePreviewExport] Conversion progress: ${progress.percent}%`)
       })
 
       console.log("[handlePreviewExport] MP4 generated, size:", mp4Blob.size)
@@ -304,16 +297,9 @@ function App() {
       document.body.removeChild(mp4A)
       URL.revokeObjectURL(mp4Url)
 
-      setMp4Progress("MP4 生成完成！")
       setPreviewUrl(null) // Close preview
-
-      setTimeout(() => {
-        setMp4Progress("")
-      }, 3000)
     } catch (err) {
       console.error("[handlePreviewExport] MP4 conversion failed:", err)
-      setMp4Progress("MP4 生成失败")
-      setTimeout(() => setMp4Progress(""), 5000)
     }
   }, [previewUrl])
 
@@ -356,7 +342,6 @@ function App() {
         })
       } catch (err) {
         console.error("Failed to start camera:", err)
-        setRecordingError(err instanceof Error ? err.message : "无法访问摄像头")
       }
     }
   }, [cameraEnabled, startCamera, stopCamera, setCameraBubbleState, cameraBubbleShape, cameraBubbleBorderColor, cameraBubbleBorderWidth, cameraBubbleBorderRadius])
@@ -374,7 +359,6 @@ function App() {
         setMicEnabled(true)
       } catch (err) {
         console.error("Failed to start mic:", err)
-        setRecordingError(err instanceof Error ? err.message : "无法访问麦克风")
       }
     }
   }, [micEnabled, startMic, stopMic])
@@ -577,6 +561,18 @@ function App() {
               borderRadius={cameraBubbleBorderRadius}
               videoRef={cameraVideoRef}
             />
+
+            {/* Draggable Recording Controls */}
+            <DraggableRecordingControls
+              state={isRecording ? "recording" : "idle"}
+              duration={duration}
+              onRecord={handleRecord}
+              onStop={handleStop}
+              cameraEnabled={cameraEnabled}
+              micEnabled={micEnabled}
+              onCameraToggle={handleToggleCamera}
+              onMicToggle={handleToggleMic}
+            />
           </div>
         }
         rightPanel={
@@ -600,31 +596,6 @@ function App() {
               onCameraBubblePositionPreset={(pos) => { cameraBubblePosition.current = pos }}
             />
           ) : null
-        }
-        controlBar={
-          <>
-            {recordingError && (
-              <div className="px-4 py-2 bg-destructive/10 text-destructive text-sm text-center">
-                {recordingError}
-              </div>
-            )}
-            <RecordingControls
-              state={isRecording ? "recording" : "idle"}
-              duration={duration}
-              onRecord={handleRecord}
-              onStop={handleStop}
-              cameraEnabled={cameraEnabled}
-              micEnabled={micEnabled}
-              onCameraToggle={handleToggleCamera}
-              onMicToggle={handleToggleMic}
-            />
-            {/* MP4 conversion progress */}
-            {mp4Progress && (
-              <div className="absolute inset-x-0 bottom-full mb-2 px-4 py-2 bg-primary/90 text-primary-foreground text-sm text-center rounded-md mx-auto max-w-md">
-                {mp4Progress}
-              </div>
-            )}
-          </>
         }
       />
       {showPricing && (
