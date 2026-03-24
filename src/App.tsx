@@ -399,6 +399,7 @@ function App() {
   const handleStartRecording = useCallback(async () => {
     // Actually start recording now
     setIsPreviewing(false)
+    setShowRecordingPreview(false)
     setIsRecording(true)
 
     // Start canvas recording
@@ -496,12 +497,9 @@ function App() {
     // Apply beauty settings to recorder
     setBeautySettings(beautyEnabled, beautySettings)
 
-    // Start recording
-    setIsRecording(true)
-    startCanvasRecording()
-
-    analytics.trackRecordingStarted(project?.id || "unknown")
-  }, [startCamera, startMic, setExcalidrawCanvas, setCameraBubbleState, setCameraVideo, setAudioStream, setBeautySettings, setPreviewArea, beautyEnabled, beautySettings, startCanvasRecording, project, customWidth, customHeight, cameraBubbleShape, cameraBubbleBorderColor, cameraBubbleBorderWidth, cameraBubbleBorderRadius, avatarEnabled, avatarStream])
+    // Note: Do NOT start recording here - only enter preview state
+    // Actual recording starts when user clicks "Start Recording" in preview
+  }, [startCamera, startMic, setExcalidrawCanvas, setCameraBubbleState, setCameraVideo, setAudioStream, setBeautySettings, setPreviewArea, beautyEnabled, beautySettings, customWidth, customHeight, cameraBubbleShape, cameraBubbleBorderColor, cameraBubbleBorderWidth, cameraBubbleBorderRadius, avatarEnabled, avatarStream])
 
   const handleStop = useCallback(async () => {
     setIsRecording(false)
