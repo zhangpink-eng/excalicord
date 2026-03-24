@@ -70,7 +70,7 @@ export function useMediaDevices(): UseMediaDevicesReturn {
           stream = await navigator.mediaDevices.getUserMedia({
             video: { deviceId: { exact: selectedCamera } },
           })
-        } catch (firstError) {
+        } catch {
           // Clear the invalid selection and try default
           setSelectedCamera("")
           stream = await navigator.mediaDevices.getUserMedia({
@@ -106,7 +106,7 @@ export function useMediaDevices(): UseMediaDevicesReturn {
           stream = await navigator.mediaDevices.getUserMedia({
             audio: { deviceId: { exact: selectedMic } },
           })
-        } catch (firstError) {
+        } catch {
           // Clear the invalid selection and try default
           setSelectedMic("")
           stream = await navigator.mediaDevices.getUserMedia({

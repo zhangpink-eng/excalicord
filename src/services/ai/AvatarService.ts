@@ -162,7 +162,9 @@ export class AvatarService {
    * In production, this would call D-ID, HeyGen, or similar API
    */
   async generateAvatar(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _imageUrl: string,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _type: AvatarType
   ): Promise<MediaStream | null> {
     // This requires external AI API integration

@@ -39,7 +39,6 @@ test.describe("Recording Controls", () => {
     await page.waitForLoadState("networkidle")
 
     // Look for recording controls - may not be visible on login page
-    const recordButton = page.locator("button[title*='Record' i], button:has-text('Record')")
 
     // Just verify the page loaded correctly
     await expect(page.getByText("Sign in")).toBeVisible()
