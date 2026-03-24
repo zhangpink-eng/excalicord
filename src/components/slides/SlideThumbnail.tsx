@@ -30,6 +30,7 @@ interface SlideThumbnailProps {
   onClick: () => void
   onDelete?: () => void
   onRename?: (name: string) => void
+  onResize?: (width: number, height: number) => void
   canDelete?: boolean
   showName?: boolean
 }
@@ -41,14 +42,19 @@ export function SlideThumbnail({
   onClick,
   onDelete,
   onRename,
+  onResize,
   canDelete = true,
   showName = true,
 }: SlideThumbnailProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editName, setEditName] = useState(slide.name)
   const [thumbCanvas, setThumbCanvas] = useState<string | null>(slide.thumbnail || null)
+  const [thumbSize, setThumbSize] = useState({ width: 60, height: 48 })
   const inputRef = useRef<HTMLInputElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [isResizing, setIsResizing] = useState(false)
+  const resizeStartRef = useRef({ x: 0, y: 0, width: 0, height: 0 })
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -63,20 +69,24 @@ export function SlideThumbnail({
     if (!canvas) return
 
     const elements = slide.content?.elements || []
-    if (elements.length === 0) return
 
     const ctx = canvas.getContext("2d")
     if (!ctx) return
 
-    // Set canvas size to match thumbnail display size (40x32 at 2x for retina)
+    // Set canvas size to match thumbnail display size (at 2x for retina)
     const dpr = 2
-    canvas.width = 40 * dpr
-    canvas.height = 32 * dpr
+    canvas.width = thumbSize.width * dpr
+    canvas.height = thumbSize.height * dpr
     ctx.scale(dpr, dpr)
 
     // Clear and fill background
     ctx.fillStyle = "#fafafa"
-    ctx.fillRect(0, 0, 40, 32)
+    ctx.fillRect(0, 0, thumbSize.width, thumbSize.height)
+
+    if (elements.length === 0) {
+      setThumbCanvas(null)
+      return
+    }
 
     // Calculate bounds of all elements
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
@@ -89,14 +99,17 @@ export function SlideThumbnail({
       }
     })
 
-    if (minX === Infinity) return
+    if (minX === Infinity) {
+      setThumbCanvas(null)
+      return
+    }
 
     const contentWidth = maxX - minX || 1
     const contentHeight = maxY - minY || 1
-    const scale = Math.min(36 / contentWidth, 28 / contentHeight, 1)
+    const scale = Math.min((thumbSize.width - 4) / contentWidth, (thumbSize.height - 4) / contentHeight, 1)
 
-    const offsetX = (40 - contentWidth * scale) / 2 - minX * scale
-    const offsetY = (32 - contentHeight * scale) / 2 - minY * scale
+    const offsetX = (thumbSize.width - contentWidth * scale) / 2 - minX * scale
+    const offsetY = (thumbSize.height - contentHeight * scale) / 2 - minY * scale
 
     // Render each element
     elements.forEach((el: SlideElement) => {
@@ -159,7 +172,46 @@ export function SlideThumbnail({
 
     // Convert to data URL
     setThumbCanvas(canvas.toDataURL("image/png"))
-  }, [slide.content?.elements, slide.id])
+  }, [slide.content?.elements, slide.id, thumbSize])
+
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation()
+    e.preventDefault()
+    setIsResizing(true)
+    resizeStartRef.current = {
+      x: e.clientX,
+      y: e.clientY,
+      width: thumbSize.width,
+      height: thumbSize.height,
+    }
+  }, [thumbSize])
+
+  useEffect(() => {
+    if (!isResizing) return
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const deltaX = e.clientX - resizeStartRef.current.x
+      const deltaY = e.clientY - resizeStartRef.current.y
+      const newWidth = Math.max(30, Math.min(120, resizeStartRef.current.width + deltaX))
+      const newHeight = Math.max(24, Math.min(96, resizeStartRef.current.height + deltaY))
+      setThumbSize({ width: newWidth, height: newHeight })
+    }
+
+    const handleMouseUp = () => {
+      setIsResizing(false)
+      if (onResize) {
+        onResize(thumbSize.width, thumbSize.height)
+      }
+    }
+
+    window.addEventListener("mousemove", handleMouseMove)
+    window.addEventListener("mouseup", handleMouseUp)
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove)
+      window.removeEventListener("mouseup", handleMouseUp)
+    }
+  }, [isResizing, onResize, thumbSize])
 
   const handleDoubleClick = () => {
     if (onRename) {
@@ -191,9 +243,11 @@ export function SlideThumbnail({
 
   return (
     <div
+      ref={containerRef}
       className={`relative group flex flex-col items-center gap-1 ${
         isSelected ? "scale-105" : ""
       } transition-all duration-200`}
+      style={{ cursor: isResizing ? "se-resize" : undefined }}
     >
       {/* Hidden canvas for rendering thumbnails */}
       <canvas ref={canvasRef} className="hidden" />
@@ -203,13 +257,14 @@ export function SlideThumbnail({
         onClick={onClick}
         onDoubleClick={handleDoubleClick}
         className={`
-          relative w-10 h-8 rounded border cursor-pointer overflow-hidden
-          transition-all duration-200
+          relative rounded border cursor-pointer overflow-hidden
+          transition-all duration-200 select-none
           ${isSelected
             ? "border-primary shadow-lg ring-1 ring-primary/20"
             : "border-border hover:border-primary/50"
           }
         `}
+        style={{ width: thumbSize.width, height: thumbSize.height }}
       >
         {thumbCanvas ? (
           <img
@@ -227,6 +282,15 @@ export function SlideThumbnail({
 
         {/* Hover overlay */}
         <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+
+        {/* Resize handle */}
+        <div
+          onMouseDown={handleResizeStart}
+          className="absolute right-0 bottom-0 w-3 h-3 cursor-se-resize opacity-0 group-hover:opacity-100 transition-opacity"
+          style={{
+            background: "linear-gradient(135deg, transparent 50%, rgba(37, 99, 235, 0.5) 50%)",
+          }}
+        />
       </div>
 
       {/* Slide number label - only show when showName is true */}
