@@ -1,5 +1,6 @@
 import { type ReactNode } from "react"
 import { BeautyPanel } from "@/components/beauty/BeautyPanel"
+import { CameraBubbleSettings, type BubbleShape } from "@/components/canvas/CameraBubbleSettings"
 import type { BeautySettings } from "@/services/beauty/BeautyFilter"
 
 export interface RightPanelProps {
@@ -8,6 +9,18 @@ export interface RightPanelProps {
   onBeautySettingChange: <K extends keyof BeautySettings>(key: K, value: BeautySettings[K]) => void
   onBeautyToggle: () => void
   onBeautyReset: () => void
+  // Camera bubble settings
+  cameraBubbleShape?: BubbleShape
+  cameraBubbleBorderColor?: string
+  cameraBubbleBorderWidth?: number
+  cameraBubbleBorderRadius?: number
+  cameraBubbleSize?: { width: number; height: number }
+  onCameraBubbleShapeChange?: (shape: BubbleShape) => void
+  onCameraBubbleBorderColorChange?: (color: string) => void
+  onCameraBubbleBorderWidthChange?: (width: number) => void
+  onCameraBubbleBorderRadiusChange?: (radius: number) => void
+  onCameraBubbleSizeChange?: (size: { width: number; height: number }) => void
+  onCameraBubblePositionPreset?: (position: { x: number; y: number }) => void
 }
 
 export function RightPanel({
@@ -16,6 +29,17 @@ export function RightPanel({
   onBeautySettingChange,
   onBeautyToggle,
   onBeautyReset,
+  cameraBubbleShape = "rounded-rect",
+  cameraBubbleBorderColor = "#ffffff",
+  cameraBubbleBorderWidth = 3,
+  cameraBubbleBorderRadius = 16,
+  cameraBubbleSize = { width: 200, height: 150 },
+  onCameraBubbleShapeChange,
+  onCameraBubbleBorderColorChange,
+  onCameraBubbleBorderWidthChange,
+  onCameraBubbleBorderRadiusChange,
+  onCameraBubbleSizeChange,
+  onCameraBubblePositionPreset,
 }: RightPanelProps) {
   return (
     <div className="p-4 space-y-6">
@@ -28,6 +52,25 @@ export function RightPanel({
           <ToolButton icon="image" label="Image" />
         </div>
       </section>
+
+      {/* Camera Bubble Settings */}
+      {onCameraBubbleShapeChange && onCameraBubbleBorderColorChange && (
+        <section>
+          <CameraBubbleSettings
+            shape={cameraBubbleShape}
+            borderColor={cameraBubbleBorderColor}
+            borderWidth={cameraBubbleBorderWidth}
+            borderRadius={cameraBubbleBorderRadius}
+            size={cameraBubbleSize}
+            onShapeChange={onCameraBubbleShapeChange}
+            onBorderColorChange={onCameraBubbleBorderColorChange}
+            onBorderWidthChange={onCameraBubbleBorderWidthChange}
+            onBorderRadiusChange={onCameraBubbleBorderRadiusChange}
+            onSizeChange={onCameraBubbleSizeChange!}
+            onPositionPreset={onCameraBubblePositionPreset!}
+          />
+        </section>
+      )}
 
       <section>
         <BeautyPanel

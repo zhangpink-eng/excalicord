@@ -12,6 +12,7 @@ import { useProject } from "@/contexts"
 import { LoginPage, SignUpPage, DashboardPage, PricingPage } from "@/pages"
 import { analytics } from "@/services/api/analytics"
 import { defaultBeautySettings, type BeautySettings } from "@/services/beauty/BeautyFilter"
+import type { BubbleShape } from "@/components/canvas/CameraBubbleSettings"
 
 type Page = "login" | "signup" | "dashboard" | "editor"
 
@@ -111,6 +112,12 @@ function App() {
   const cameraBubblePosition = useRef({ x: 50, y: 50 })
   const cameraBubbleSize = useRef({ width: 200, height: 150 })
 
+  // Camera bubble settings state
+  const [cameraBubbleShape, setCameraBubbleShape] = useState<BubbleShape>("rounded-rect")
+  const [cameraBubbleBorderColor, setCameraBubbleBorderColor] = useState("#ffffff")
+  const [cameraBubbleBorderWidth, setCameraBubbleBorderWidth] = useState(3)
+  const [cameraBubbleBorderRadius, setCameraBubbleBorderRadius] = useState(16)
+
   // Initialize analytics
   useEffect(() => {
     const posthogKey = import.meta.env.VITE_POSTHOG_API_KEY
@@ -160,10 +167,10 @@ function App() {
         stream: cameraStream,
         position: cameraBubblePosition.current,
         size: cameraBubbleSize.current,
-        shape: "rounded-rect",
-        borderRadius: 16,
-        borderColor: "#ffffff",
-        borderWidth: 3,
+        shape: cameraBubbleShape,
+        borderRadius: cameraBubbleBorderRadius,
+        borderColor: cameraBubbleBorderColor,
+        borderWidth: cameraBubbleBorderWidth,
       })
     }
 
@@ -264,10 +271,10 @@ function App() {
         stream: null,
         position: cameraBubblePosition.current,
         size: cameraBubbleSize.current,
-        shape: "rounded-rect",
-        borderRadius: 16,
-        borderColor: "#ffffff",
-        borderWidth: 3,
+        shape: cameraBubbleShape,
+        borderRadius: cameraBubbleBorderRadius,
+        borderColor: cameraBubbleBorderColor,
+        borderWidth: cameraBubbleBorderWidth,
       })
     } else {
       // Turn on camera
@@ -279,17 +286,17 @@ function App() {
           stream: stream,
           position: cameraBubblePosition.current,
           size: cameraBubbleSize.current,
-          shape: "rounded-rect",
-          borderRadius: 16,
-          borderColor: "#ffffff",
-          borderWidth: 3,
+          shape: cameraBubbleShape,
+          borderRadius: cameraBubbleBorderRadius,
+          borderColor: cameraBubbleBorderColor,
+          borderWidth: cameraBubbleBorderWidth,
         })
       } catch (err) {
         console.error("Failed to start camera:", err)
         setRecordingError(err instanceof Error ? err.message : "无法访问摄像头")
       }
     }
-  }, [cameraEnabled, startCamera, stopCamera, setCameraBubbleState])
+  }, [cameraEnabled, startCamera, stopCamera, setCameraBubbleState, cameraBubbleShape, cameraBubbleBorderColor, cameraBubbleBorderWidth, cameraBubbleBorderRadius])
 
   // Toggle mic on/off (for control bar icon)
   const handleToggleMic = useCallback(async () => {
@@ -489,6 +496,10 @@ function App() {
               stream={cameraEnabled ? cameraStream : null}
               position={cameraBubblePosition.current}
               size={cameraBubbleSize.current}
+              shape={cameraBubbleShape}
+              borderColor={cameraBubbleBorderColor}
+              borderWidth={cameraBubbleBorderWidth}
+              borderRadius={cameraBubbleBorderRadius}
               videoRef={cameraVideoRef}
             />
           </div>
@@ -501,6 +512,17 @@ function App() {
               onBeautySettingChange={(key, value) => setBeautySettingsState((prev) => ({ ...prev, [key]: value }))}
               onBeautyToggle={() => setBeautyEnabled((v) => !v)}
               onBeautyReset={() => setBeautySettingsState(defaultBeautySettings)}
+              cameraBubbleShape={cameraBubbleShape}
+              cameraBubbleBorderColor={cameraBubbleBorderColor}
+              cameraBubbleBorderWidth={cameraBubbleBorderWidth}
+              cameraBubbleBorderRadius={cameraBubbleBorderRadius}
+              cameraBubbleSize={cameraBubbleSize.current}
+              onCameraBubbleShapeChange={setCameraBubbleShape}
+              onCameraBubbleBorderColorChange={setCameraBubbleBorderColor}
+              onCameraBubbleBorderWidthChange={setCameraBubbleBorderWidth}
+              onCameraBubbleBorderRadiusChange={setCameraBubbleBorderRadius}
+              onCameraBubbleSizeChange={(size) => { cameraBubbleSize.current = size }}
+              onCameraBubblePositionPreset={(pos) => { cameraBubblePosition.current = pos }}
             />
           ) : null
         }
