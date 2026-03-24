@@ -41,7 +41,6 @@ export function LoginPage({ onSignUp, onSuccess }: LoginPageProps) {
     try {
       const { error } = await auth.signInWithGoogle()
       if (error) throw error
-      // Redirect will happen automatically
     } catch (err) {
       setError(err instanceof Error ? err.message : "Google sign in failed")
       setIsLoading(false)

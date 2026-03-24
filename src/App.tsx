@@ -23,6 +23,18 @@ function App() {
   const [showPricing, setShowPricing] = useState(false)
   const [projectName, setProjectName] = useState("Untitled Project")
 
+  // Sync currentPage with user state when auth changes
+  useEffect(() => {
+    console.log("Auth state changed - user:", user, "authLoading:", authLoading)
+    if (!authLoading) {
+      if (user) {
+        setCurrentPage("editor")
+      } else {
+        setCurrentPage("login")
+      }
+    }
+  }, [user, authLoading])
+
   // Use slides from ProjectContext (synced with database)
   const { project, slides, addSlide: addSlideToProject, deleteSlide, updateSlide, reorderSlides, createProject, loadProject, updateProject } = useProject()
 
@@ -376,8 +388,9 @@ function App() {
     )
   }
 
-  // Auth callback route
-  if (window.location.pathname === "/auth/callback") {
+  // Auth callback route - check both pathname and hash for OAuth callback
+  const hasAuthHash = window.location.hash.includes("access_token") || window.location.hash.includes("error=")
+  if (window.location.pathname === "/auth/callback" || hasAuthHash) {
     return <AuthCallbackPage />
   }
 

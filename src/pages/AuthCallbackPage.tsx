@@ -15,19 +15,20 @@ export function AuthCallbackPage() {
           return
         }
 
-        // Check for error in URL
-        const params = new URLSearchParams(window.location.search)
-        const errorParam = params.get("error")
-        const errorDescription = params.get("error_description")
+        // Check for error in URL (both search params and hash)
+        const hashParams = new URLSearchParams(window.location.hash.substring(1))
+        const searchParams = new URLSearchParams(window.location.search)
+
+        const errorParam = searchParams.get("error") || hashParams.get("error")
+        const errorDescription = searchParams.get("error_description") || hashParams.get("error_description")
 
         if (errorParam) {
           setError(errorDescription || errorParam)
           return
         }
 
-        // With detectSessionInUrl: true, Supabase should auto-detect session from URL hash
-        // Just wait a moment for the auth to process
-        await new Promise(resolve => setTimeout(resolve, 1000))
+        // Wait for Supabase to detect session from URL hash
+        await new Promise(resolve => setTimeout(resolve, 1500))
 
         const { data, error: sessionError } = await supabase.auth.getSession()
 
@@ -78,6 +79,7 @@ export function AuthCallbackPage() {
       <div className="text-center">
         <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
         <p className="text-muted-foreground">Completing sign in...</p>
+        <p className="text-sm text-muted-foreground mt-2">Please wait...</p>
       </div>
     </div>
   )
