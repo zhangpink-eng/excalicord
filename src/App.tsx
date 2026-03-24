@@ -546,10 +546,27 @@ function App() {
         }
         canvas={
           <div className="relative w-full h-full bg-canvas-light overflow-hidden">
-            {/* Slide frames container - each with its own canvas */}
+            {/* Single shared Excalidraw canvas */}
+            <ExcalidrawCanvas
+              key={slides[currentSlideIndex]?.id}
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              elements={slides[currentSlideIndex]?.content?.elements as any[] || []}
+              onElementsChange={(elements) => {
+                const currentSlide = slides[currentSlideIndex]
+                if (!currentSlide) return
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const boundElements = elements.map((el: any) => ({
+                  ...el,
+                  slideId: currentSlide.id,
+                }))
+                updateSlide(currentSlide.id, { content: { elements: boundElements } })
+              }}
+            />
+
+            {/* Slide frames as visual overlays */}
             <div
               ref={slidesContainerRef}
-              className="absolute inset-0 flex items-center overflow-x-auto"
+              className="absolute inset-0 flex items-center overflow-x-auto pointer-events-none"
               style={{ scrollBehavior: 'smooth' }}
             >
               <div className="flex items-center gap-4 px-4 min-w-max">
@@ -559,45 +576,25 @@ function App() {
                     <div
                       key={slide.id}
                       data-slide-index={index}
-                      className={`relative flex-shrink-0 ${
-                        isActive ? "z-20" : "z-10"
+                      className={`relative flex-shrink-0 cursor-pointer transition-all duration-200 ${
+                        isActive ? "z-20 scale-105" : "z-10"
                       }`}
                       style={{
                         width: "720px",
                         height: "540px",
                       }}
+                      onClick={() => {
+                        goToSlide(index)
+                        setTimeout(() => {
+                          const container = slidesContainerRef.current
+                          const slideEl = container?.querySelector(`[data-slide-index="${index}"]`)
+                          slideEl?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
+                        }, 50)
+                      }}
                     >
-                      {/* Excalidraw canvas for this slide */}
-                      <div
-                        className="absolute inset-0 rounded-lg overflow-hidden cursor-pointer"
-                        onClick={() => {
-                          goToSlide(index)
-                          // Scroll into view
-                          setTimeout(() => {
-                            const container = slidesContainerRef.current
-                            const slideEl = container?.querySelector(`[data-slide-index="${index}"]`)
-                            slideEl?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
-                          }, 50)
-                        }}
-                      >
-                        <ExcalidrawCanvas
-                          key={slide.id}
-                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                          elements={slide.content?.elements as any[] || []}
-                          onElementsChange={(elements) => {
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            const boundElements = elements.map((el: any) => ({
-                              ...el,
-                              slideId: slide.id,
-                            }))
-                            updateSlide(slide.id, { content: { elements: boundElements } })
-                          }}
-                        />
-                      </div>
-
                       {/* Border overlay */}
                       <div
-                        className={`absolute inset-0 rounded-lg transition-all duration-200 pointer-events-none ${
+                        className={`absolute inset-0 rounded-lg transition-all duration-200 ${
                           isActive
                             ? "border-4 border-primary shadow-2xl"
                             : "border-2 border-border/70"
