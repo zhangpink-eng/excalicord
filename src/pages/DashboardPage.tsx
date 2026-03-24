@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { Button } from "@/components/ui"
-import { db, auth } from "@/services/api/supabase"
+import { db } from "@/services/api/supabase"
+import { useAuth } from "@/contexts"
 import type { Project } from "@/types"
 
 interface DashboardPageProps {
@@ -10,18 +11,26 @@ interface DashboardPageProps {
 }
 
 export function DashboardPage({ onOpenProject, onCreateProject, onSignOut }: DashboardPageProps) {
+  const { user } = useAuth()
   const [projects, setProjects] = useState<Project[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [userEmail, setUserEmail] = useState<string | null>(null)
+  const [showUserMenu, setShowUserMenu] = useState(false)
+  const userMenuRef = useRef<HTMLDivElement>(null)
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setShowUserMenu(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
 
   useEffect(() => {
     const loadProjects = async () => {
       try {
-        const { data: user } = await auth.getUser()
-        if (user.user) {
-          setUserEmail(user.user.email || null)
-        }
-
         const { data, error } = await db.projects.list()
         if (error) throw error
         setProjects(data || [])
@@ -80,15 +89,80 @@ export function DashboardPage({ onOpenProject, onCreateProject, onSignOut }: Das
               <a href="#" className="text-sm text-white/60 hover:text-white transition-colors">Pricing</a>
             </nav>
             <div className="flex items-center gap-4">
-              <span className="text-sm text-white/40 hidden sm:block">{userEmail}</span>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onSignOut}
-                className="text-white/60 hover:text-white hover:bg-white/5"
-              >
-                Sign out
-              </Button>
+              {/* User Menu */}
+              <div className="relative" ref={userMenuRef}>
+                <button
+                  onClick={() => setShowUserMenu(!showUserMenu)}
+                  className="flex items-center gap-3 hover:bg-white/5 rounded-lg px-3 py-2 transition-colors"
+                >
+                  {/* User Avatar */}
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                    {user?.avatarUrl ? (
+                      <img src={user.avatarUrl} alt="" className="w-8 h-8 rounded-full object-cover" />
+                    ) : (
+                      <span className="text-white text-sm font-medium">
+                        {user?.fullName?.charAt(0) || user?.email?.charAt(0) || "U"}
+                      </span>
+                    )}
+                  </div>
+                  {/* User Name */}
+                  <div className="hidden sm:block text-left">
+                    <p className="text-sm text-white font-medium leading-tight">
+                      {user?.fullName || "User"}
+                    </p>
+                    <p className="text-xs text-white/40 leading-tight">{user?.email}</p>
+                  </div>
+                  {/* Dropdown Arrow */}
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className={`text-white/40 transition-transform ${showUserMenu ? "rotate-180" : ""}`}
+                  >
+                    <path d="m6 9 6 6 6-6" />
+                  </svg>
+                </button>
+
+                {/* Dropdown Menu */}
+                {showUserMenu && (
+                  <div className="absolute right-0 mt-2 w-48 bg-[#1a1a1f] border border-white/10 rounded-xl shadow-xl overflow-hidden z-50">
+                    <div className="px-4 py-3 border-b border-white/5">
+                      <p className="text-sm text-white font-medium">{user?.fullName || "User"}</p>
+                      <p className="text-xs text-white/40">{user?.email}</p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setShowUserMenu(false)
+                        onSignOut()
+                      }}
+                      className="w-full px-4 py-3 text-left text-sm text-white/80 hover:bg-white/5 hover:text-white transition-colors flex items-center gap-2"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                        <polyline points="16 17 21 12 16 7" />
+                        <line x1="21" x2="9" y1="12" y2="12" />
+                      </svg>
+                      Sign out
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
