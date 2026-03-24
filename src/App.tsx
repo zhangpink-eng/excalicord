@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { Header, MainLayout } from "@/components/layout"
 import { SlideRail } from "@/components/slides/SlideRail"
 import { DraggableRecordingControls } from "@/components/recording/DraggableRecordingControls"
+import { RecordingPreview } from "@/components/recording/RecordingPreview"
 import { PreviewPlayer } from "@/components/recording/PreviewPlayer"
 import { ExcalidrawCanvas, CameraBubble, CanvasOverlay, type Tool } from "@/components/canvas"
 import { RightPanel } from "@/components/layout/RightPanel"
@@ -133,10 +134,13 @@ function App() {
     setExcalidrawCanvas,
     setCameraBubbleState,
     setBeautySettings,
+    setPreviewArea,
     duration, // Get duration from recorder hook
   } = useCanvasRecorder()
 
   const [isRecording, setIsRecording] = useState(false)
+  const [showRecordingPreview, setShowRecordingPreview] = useState(false)
+  const [recordingPreviewSize] = useState({ width: 1280, height: 720 })
   const [beautyEnabled, setBeautyEnabled] = useState(false)
   const [beautySettings, setBeautySettingsState] = useState<BeautySettings>(defaultBeautySettings)
 
@@ -210,8 +214,17 @@ function App() {
   }, [authLoading, user])
 
   const handleRecord = useCallback(async () => {
-    // Start recording - camera/mic should already be running if enabled
-    setIsRecording(true)
+    // Show the recording preview
+    setShowRecordingPreview(true)
+
+    // Set up preview area for the recorder
+    const previewAreaConfig = {
+      x: 0,
+      y: 0,
+      width: recordingPreviewSize.width,
+      height: recordingPreviewSize.height,
+    }
+    setPreviewArea(previewAreaConfig)
 
     // Set up Excalidraw canvas reference
     const excalidrawCanvas = document.querySelector(".excalidraw-canvas canvas") as HTMLCanvasElement
@@ -219,11 +232,15 @@ function App() {
       setExcalidrawCanvas(excalidrawCanvas)
     }
 
-    // Set up camera bubble state if camera is enabled
+    // Set up camera bubble state - default to bottom-right of preview area
     if (cameraEnabled && cameraStream) {
+      const defaultPos = {
+        x: recordingPreviewSize.width - cameraBubbleSize.current.width - 20,
+        y: recordingPreviewSize.height - cameraBubbleSize.current.height - 20,
+      }
       setCameraBubbleState({
         stream: cameraStream,
-        position: cameraBubblePosition.current,
+        position: defaultPos,
         size: cameraBubbleSize.current,
         shape: cameraBubbleShape,
         borderRadius: cameraBubbleBorderRadius,
@@ -235,14 +252,16 @@ function App() {
     // Apply beauty settings to recorder
     setBeautySettings(beautyEnabled, beautySettings)
 
-    // Start canvas recording
+    // Start recording
+    setIsRecording(true)
     startCanvasRecording()
 
     analytics.trackRecordingStarted(project?.id || "unknown")
-  }, [cameraEnabled, cameraStream, setExcalidrawCanvas, setCameraBubbleState, setBeautySettings, beautyEnabled, beautySettings, startCanvasRecording, project, cameraBubbleShape, cameraBubbleBorderColor, cameraBubbleBorderWidth, cameraBubbleBorderRadius])
+  }, [cameraEnabled, cameraStream, setExcalidrawCanvas, setCameraBubbleState, setBeautySettings, setPreviewArea, beautyEnabled, beautySettings, startCanvasRecording, project, recordingPreviewSize, cameraBubbleShape, cameraBubbleBorderColor, cameraBubbleBorderWidth, cameraBubbleBorderRadius])
 
   const handleStop = useCallback(async () => {
     setIsRecording(false)
+    setShowRecordingPreview(false)
 
     // Stop canvas recording and get the blob
     const blob = await stopCanvasRecording()
@@ -250,9 +269,15 @@ function App() {
     if (blob) {
       console.log("[handleStop] Recording stopped, blob:", blob.size, "bytes, type:", blob.type)
 
-      // Create preview URL and show preview player
-      const url = URL.createObjectURL(blob)
-      setPreviewUrl(url)
+      // Auto-download the recording
+      const extension = blob.type === "video/mp4" ? "mp4" : "webm"
+      const a = document.createElement("a")
+      a.href = URL.createObjectURL(blob)
+      a.download = `recording-${Date.now()}.${extension}`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(a.href)
     } else {
       console.warn("[handleStop] No blob received from recording")
     }
@@ -552,7 +577,7 @@ function App() {
             </div>
 
             <CameraBubble
-              stream={cameraEnabled ? cameraStream : null}
+              stream={cameraEnabled && !isRecording ? cameraStream : null}
               position={cameraBubblePosition.current}
               size={cameraBubbleSize.current}
               shape={cameraBubbleShape}
@@ -560,6 +585,23 @@ function App() {
               borderWidth={cameraBubbleBorderWidth}
               borderRadius={cameraBubbleBorderRadius}
               videoRef={cameraVideoRef}
+            />
+
+            {/* Recording Preview Area - shown during recording */}
+            <RecordingPreview
+              visible={showRecordingPreview}
+              width={recordingPreviewSize.width}
+              height={recordingPreviewSize.height}
+              cameraStream={cameraEnabled ? cameraStream : null}
+              cameraPosition={cameraBubblePosition.current}
+              cameraSize={cameraBubbleSize.current}
+              cameraShape={cameraBubbleShape}
+              cameraBorderColor={cameraBubbleBorderColor}
+              cameraBorderWidth={cameraBubbleBorderWidth}
+              cameraBorderRadius={cameraBubbleBorderRadius}
+              onCameraPositionChange={(pos) => { cameraBubblePosition.current = pos }}
+              onCameraSizeChange={(size) => { cameraBubbleSize.current = size }}
+              onCameraBubbleStateChange={setCameraBubbleState}
             />
 
             {/* Draggable Recording Controls */}

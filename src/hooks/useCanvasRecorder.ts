@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react"
-import { CanvasRecorder, type CameraBubbleState } from "@/services/video/CanvasRecorder"
+import { CanvasRecorder, type CameraBubbleState, type PreviewAreaState } from "@/services/video/CanvasRecorder"
 import type { BeautySettings } from "@/services/beauty/BeautyFilter"
 
 export type RecorderState = "idle" | "recording" | "paused" | "stopped"
@@ -8,6 +8,7 @@ export interface UseCanvasRecorderReturn {
   state: RecorderState
   duration: number
   recordedBlob: Blob | null
+  previewArea: PreviewAreaState
   startRecording: () => Promise<void>
   pauseRecording: () => void
   resumeRecording: () => void
@@ -16,12 +17,14 @@ export interface UseCanvasRecorderReturn {
   setExcalidrawCanvas: (canvas: HTMLCanvasElement | null) => void
   setCameraVideo: (video: HTMLVideoElement | null) => void
   setBeautySettings: (enabled: boolean, settings?: BeautySettings) => void
+  setPreviewArea: (area: PreviewAreaState) => void
 }
 
 export function useCanvasRecorder(): UseCanvasRecorderReturn {
   const [state, setState] = useState<RecorderState>("idle")
   const [duration, setDuration] = useState(0)
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null)
+  const [previewArea, setPreviewAreaState] = useState<PreviewAreaState>({ x: 0, y: 0, width: 1280, height: 720 })
 
   const recorderRef = useRef<CanvasRecorder | null>(null)
   const timerRef = useRef<number | null>(null)
@@ -30,6 +33,12 @@ export function useCanvasRecorder(): UseCanvasRecorderReturn {
   const excalidrawCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const cameraVideoRef = useRef<HTMLVideoElement | null>(null)
   const cameraBubbleStateRef = useRef<CameraBubbleState | null>(null)
+  const previewAreaRef = useRef<PreviewAreaState>(previewArea)
+
+  // Sync preview area ref
+  useEffect(() => {
+    previewAreaRef.current = previewArea
+  }, [previewArea])
 
   // Initialize recorder
   useEffect(() => {
@@ -58,6 +67,12 @@ export function useCanvasRecorder(): UseCanvasRecorderReturn {
     }
     const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000)
     pausedDurationRef.current = elapsed
+  }, [])
+
+  const setPreviewArea = useCallback((area: PreviewAreaState) => {
+    setPreviewAreaState(area)
+    previewAreaRef.current = area
+    recorderRef.current?.setPreviewArea(area)
   }, [])
 
   const setCameraBubbleState = useCallback((state: CameraBubbleState) => {
@@ -92,11 +107,15 @@ export function useCanvasRecorder(): UseCanvasRecorderReturn {
       }
     }
 
-    // Create a hidden canvas for compositing
+    // Create a canvas sized for the preview area
+    const { width, height } = previewAreaRef.current
     const canvas = document.createElement("canvas")
-    canvas.width = 1920
-    canvas.height = 1080
+    canvas.width = width
+    canvas.height = height
     recorderRef.current.initialize(canvas)
+
+    // Set preview area on recorder
+    recorderRef.current.setPreviewArea(previewAreaRef.current)
 
     // Apply camera bubble state if available
     if (cameraBubbleStateRef.current) {
@@ -140,6 +159,7 @@ export function useCanvasRecorder(): UseCanvasRecorderReturn {
     state,
     duration,
     recordedBlob,
+    previewArea,
     startRecording,
     pauseRecording,
     resumeRecording,
@@ -148,5 +168,6 @@ export function useCanvasRecorder(): UseCanvasRecorderReturn {
     setExcalidrawCanvas,
     setCameraVideo,
     setBeautySettings,
+    setPreviewArea,
   }
 }

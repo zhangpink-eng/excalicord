@@ -39,8 +39,8 @@ export function DraggableRecordingControls({
 
   // Initialize position to bottom-right after mount
   useEffect(() => {
-    const containerWidth = 220
-    const containerHeight = 56
+    const containerWidth = 180
+    const containerHeight = 48
     const margin = 80
     setPosition({
       x: window.innerWidth - containerWidth - margin,
@@ -64,8 +64,8 @@ export function DraggableRecordingControls({
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (!isDragging) return
-      const containerWidth = 220
-      const containerHeight = 56
+      const containerWidth = 180
+      const containerHeight = 48
       const newX = Math.max(0, Math.min(window.innerWidth - containerWidth, e.clientX - dragStart.x))
       const newY = Math.max(0, Math.min(window.innerHeight - containerHeight, e.clientY - dragStart.y))
       setPosition({ x: newX, y: newY })
@@ -111,13 +111,13 @@ export function DraggableRecordingControls({
         </div>
       </div>
 
-      {/* Recording state indicator */}
-      {isRecording && (
-        <div className="flex items-center gap-1.5 mr-2">
-          <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-          <span className="font-mono text-xs text-red-500">{formatDuration(duration)}</span>
-        </div>
-      )}
+      {/* Recording state indicator - always show when recording */}
+      <div className="flex items-center gap-1.5 mr-2">
+        <div className={`w-2 h-2 rounded-full ${isRecording ? "bg-red-500 animate-pulse" : "bg-gray-400"}`} />
+        <span className={`font-mono text-xs ${isRecording ? "text-red-500" : "text-gray-500"}`}>
+          {formatDuration(duration)}
+        </span>
+      </div>
 
       {/* Record/Stop button */}
       {!isRecording ? (
@@ -162,54 +162,57 @@ export function DraggableRecordingControls({
         </Button>
       )}
 
-      {/* Camera toggle */}
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={onCameraToggle}
-        className={`h-8 w-8 ${cameraEnabled ? "text-primary" : "text-gray-400"}`}
-        title={cameraEnabled ? "关闭摄像头" : "开启摄像头"}
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill={cameraEnabled ? "currentColor" : "none"}
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-          <circle cx="12" cy="13" r="4" />
-        </svg>
-      </Button>
+      {/* Camera toggle - only show when not recording */}
+      {!isRecording && (
+        <>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onCameraToggle}
+            className={`h-8 w-8 ${cameraEnabled ? "text-primary" : "text-gray-400"}`}
+            title={cameraEnabled ? "关闭摄像头" : "开启摄像头"}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill={cameraEnabled ? "currentColor" : "none"}
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+              <circle cx="12" cy="13" r="4" />
+            </svg>
+          </Button>
 
-      {/* Mic toggle */}
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={onMicToggle}
-        className={`h-8 w-8 ${micEnabled ? "text-primary" : "text-gray-400"}`}
-        title={micEnabled ? "关闭麦克风" : "开启麦克风"}
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill={micEnabled ? "currentColor" : "none"}
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
-          <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-          <line x1="12" x2="12" y1="19" y2="22" />
-        </svg>
-      </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onMicToggle}
+            className={`h-8 w-8 ${micEnabled ? "text-primary" : "text-gray-400"}`}
+            title={micEnabled ? "关闭麦克风" : "开启麦克风"}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill={micEnabled ? "currentColor" : "none"}
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+              <line x1="12" x2="12" y1="19" y2="22" />
+            </svg>
+          </Button>
+        </>
+      )}
     </div>
   )
 }

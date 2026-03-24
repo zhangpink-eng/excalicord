@@ -17,9 +17,17 @@ export interface CameraBubbleState {
   borderWidth: number
 }
 
+export interface PreviewAreaState {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
 export interface CanvasRecorderOptions {
   fps?: number
   mimeType?: string
+  previewArea?: PreviewAreaState
 }
 
 export class CanvasRecorder {
@@ -49,13 +57,15 @@ export class CanvasRecorder {
   }
   private beautyCanvas: OffscreenCanvas | null = null
 
-  // Dimensions
-  private width = 1920
-  private height = 1080
+  // Preview area configuration
+  private previewArea: PreviewAreaState = { x: 0, y: 0, width: 1280, height: 720 }
 
   constructor(options: CanvasRecorderOptions = {}) {
     this.fps = options.fps || 30
     this.mimeType = options.mimeType || "video/webm;codecs=vp9"
+    if (options.previewArea) {
+      this.previewArea = options.previewArea
+    }
   }
 
   /**
@@ -64,8 +74,17 @@ export class CanvasRecorder {
   initialize(canvas: HTMLCanvasElement): void {
     this.canvas = canvas
     this.ctx = canvas.getContext("2d")
-    this.width = canvas.width || 1920
-    this.height = canvas.height || 1080
+  }
+
+  /**
+   * Set the preview area configuration
+   */
+  setPreviewArea(area: PreviewAreaState): void {
+    this.previewArea = area
+    // Recreate beauty canvas if needed
+    if (this.beautyEnabled) {
+      this.beautyCanvas = new OffscreenCanvas(area.width, area.height)
+    }
   }
 
   /**
@@ -98,8 +117,8 @@ export class CanvasRecorder {
       this.beautySettings = settings
     }
     if (enabled && !this.beautyFilter) {
-      this.beautyFilter = new BeautyFilter(this.width, this.height)
-      this.beautyCanvas = new OffscreenCanvas(this.width, this.height)
+      this.beautyFilter = new BeautyFilter(this.previewArea.width, this.previewArea.height)
+      this.beautyCanvas = new OffscreenCanvas(this.previewArea.width, this.previewArea.height)
     }
   }
 
@@ -253,14 +272,38 @@ export class CanvasRecorder {
   private compositeFrame(): void {
     if (!this.ctx || !this.canvas) return
 
+    const { width, height } = this.previewArea
+
     // Clear the canvas
     this.ctx.fillStyle = "#fafafa"
-    this.ctx.fillRect(0, 0, this.width, this.height)
+    this.ctx.fillRect(0, 0, width, height)
 
-    // Draw Excalidraw canvas if available
+    // Draw Excalidraw canvas if available - scale to fit preview area
     if (this.excalidrawCanvas) {
       try {
-        this.ctx.drawImage(this.excalidrawCanvas, 0, 0, this.width, this.height)
+        // Calculate scaling to fit the preview area while maintaining aspect ratio
+        const sourceWidth = this.excalidrawCanvas.width || 1920
+        const sourceHeight = this.excalidrawCanvas.height || 1080
+        const targetWidth = width
+        const targetHeight = height
+
+        // Calculate scale to cover the target area
+        const scaleX = targetWidth / sourceWidth
+        const scaleY = targetHeight / sourceHeight
+        const scale = Math.max(scaleX, scaleY) // Use cover mode
+
+        const scaledWidth = sourceWidth * scale
+        const scaledHeight = sourceHeight * scale
+        const offsetX = (targetWidth - scaledWidth) / 2
+        const offsetY = (targetHeight - scaledHeight) / 2
+
+        this.ctx.drawImage(
+          this.excalidrawCanvas,
+          offsetX,
+          offsetY,
+          scaledWidth,
+          scaledHeight
+        )
       } catch (e) {
         console.warn("CanvasRecorder: Failed to draw Excalidraw canvas", e)
       }
@@ -270,7 +313,7 @@ export class CanvasRecorder {
     if (this.cameraBubble && this.cameraVideo && this.cameraVideo.readyState >= 2) {
       const { position, size, shape, borderRadius, borderColor, borderWidth } = this.cameraBubble
       const { x, y } = position
-      const { width, height } = size
+      const { width: bw, height: bh } = size
 
       this.ctx.save()
 
@@ -288,13 +331,13 @@ export class CanvasRecorder {
       this.ctx.beginPath()
       switch (shape) {
         case "circle":
-          this.ctx.ellipse(x + width / 2, y + height / 2, width / 2, height / 2, 0, 0, Math.PI * 2)
+          this.ctx.ellipse(x + bw / 2, y + bh / 2, bw / 2, bh / 2, 0, 0, Math.PI * 2)
           break
         case "pill":
-          this.ctx.roundRect(x, y, width, height, height / 2)
+          this.ctx.roundRect(x, y, bw, bh, bh / 2)
           break
         default:
-          this.ctx.roundRect(x, y, width, height, borderRadius)
+          this.ctx.roundRect(x, y, bw, bh, borderRadius)
       }
       this.ctx.stroke()
 
@@ -305,13 +348,13 @@ export class CanvasRecorder {
       this.ctx.beginPath()
       switch (shape) {
         case "circle":
-          this.ctx.ellipse(x + width / 2, y + height / 2, (width - borderWidth * 2) / 2, (height - borderWidth * 2) / 2, 0, 0, Math.PI * 2)
+          this.ctx.ellipse(x + bw / 2, y + bh / 2, (bw - borderWidth * 2) / 2, (bh - borderWidth * 2) / 2, 0, 0, Math.PI * 2)
           break
         case "pill":
-          this.ctx.roundRect(x + borderWidth, y + borderWidth, width - borderWidth * 2, height - borderWidth * 2, (height - borderWidth * 2) / 2)
+          this.ctx.roundRect(x + borderWidth, y + borderWidth, bw - borderWidth * 2, bh - borderWidth * 2, (bh - borderWidth * 2) / 2)
           break
         default:
-          this.ctx.roundRect(x + borderWidth, y + borderWidth, width - borderWidth * 2, height - borderWidth * 2, borderRadius)
+          this.ctx.roundRect(x + borderWidth, y + borderWidth, bw - borderWidth * 2, bh - borderWidth * 2, borderRadius)
       }
       this.ctx.clip()
 
@@ -325,11 +368,11 @@ export class CanvasRecorder {
           // Draw video to temp canvas (mirrored)
           tempCtx.save()
           tempCtx.scale(-1, 1)
-          tempCtx.drawImage(this.cameraVideo, -width, 0, width, height)
+          tempCtx.drawImage(this.cameraVideo, -bw, 0, bw, bh)
           tempCtx.restore()
 
           // Get image data and apply beauty filter
-          const imageData = tempCtx.getImageData(0, 0, width, height)
+          const imageData = tempCtx.getImageData(0, 0, bw, bh)
           const processedData = this.beautyFilter.applyBeautyFilter(imageData, this.beautySettings)
 
           // Put processed data back
@@ -338,15 +381,15 @@ export class CanvasRecorder {
           // Draw the processed canvas (note: mirror is already applied in tempCtx)
           this.ctx.save()
           this.ctx.scale(-1, 1)
-          this.ctx.drawImage(this.beautyCanvas, -x - width, y, width, height)
+          this.ctx.drawImage(this.beautyCanvas, -x - bw, y, bw, bh)
           this.ctx.restore()
           this.ctx.setTransform(1, 0, 0, 1, 0, 0)
         } else {
-          this.ctx.drawImage(this.cameraVideo, -x - width, y, width, height)
+          this.ctx.drawImage(this.cameraVideo, -x - bw, y, bw, bh)
           this.ctx.setTransform(1, 0, 0, 1, 0, 0)
         }
       } else {
-        this.ctx.drawImage(this.cameraVideo, -x - width, y, width, height)
+        this.ctx.drawImage(this.cameraVideo, -x - bw, y, bw, bh)
         this.ctx.setTransform(1, 0, 0, 1, 0, 0)
       }
 
