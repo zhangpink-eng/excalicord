@@ -24,6 +24,7 @@ export interface RightPanelProps {
   onCameraBubblePositionPreset?: (position: { x: number; y: number }) => void
   // AI Avatar settings
   avatarEnabled?: boolean
+  avatarLoading?: boolean
   avatarPresets?: AvatarPreset[]
   selectedAvatarId?: string | null
   onAvatarToggle?: () => void
@@ -48,6 +49,7 @@ export function RightPanel({
   onCameraBubbleSizeChange,
   onCameraBubblePositionPreset,
   avatarEnabled = false,
+  avatarLoading = false,
   avatarPresets = [],
   selectedAvatarId = null,
   onAvatarToggle,
@@ -97,12 +99,13 @@ export function RightPanel({
       <section>
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold text-sm">AI Avatar</h3>
-          {onAvatarToggle && (
+          {onAvatarToggle && !avatarLoading && (
             <button
               onClick={onAvatarToggle}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                 avatarEnabled ? "bg-primary" : "bg-muted"
               }`}
+              disabled={avatarLoading}
             >
               <span
                 className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
@@ -111,8 +114,11 @@ export function RightPanel({
               />
             </button>
           )}
+          {avatarLoading && (
+            <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          )}
         </div>
-        {avatarEnabled && (
+        {avatarEnabled && !avatarLoading && (
           <>
             <div className="space-y-2">
               {avatarPresets.map((preset) => (

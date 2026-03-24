@@ -1,11 +1,13 @@
 /**
- * WebGL Avatar Renderer
+ * WebGL Avatar Renderer with Face-api.js
  *
- * A WebGL-based renderer for displaying animated avatar overlays on video.
- * Uses simple 2D transformations to simulate an avatar effect.
+ * Real-time face detection and avatar rendering using face-api.js
  */
 
+import * as faceapi from "face-api.js"
+
 export interface AvatarStyle {
+  type: "illustrated" | "anime" | "realistic"
   color: string
   outlineColor: string
   expression: "neutral" | "happy" | "serious"
@@ -13,20 +15,63 @@ export interface AvatarStyle {
 
 export const AVATAR_STYLES: Record<string, AvatarStyle> = {
   illustrated: {
+    type: "illustrated",
     color: "#4A90D9",
     outlineColor: "#2D5A87",
     expression: "neutral",
   },
   anime: {
+    type: "anime",
     color: "#FF6B9D",
     outlineColor: "#CC4D73",
     expression: "happy",
   },
   realistic: {
+    type: "realistic",
     color: "#8B6914",
     outlineColor: "#5C4A0F",
     expression: "neutral",
   },
+}
+
+// Model loading state
+let modelsLoaded = false
+let modelsLoading = false
+const modelLoadCallbacks: Array<() => void> = []
+
+async function loadModels(): Promise<void> {
+  if (modelsLoaded) return
+
+  if (modelsLoading) {
+    return new Promise((resolve) => {
+      modelLoadCallbacks.push(resolve)
+    })
+  }
+
+  modelsLoading = true
+  console.log("[AvatarRenderer] Loading face-api.js models...")
+
+  try {
+    // Load models from CDN
+    const MODEL_URL = "https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/model"
+
+    await Promise.all([
+      faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+      faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+    ])
+
+    modelsLoaded = true
+    console.log("[AvatarRenderer] Face-api.js models loaded successfully")
+
+    // Resolve all waiting callbacks
+    modelLoadCallbacks.forEach((cb) => cb())
+    modelLoadCallbacks.length = 0
+  } catch (error) {
+    console.error("[AvatarRenderer] Failed to load face-api.js models:", error)
+    throw error
+  } finally {
+    modelsLoading = false
+  }
 }
 
 export class WebGLAvatarRenderer {
@@ -35,16 +80,25 @@ export class WebGLAvatarRenderer {
   private videoElement: HTMLVideoElement | null = null
   private isRendering = false
   private animationFrameId: number | null = null
+  private faceDetectionInterval: NodeJS.Timeout | null = null
 
   // Avatar state
   private avatarStyle: AvatarStyle = AVATAR_STYLES.illustrated
-  private avatarPosition = { x: 0.5, y: 0.5 } // Normalized 0-1
+  private avatarPosition = { x: 0.7, y: 0.75 } // Default position (bottom-right)
   private avatarScale = 1.0
   private avatarRotation = 0
 
-  initialize(canvas: HTMLCanvasElement): void {
+  // Face detection state
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private lastFaceDetection: any = null
+  private faceDetectionRunning = false
+
+  async initialize(canvas: HTMLCanvasElement): Promise<void> {
     this.canvas = canvas
     this.ctx = canvas.getContext("2d")
+
+    // Load face-api models
+    await loadModels()
   }
 
   setVideoElement(video: HTMLVideoElement | null): void {
@@ -69,6 +123,7 @@ export class WebGLAvatarRenderer {
   start(): void {
     if (this.isRendering) return
     this.isRendering = true
+    this.startFaceDetection()
     this.renderLoop()
   }
 
@@ -77,14 +132,53 @@ export class WebGLAvatarRenderer {
    */
   stop(): void {
     this.isRendering = false
+    this.stopFaceDetection()
     if (this.animationFrameId !== null) {
       cancelAnimationFrame(this.animationFrameId)
       this.animationFrameId = null
     }
   }
 
+  private startFaceDetection(): void {
+    if (this.faceDetectionRunning || !this.videoElement) return
+    this.faceDetectionRunning = true
+
+    // Detect face every 100ms to balance performance and responsiveness
+    this.faceDetectionInterval = setInterval(async () => {
+      await this.detectFace()
+    }, 100)
+  }
+
+  private stopFaceDetection(): void {
+    this.faceDetectionRunning = false
+    if (this.faceDetectionInterval) {
+      clearInterval(this.faceDetectionInterval)
+      this.faceDetectionInterval = null
+    }
+    this.lastFaceDetection = null
+  }
+
+  private async detectFace(): Promise<void> {
+    if (!this.videoElement || !this.canvas || this.videoElement.readyState < 2) return
+
+    try {
+      const options = new faceapi.TinyFaceDetectorOptions({
+        inputSize: 320,
+        scoreThreshold: 0.5,
+      })
+
+      const detection = await faceapi
+        .detectSingleFace(this.videoElement, options)
+        .withFaceLandmarks(true)
+
+      this.lastFaceDetection = detection || null
+    } catch (error) {
+      // Silently ignore detection errors to avoid console spam
+    }
+  }
+
   /**
-   * Render a single frame
+   * Render loop
    */
   private renderLoop(): void {
     if (!this.isRendering) return
@@ -102,13 +196,13 @@ export class WebGLAvatarRenderer {
     // Clear canvas
     this.ctx.clearRect(0, 0, width, height)
 
-    // Draw video frame if available
+    // Draw video frame (mirrored) in background
     if (this.videoElement && this.videoElement.readyState >= 2) {
       this.drawVideoFrame()
     }
 
-    // Draw avatar overlay
-    this.drawAvatarOverlay()
+    // Draw avatar with face swap
+    this.drawAvatar()
   }
 
   private drawVideoFrame(): void {
@@ -146,166 +240,325 @@ export class WebGLAvatarRenderer {
     this.ctx.restore()
   }
 
-  private drawAvatarOverlay(): void {
+  private drawAvatar(): void {
     if (!this.ctx || !this.canvas) return
 
     const { width, height } = this.canvas
+
+    // Calculate avatar size and position
+    const baseSize = Math.min(width, height) * 0.3
+    const avatarSize = baseSize * this.avatarScale
     const centerX = this.avatarPosition.x * width
     const centerY = this.avatarPosition.y * height
-
-    const avatarSize = Math.min(width, height) * 0.25 * this.avatarScale
 
     this.ctx.save()
     this.ctx.translate(centerX, centerY)
     this.ctx.rotate(this.avatarRotation)
 
-    // Draw avatar based on style
-    switch (this.avatarStyle.expression) {
-      case "happy":
-        this.drawHappyAvatar(avatarSize)
-        break
-      case "serious":
-        this.drawSeriousAvatar(avatarSize)
-        break
-      default:
-        this.drawNeutralAvatar(avatarSize)
+    // Draw avatar background circle
+    this.drawAvatarBackground(avatarSize)
+
+    // If we have face detection, overlay the user's face
+    if (this.lastFaceDetection) {
+      this.overlayFace(avatarSize)
     }
+
+    // Draw avatar features (eyes, mouth based on expression)
+    this.drawAvatarFeatures(avatarSize)
 
     this.ctx.restore()
   }
 
-  private drawNeutralAvatar(size: number): void {
+  private drawAvatarBackground(size: number): void {
     if (!this.ctx) return
-    const { color, outlineColor } = this.avatarStyle
+
+    const { color, outlineColor, type } = this.avatarStyle
+
+    // Outer glow
+    const gradient = this.ctx.createRadialGradient(0, 0, size * 0.8, 0, 0, size * 1.2)
+    gradient.addColorStop(0, "rgba(255, 255, 255, 0)")
+    gradient.addColorStop(1, "rgba(255, 255, 255, 0)")
 
     // Face circle
     this.ctx.beginPath()
-    this.ctx.arc(0, 0, size, 0, Math.PI * 2)
-    this.ctx.fillStyle = color
-    this.ctx.fill()
-    this.ctx.strokeStyle = outlineColor
-    this.ctx.lineWidth = size * 0.05
-    this.ctx.stroke()
 
-    // Eyes
-    const eyeOffset = size * 0.3
-    const eyeSize = size * 0.1
+    if (type === "realistic") {
+      // More natural shape for realistic
+      this.ctx.ellipse(0, 0, size, size * 1.1, 0, 0, Math.PI * 2)
+    } else {
+      this.ctx.arc(0, 0, size, 0, Math.PI * 2)
+    }
 
-    this.ctx.beginPath()
-    this.ctx.arc(-eyeOffset, -size * 0.1, eyeSize, 0, Math.PI * 2)
-    this.ctx.arc(eyeOffset, -size * 0.1, eyeSize, 0, Math.PI * 2)
-    this.ctx.fillStyle = "#ffffff"
+    // Fill with gradient or solid color
+    const faceGradient = this.ctx.createRadialGradient(
+      -size * 0.3,
+      -size * 0.3,
+      0,
+      0,
+      0,
+      size
+    )
+    faceGradient.addColorStop(0, this.lightenColor(color, 30))
+    faceGradient.addColorStop(0.7, color)
+    faceGradient.addColorStop(1, this.darkenColor(color, 20))
+
+    this.ctx.fillStyle = faceGradient
     this.ctx.fill()
+
     this.ctx.strokeStyle = outlineColor
     this.ctx.lineWidth = size * 0.03
+    this.ctx.stroke()
+  }
+
+  private overlayFace(avatarSize: number): void {
+    if (!this.ctx || !this.lastFaceDetection || !this.videoElement) return
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const detection = this.lastFaceDetection as any
+    const landmarks = detection.landmarks
+    const box = detection.detection?.box || detection.box
+
+    if (!box) return
+
+    // Get face region from video
+    const faceRegion = this.extractFaceRegion(box, landmarks)
+
+    if (faceRegion) {
+      // Calculate position for face overlay
+      const faceSize = avatarSize * 0.6
+      const faceX = -faceSize * 0.1
+      const faceY = -avatarSize * 0.15
+
+      // Draw user's face as ellipse overlay
+      this.ctx.save()
+      this.ctx.beginPath()
+      this.ctx.ellipse(faceX, faceY, faceSize * 0.45, faceSize * 0.55, 0, 0, Math.PI * 2)
+
+      // Apply cartoon effect to face
+      this.ctx.clip()
+
+      // Draw scaled face region
+      this.ctx.drawImage(
+        faceRegion,
+        faceX - faceSize * 0.4,
+        faceY - faceSize * 0.5,
+        faceSize * 0.8,
+        faceSize
+      )
+
+      // Apply color overlay for cartoon effect
+      this.ctx.fillStyle = "rgba(255, 255, 255, 0.15)"
+      this.ctx.fill()
+
+      this.ctx.restore()
+    }
+  }
+
+  private extractFaceRegion(
+    box: { x: number; y: number; width: number; height: number },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    _landmarks: any
+  ): HTMLCanvasElement | null {
+    if (!this.videoElement || !this.canvas) return null
+
+    const video = this.videoElement
+    if (video.readyState < 2) return null
+
+    // Create a canvas to extract face region
+    const faceCanvas = document.createElement("canvas")
+    const padding = box.width * 0.3
+
+    const extractX = Math.max(0, box.x - padding)
+    const extractY = Math.max(0, box.y - padding)
+    const extractWidth = Math.min(video.videoWidth - extractX, box.width + padding * 2)
+    const extractHeight = Math.min(video.videoHeight - extractY, box.height + padding * 2)
+
+    faceCanvas.width = extractWidth
+    faceCanvas.height = extractHeight
+
+    const ctx = faceCanvas.getContext("2d")
+    if (!ctx) return null
+
+    // Mirror the image (since video is mirrored)
+    ctx.translate(extractWidth, 0)
+    ctx.scale(-1, 1)
+    ctx.drawImage(
+      video,
+      extractX,
+      extractY,
+      extractWidth,
+      extractHeight,
+      0,
+      0,
+      extractWidth,
+      extractHeight
+    )
+
+    return faceCanvas
+  }
+
+  private drawAvatarFeatures(size: number): void {
+    const { outlineColor, expression, type } = this.avatarStyle
+
+    if (!this.ctx) return
+
+    // Adjust feature positions based on avatar type
+    const eyeY = type === "realistic" ? -size * 0.1 : -size * 0.15
+    const mouthY = type === "realistic" ? size * 0.2 : size * 0.25
+    const eyeSpacing = size * 0.25
+
+    switch (expression) {
+      case "happy":
+        this.drawHappyEyes(eyeSpacing, eyeY, size, outlineColor)
+        this.drawHappyMouth(mouthY, size, outlineColor)
+        break
+      case "serious":
+        this.drawSeriousEyes(eyeSpacing, eyeY, size, outlineColor)
+        this.drawSeriousMouth(mouthY, size, outlineColor)
+        break
+      default:
+        this.drawNeutralEyes(eyeSpacing, eyeY, size, outlineColor)
+        this.drawNeutralMouth(mouthY, size, outlineColor)
+    }
+  }
+
+  private drawNeutralEyes(spacing: number, y: number, size: number, color: string): void {
+    if (!this.ctx) return
+
+    const eyeSize = size * 0.08
+
+    // Eye whites
+    this.ctx.beginPath()
+    this.ctx.arc(-spacing, y, eyeSize, 0, Math.PI * 2)
+    this.ctx.arc(spacing, y, eyeSize, 0, Math.PI * 2)
+    this.ctx.fillStyle = "#ffffff"
+    this.ctx.fill()
+    this.ctx.strokeStyle = color
+    this.ctx.lineWidth = size * 0.02
     this.ctx.stroke()
 
     // Pupils
     this.ctx.beginPath()
-    this.ctx.arc(-eyeOffset, -size * 0.1, eyeSize * 0.5, 0, Math.PI * 2)
-    this.ctx.arc(eyeOffset, -size * 0.1, eyeSize * 0.5, 0, Math.PI * 2)
+    this.ctx.arc(-spacing, y, eyeSize * 0.5, 0, Math.PI * 2)
+    this.ctx.arc(spacing, y, eyeSize * 0.5, 0, Math.PI * 2)
     this.ctx.fillStyle = "#1a1a1a"
     this.ctx.fill()
-
-    // Mouth (neutral line)
-    this.ctx.beginPath()
-    this.ctx.moveTo(-size * 0.2, size * 0.3)
-    this.ctx.lineTo(size * 0.2, size * 0.3)
-    this.ctx.strokeStyle = outlineColor
-    this.ctx.lineWidth = size * 0.05
-    this.ctx.lineCap = "round"
-    this.ctx.stroke()
   }
 
-  private drawHappyAvatar(size: number): void {
+  private drawHappyEyes(spacing: number, y: number, size: number, color: string): void {
     if (!this.ctx) return
-    const { color, outlineColor } = this.avatarStyle
 
-    // Face circle
+    // Happy curved eyes (^_^)
     this.ctx.beginPath()
-    this.ctx.arc(0, 0, size, 0, Math.PI * 2)
-    this.ctx.fillStyle = color
-    this.ctx.fill()
-    this.ctx.strokeStyle = outlineColor
-    this.ctx.lineWidth = size * 0.05
-    this.ctx.stroke()
-
-    // Eyes (happy - closed arcs)
-    const eyeOffset = size * 0.3
-
-    this.ctx.beginPath()
-    this.ctx.arc(-eyeOffset, -size * 0.1, size * 0.1, 0, Math.PI, false)
-    this.ctx.strokeStyle = outlineColor
-    this.ctx.lineWidth = size * 0.05
-    this.ctx.stroke()
-
-    this.ctx.beginPath()
-    this.ctx.arc(eyeOffset, -size * 0.1, size * 0.1, 0, Math.PI, false)
-    this.ctx.stroke()
-
-    // Mouth (smile)
-    this.ctx.beginPath()
-    this.ctx.arc(0, size * 0.1, size * 0.25, 0.2 * Math.PI, 0.8 * Math.PI, false)
-    this.ctx.strokeStyle = outlineColor
-    this.ctx.lineWidth = size * 0.05
-    this.ctx.lineCap = "round"
-    this.ctx.stroke()
-  }
-
-  private drawSeriousAvatar(size: number): void {
-    if (!this.ctx) return
-    const { color, outlineColor } = this.avatarStyle
-
-    // Face circle
-    this.ctx.beginPath()
-    this.ctx.arc(0, 0, size, 0, Math.PI * 2)
-    this.ctx.fillStyle = color
-    this.ctx.fill()
-    this.ctx.strokeStyle = outlineColor
-    this.ctx.lineWidth = size * 0.05
-    this.ctx.stroke()
-
-    // Eyes (serious - straight brows)
-    const eyeOffset = size * 0.3
-    const eyeSize = size * 0.1
-
-    this.ctx.beginPath()
-    this.ctx.arc(-eyeOffset, -size * 0.1, eyeSize, 0, Math.PI * 2)
-    this.ctx.arc(eyeOffset, -size * 0.1, eyeSize, 0, Math.PI * 2)
-    this.ctx.fillStyle = "#ffffff"
-    this.ctx.fill()
-    this.ctx.strokeStyle = outlineColor
-    this.ctx.lineWidth = size * 0.03
-    this.ctx.stroke()
-
-    // Pupils
-    this.ctx.beginPath()
-    this.ctx.arc(-eyeOffset, -size * 0.1, eyeSize * 0.5, 0, Math.PI * 2)
-    this.ctx.arc(eyeOffset, -size * 0.1, eyeSize * 0.5, 0, Math.PI * 2)
-    this.ctx.fillStyle = "#1a1a1a"
-    this.ctx.fill()
-
-    // Eyebrows (angled for serious look)
-    this.ctx.beginPath()
-    this.ctx.moveTo(-eyeOffset - size * 0.15, -size * 0.35)
-    this.ctx.lineTo(-eyeOffset + size * 0.15, -size * 0.25)
-    this.ctx.strokeStyle = outlineColor
+    this.ctx.arc(-spacing, y, size * 0.08, Math.PI, 0, false)
+    this.ctx.strokeStyle = color
     this.ctx.lineWidth = size * 0.04
     this.ctx.lineCap = "round"
     this.ctx.stroke()
 
     this.ctx.beginPath()
-    this.ctx.moveTo(eyeOffset - size * 0.15, -size * 0.25)
-    this.ctx.lineTo(eyeOffset + size * 0.15, -size * 0.35)
+    this.ctx.arc(spacing, y, size * 0.08, Math.PI, 0, false)
+    this.ctx.stroke()
+  }
+
+  private drawSeriousEyes(spacing: number, y: number, size: number, color: string): void {
+    if (!this.ctx) return
+
+    const eyeSize = size * 0.08
+
+    // Eye whites
+    this.ctx.beginPath()
+    this.ctx.arc(-spacing, y, eyeSize, 0, Math.PI * 2)
+    this.ctx.arc(spacing, y, eyeSize, 0, Math.PI * 2)
+    this.ctx.fillStyle = "#ffffff"
+    this.ctx.fill()
+    this.ctx.strokeStyle = color
+    this.ctx.lineWidth = size * 0.02
     this.ctx.stroke()
 
-    // Mouth (straight line)
+    // Pupils (smaller, more serious)
     this.ctx.beginPath()
-    this.ctx.moveTo(-size * 0.15, size * 0.35)
-    this.ctx.lineTo(size * 0.15, size * 0.35)
-    this.ctx.strokeStyle = outlineColor
-    this.ctx.lineWidth = size * 0.05
+    this.ctx.arc(-spacing, y, eyeSize * 0.4, 0, Math.PI * 2)
+    this.ctx.arc(spacing, y, eyeSize * 0.4, 0, Math.PI * 2)
+    this.ctx.fillStyle = "#1a1a1a"
+    this.ctx.fill()
+
+    // Angry eyebrows
+    this.ctx.beginPath()
+    this.ctx.moveTo(-spacing - size * 0.12, y - size * 0.2)
+    this.ctx.lineTo(-spacing + size * 0.08, y - size * 0.12)
+    this.ctx.strokeStyle = color
+    this.ctx.lineWidth = size * 0.03
+    this.ctx.lineCap = "round"
     this.ctx.stroke()
+
+    this.ctx.beginPath()
+    this.ctx.moveTo(spacing - size * 0.08, y - size * 0.12)
+    this.ctx.lineTo(spacing + size * 0.12, y - size * 0.2)
+    this.ctx.stroke()
+  }
+
+  private drawNeutralMouth(y: number, size: number, color: string): void {
+    if (!this.ctx) return
+
+    this.ctx.beginPath()
+    this.ctx.moveTo(-size * 0.15, y)
+    this.ctx.lineTo(size * 0.15, y)
+    this.ctx.strokeStyle = color
+    this.ctx.lineWidth = size * 0.04
+    this.ctx.lineCap = "round"
+    this.ctx.stroke()
+  }
+
+  private drawHappyMouth(y: number, size: number, color: string): void {
+    if (!this.ctx) return
+
+    // Big smile
+    this.ctx.beginPath()
+    this.ctx.arc(0, y - size * 0.05, size * 0.2, 0.15 * Math.PI, 0.85 * Math.PI, false)
+    this.ctx.strokeStyle = color
+    this.ctx.lineWidth = size * 0.04
+    this.ctx.lineCap = "round"
+    this.ctx.stroke()
+
+    // Add tongue sometimes
+    if (Math.random() > 0.5) {
+      this.ctx.beginPath()
+      this.ctx.arc(0, y + size * 0.05, size * 0.08, 0, Math.PI, false)
+      this.ctx.fillStyle = "#ff6b8a"
+      this.ctx.fill()
+    }
+  }
+
+  private drawSeriousMouth(y: number, size: number, color: string): void {
+    if (!this.ctx) return
+
+    // Straight line mouth
+    this.ctx.beginPath()
+    this.ctx.moveTo(-size * 0.12, y)
+    this.ctx.lineTo(size * 0.12, y)
+    this.ctx.strokeStyle = color
+    this.ctx.lineWidth = size * 0.04
+    this.ctx.lineCap = "round"
+    this.ctx.stroke()
+  }
+
+  private lightenColor(hex: string, percent: number): string {
+    const num = parseInt(hex.replace("#", ""), 16)
+    const amt = Math.round(2.55 * percent)
+    const R = Math.min(255, (num >> 16) + amt)
+    const G = Math.min(255, ((num >> 8) & 0x00ff) + amt)
+    const B = Math.min(255, (num & 0x0000ff) + amt)
+    return `#${((1 << 24) | (R << 16) | (G << 8) | B).toString(16).slice(1)}`
+  }
+
+  private darkenColor(hex: string, percent: number): string {
+    const num = parseInt(hex.replace("#", ""), 16)
+    const amt = Math.round(2.55 * percent)
+    const R = Math.max(0, (num >> 16) - amt)
+    const G = Math.max(0, ((num >> 8) & 0x00ff) - amt)
+    const B = Math.max(0, (num & 0x0000ff) - amt)
+    return `#${((1 << 24) | (R << 16) | (G << 8) | B).toString(16).slice(1)}`
   }
 
   /**

@@ -3,6 +3,8 @@ import { avatarService, type AvatarPreset, type AvatarType } from "@/services/ai
 
 export interface UseAvatarReturn {
   isActive: boolean
+  isLoading: boolean
+  isReady: boolean
   currentAvatar: AvatarPreset | null
   presets: AvatarPreset[]
   outputStream: MediaStream | null
@@ -16,6 +18,8 @@ export interface UseAvatarReturn {
 
 export function useAvatar(): UseAvatarReturn {
   const [isActive, setIsActive] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isReady, setIsReady] = useState(false)
   const [currentAvatar, setCurrentAvatar] = useState<AvatarPreset | null>(null)
   const [outputStream, setOutputStream] = useState<MediaStream | null>(null)
 
@@ -33,7 +37,15 @@ export function useAvatar(): UseAvatarReturn {
     document.body.appendChild(canvas)
     canvasRef.current = canvas
 
-    avatarService.initialize(canvas)
+    // Initialize asynchronously (loads face-api models)
+    avatarService.initialize(canvas).then(() => {
+      setIsReady(true)
+      setIsLoading(false)
+      console.log("[useAvatar] Avatar service ready")
+    }).catch((err) => {
+      console.error("[useAvatar] Failed to initialize avatar service:", err)
+      setIsLoading(false)
+    })
 
     return () => {
       avatarService.destroy()
@@ -57,10 +69,14 @@ export function useAvatar(): UseAvatarReturn {
   }, [])
 
   const start = useCallback((sourceStream: MediaStream) => {
+    if (!isReady) {
+      console.warn("[useAvatar] Avatar service not ready yet")
+      return
+    }
     const stream = avatarService.start(sourceStream)
     setOutputStream(stream)
     setIsActive(true)
-  }, [])
+  }, [isReady])
 
   const stop = useCallback(() => {
     avatarService.stop()
@@ -74,6 +90,8 @@ export function useAvatar(): UseAvatarReturn {
 
   return {
     isActive,
+    isLoading,
+    isReady,
     currentAvatar,
     presets,
     outputStream,

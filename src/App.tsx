@@ -251,6 +251,7 @@ function App() {
   const [selectedAvatarId, setSelectedAvatarId] = useState<string | null>(null)
   const {
     presets: avatarPresets,
+    isLoading: avatarLoading,
     outputStream: avatarStream,
     selectAvatar,
     start: startAvatar,
@@ -834,6 +835,7 @@ function App() {
               onCameraBubbleSizeChange={(size) => { cameraBubbleSize.current = size }}
               onCameraBubblePositionPreset={(pos) => { cameraBubblePosition.current = pos }}
               avatarEnabled={avatarEnabled}
+              avatarLoading={avatarLoading}
               avatarPresets={avatarPresets}
               selectedAvatarId={selectedAvatarId}
               onAvatarToggle={handleAvatarToggle}

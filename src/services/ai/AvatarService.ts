@@ -10,11 +10,6 @@ export interface AvatarPreset {
   avatarStyle: AvatarStyle
 }
 
-export interface AvatarConfig {
-  style: AvatarType
-  voiceId?: string
-}
-
 // Preset avatars
 export const AVATAR_PRESETS: AvatarPreset[] = [
   {
@@ -45,13 +40,16 @@ export class AvatarService {
   private selectedAvatar: AvatarPreset | null = null
   private avatarCanvas: HTMLCanvasElement | null = null
   private isActive = false
+  private isInitialized = false
 
   /**
    * Initialize the avatar system with a canvas
    */
-  initialize(canvas: HTMLCanvasElement): void {
+  async initialize(canvas: HTMLCanvasElement): Promise<void> {
     this.avatarCanvas = canvas
-    webGLAvatarRenderer.initialize(canvas)
+    await webGLAvatarRenderer.initialize(canvas)
+    this.isInitialized = true
+    console.log("[AvatarService] Initialized successfully")
   }
 
   /**
@@ -62,7 +60,7 @@ export class AvatarService {
     if (preset) {
       this.selectedAvatar = preset
       webGLAvatarRenderer.setAvatarStyle(preset.avatarStyle)
-      console.log(`Avatar selected: ${preset.name}`)
+      console.log(`[AvatarService] Avatar selected: ${preset.name}`)
     }
   }
 
@@ -99,8 +97,19 @@ export class AvatarService {
    */
   start(sourceStream: MediaStream): MediaStream | null {
     if (!this.avatarCanvas) {
-      console.error("AvatarService: Canvas not initialized")
+      console.error("[AvatarService] Canvas not initialized")
       return null
+    }
+
+    if (!this.isInitialized) {
+      console.error("[AvatarService] Renderer not initialized")
+      return null
+    }
+
+    // If no avatar selected, use first preset
+    if (!this.selectedAvatar) {
+      this.selectedAvatar = AVATAR_PRESETS[0]
+      webGLAvatarRenderer.setAvatarStyle(AVATAR_PRESETS[0].avatarStyle)
     }
 
     // Create a video element from the source stream
@@ -127,6 +136,7 @@ export class AvatarService {
     })
 
     this.isActive = true
+    console.log("[AvatarService] Avatar rendering started")
     return this.currentStream
   }
 
@@ -141,6 +151,7 @@ export class AvatarService {
       this.currentStream.getTracks().forEach((track) => track.stop())
       this.currentStream = null
     }
+    console.log("[AvatarService] Avatar rendering stopped")
   }
 
   /**
@@ -158,17 +169,22 @@ export class AvatarService {
   }
 
   /**
+   * Check if avatar service is initialized
+   */
+  isReady(): boolean {
+    return this.isInitialized
+  }
+
+  /**
    * Generate avatar from image (placeholder for AI integration)
-   * In production, this would call D-ID, HeyGen, or similar API
+   * In production, this could call D-ID, HeyGen, or similar API
    */
   async generateAvatar(
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _imageUrl: string,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _type: AvatarType
   ): Promise<MediaStream | null> {
     // This requires external AI API integration
-    console.warn("Avatar generation requires external AI API integration (D-ID, HeyGen, etc.)")
+    console.warn("[AvatarService] Avatar generation requires external AI API integration (D-ID, HeyGen, etc.)")
     return null
   }
 
@@ -178,6 +194,7 @@ export class AvatarService {
   destroy(): void {
     this.stop()
     this.avatarCanvas = null
+    this.isInitialized = false
   }
 }
 
