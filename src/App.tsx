@@ -188,8 +188,11 @@ function App() {
     setCurrentSlideIndex(index)
   }, [])
 
-  const handleAddSlide = useCallback(() => {
-    addSlideToProject()
+  const handleAddSlide = useCallback(async () => {
+    const newIndex = await addSlideToProject()
+    if (newIndex >= 0) {
+      setCurrentSlideIndex(newIndex)
+    }
   }, [addSlideToProject])
 
   const handleDeleteSlide = useCallback((id: string) => {

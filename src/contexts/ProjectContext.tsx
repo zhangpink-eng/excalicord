@@ -11,7 +11,7 @@ interface ProjectContextType {
   loadProject: (id: string) => Promise<void>
   updateProject: (updates: Partial<Project>) => Promise<void>
   deleteProject: () => Promise<void>
-  addSlide: () => Promise<void>
+  addSlide: () => Promise<number>
   updateSlide: (id: string, updates: Partial<Slide>) => Promise<void>
   deleteSlide: (id: string) => Promise<void>
   reorderSlides: (slides: { id: string; position: number }[]) => Promise<void>
@@ -88,14 +88,15 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     }
   }, [project])
 
-  const addSlide = useCallback(async () => {
+  const addSlide = useCallback(async (): Promise<number> => {
     setError(null)
     let projectId = project?.id
+    const newSlideIndex = slides.length // The index the new slide will be at
 
     // If no project exists, create one first
     if (!projectId) {
       const newProject = await createProject("Untitled Project")
-      if (!newProject) return
+      if (!newProject) return -1
       projectId = newProject.id
     }
 
@@ -131,7 +132,10 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       // Rollback on failure
       setSlides((prev) => prev.filter((s) => s.id !== tempId))
       setError(err instanceof Error ? err.message : "Failed to add slide")
+      return -1
     }
+
+    return newSlideIndex
   }, [project, slides.length, createProject])
 
   const updateSlide = useCallback(async (id: string, updates: Partial<Slide>) => {
