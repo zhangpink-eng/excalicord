@@ -140,7 +140,7 @@ function App() {
 
   const [isRecording, setIsRecording] = useState(false)
   const [showRecordingPreview, setShowRecordingPreview] = useState(false)
-  const [recordingPreviewSize] = useState({ width: 1280, height: 720 })
+  const [recordingPreviewSize] = useState({ width: 640, height: 360 })
   const [beautyEnabled, setBeautyEnabled] = useState(false)
   const [beautySettings, setBeautySettingsState] = useState<BeautySettings>(defaultBeautySettings)
 
@@ -173,7 +173,7 @@ function App() {
   const cameraVideoRef = useRef<HTMLVideoElement>(null)
   const slidesContainerRef = useRef<HTMLDivElement>(null)
   const cameraBubblePosition = useRef({ x: 50, y: 50 })
-  const cameraBubbleSize = useRef({ width: 200, height: 150 })
+  const cameraBubbleSize = useRef({ width: 120, height: 90 })
 
   // Camera bubble settings state
   const [cameraBubbleShape, setCameraBubbleShape] = useState<BubbleShape>("rounded-rect")
