@@ -609,6 +609,36 @@ function App() {
     }
   }, [micEnabled, startMic, stopMic])
 
+  // Initialize camera and mic on mount (default enabled)
+  useEffect(() => {
+    const initMedia = async () => {
+      if (cameraEnabled && !cameraStream) {
+        try {
+          const stream = await startCamera()
+          setCameraBubbleState({
+            stream: stream,
+            position: cameraBubblePosition.current,
+            size: cameraBubbleSize.current,
+            shape: cameraBubbleShape,
+            borderRadius: cameraBubbleBorderRadius,
+            borderColor: cameraBubbleBorderColor,
+            borderWidth: cameraBubbleBorderWidth,
+          })
+        } catch (err) {
+          console.error("Failed to start camera on init:", err)
+        }
+      }
+      if (micEnabled) {
+        try {
+          await startMic()
+        } catch (err) {
+          console.error("Failed to start mic on init:", err)
+        }
+      }
+    }
+    initMedia()
+  }, [])
+
   // Toggle AI Avatar on/off
   const handleAvatarToggle = useCallback(() => {
     if (avatarEnabled) {
