@@ -11,6 +11,7 @@ export interface UseAvatarReturn {
   selectAvatar: (presetId: string) => void
   setPosition: (x: number, y: number) => void
   setScale: (scale: number) => void
+  setExpression: (expression: "neutral" | "happy" | "serious") => void
   start: (sourceStream: MediaStream) => void
   stop: () => void
   generateAvatar: (imageUrl: string, type: AvatarType) => Promise<MediaStream | null>
@@ -68,6 +69,10 @@ export function useAvatar(): UseAvatarReturn {
     avatarService.setScale(scale)
   }, [])
 
+  const setExpression = useCallback((expression: "neutral" | "happy" | "serious") => {
+    avatarService.setExpression(expression)
+  }, [])
+
   const start = useCallback((sourceStream: MediaStream) => {
     if (!isReady) {
       console.warn("[useAvatar] Avatar service not ready yet")
@@ -98,6 +103,7 @@ export function useAvatar(): UseAvatarReturn {
     selectAvatar,
     setPosition,
     setScale,
+    setExpression,
     start,
     stop,
     generateAvatar,

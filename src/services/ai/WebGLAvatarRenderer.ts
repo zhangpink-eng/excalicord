@@ -109,6 +109,13 @@ export class WebGLAvatarRenderer {
     this.avatarStyle = style
   }
 
+  setExpression(expression: "neutral" | "happy" | "serious"): void {
+    this.avatarStyle = {
+      ...this.avatarStyle,
+      expression,
+    }
+  }
+
   setAvatarPosition(x: number, y: number): void {
     this.avatarPosition = { x, y }
   }

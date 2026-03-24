@@ -247,9 +247,14 @@ function App() {
     isLoading: avatarLoading,
     outputStream: avatarStream,
     selectAvatar,
+    setExpression,
+    setPosition: setAvatarPosition,
     start: startAvatar,
     stop: stopAvatar,
   } = useAvatar()
+
+  // Avatar expression state
+  const [avatarExpression, setAvatarExpression] = useState<"neutral" | "happy" | "serious">("neutral")
 
   // Camera and mic toggle state (for control bar icons)
   const [cameraEnabled, setCameraEnabled] = useState(false)
@@ -275,6 +280,7 @@ function App() {
   }, [])
 
   const cameraVideoRef = useRef<HTMLVideoElement>(null)
+  const cameraStreamRef = useRef<MediaStream | null>(null)
   const cameraBubblePosition = useRef({ x: 50, y: 50 })
   const cameraBubbleSize = useRef({ width: 120, height: 90 })
 
@@ -283,6 +289,11 @@ function App() {
   const [cameraBubbleBorderColor, setCameraBubbleBorderColor] = useState("#ffffff")
   const [cameraBubbleBorderWidth, setCameraBubbleBorderWidth] = useState(3)
   const [cameraBubbleBorderRadius, setCameraBubbleBorderRadius] = useState(16)
+
+  // Keep cameraStreamRef in sync with cameraStream
+  useEffect(() => {
+    cameraStreamRef.current = cameraStream
+  }, [cameraStream])
 
   // Initialize analytics
   useEffect(() => {
@@ -385,8 +396,10 @@ function App() {
         x: recordingPreviewSize.width - cameraBubbleSize.current.width - 20,
         y: recordingPreviewSize.height - cameraBubbleSize.current.height - 20,
       }
+      // Use avatar stream if avatar is enabled, otherwise use camera stream
+      const streamForRecording = avatarEnabled && avatarStream ? avatarStream : cameraStreamToUse
       setCameraBubbleState({
-        stream: cameraStreamToUse,
+        stream: streamForRecording,
         position: defaultPos,
         size: cameraBubbleSize.current,
         shape: cameraBubbleShape,
@@ -397,7 +410,7 @@ function App() {
 
       // Attach stream to video element and tell recorder about it
       if (cameraVideoRef.current) {
-        cameraVideoRef.current.srcObject = cameraStreamToUse
+        cameraVideoRef.current.srcObject = streamForRecording
         cameraVideoRef.current.play().catch(err => console.log("Video play error:", err))
         setCameraVideo(cameraVideoRef.current)
       }
@@ -419,7 +432,7 @@ function App() {
     startCanvasRecording()
 
     analytics.trackRecordingStarted(project?.id || "unknown")
-  }, [startCamera, startMic, setExcalidrawCanvas, setCameraBubbleState, setCameraVideo, setAudioStream, setBeautySettings, setPreviewArea, beautyEnabled, beautySettings, startCanvasRecording, project, recordingPreviewSize, cameraBubbleShape, cameraBubbleBorderColor, cameraBubbleBorderWidth, cameraBubbleBorderRadius])
+  }, [startCamera, startMic, setExcalidrawCanvas, setCameraBubbleState, setCameraVideo, setAudioStream, setBeautySettings, setPreviewArea, beautyEnabled, beautySettings, startCanvasRecording, project, recordingPreviewSize, cameraBubbleShape, cameraBubbleBorderColor, cameraBubbleBorderWidth, cameraBubbleBorderRadius, avatarEnabled, avatarStream])
 
   const handleStop = useCallback(async () => {
     setIsRecording(false)
@@ -586,6 +599,17 @@ function App() {
       startAvatar(cameraStream)
     }
   }, [selectAvatar, avatarEnabled, cameraEnabled, cameraStream, stopAvatar, startAvatar])
+
+  // Change avatar expression
+  const handleAvatarExpressionChange = useCallback((expression: "neutral" | "happy" | "serious") => {
+    setAvatarExpression(expression)
+    setExpression(expression)
+  }, [setExpression])
+
+  // Change avatar position
+  const handleAvatarPositionPreset = useCallback((position: { x: number; y: number }) => {
+    setAvatarPosition(position.x, position.y)
+  }, [setAvatarPosition])
 
   const handleShare = useCallback(() => {
     console.log("Share clicked")
@@ -831,8 +855,11 @@ function App() {
               avatarLoading={avatarLoading}
               avatarPresets={avatarPresets}
               selectedAvatarId={selectedAvatarId}
+              avatarExpression={avatarExpression}
               onAvatarToggle={handleAvatarToggle}
               onAvatarSelect={handleAvatarSelect}
+              onAvatarExpressionChange={handleAvatarExpressionChange}
+              onAvatarPositionPreset={handleAvatarPositionPreset}
             />
           ) : null
         }

@@ -4,6 +4,8 @@ import { CameraBubbleSettings, type BubbleShape } from "@/components/canvas/Came
 import type { BeautySettings } from "@/services/beauty/BeautyFilter"
 import type { AvatarPreset } from "@/services/ai/AvatarService"
 
+export type AvatarExpression = "neutral" | "happy" | "serious"
+
 export interface RightPanelProps {
   beautyEnabled: boolean
   beautySettings: BeautySettings
@@ -27,8 +29,11 @@ export interface RightPanelProps {
   avatarLoading?: boolean
   avatarPresets?: AvatarPreset[]
   selectedAvatarId?: string | null
+  avatarExpression?: AvatarExpression
   onAvatarToggle?: () => void
   onAvatarSelect?: (presetId: string) => void
+  onAvatarExpressionChange?: (expression: AvatarExpression) => void
+  onAvatarPositionPreset?: (position: { x: number; y: number }) => void
 }
 
 export function RightPanel({
@@ -52,8 +57,11 @@ export function RightPanel({
   avatarLoading = false,
   avatarPresets = [],
   selectedAvatarId = null,
+  avatarExpression = "neutral",
   onAvatarToggle,
   onAvatarSelect,
+  onAvatarExpressionChange,
+  onAvatarPositionPreset,
 }: RightPanelProps) {
   return (
     <div className="p-4 space-y-6">
@@ -120,7 +128,8 @@ export function RightPanel({
         </div>
         {avatarEnabled && !avatarLoading && (
           <>
-            <div className="space-y-2">
+            {/* Avatar Presets */}
+            <div className="space-y-2 mb-4">
               {avatarPresets.map((preset) => (
                 <AvatarOption
                   key={preset.id}
@@ -131,7 +140,83 @@ export function RightPanel({
                 />
               ))}
             </div>
-            <p className="text-xs text-muted-foreground mt-2">
+
+            {/* Expression Selection */}
+            {onAvatarExpressionChange && (
+              <div className="mb-4">
+                <label className="text-xs text-muted-foreground block mb-2">Expression</label>
+                <div className="flex gap-1">
+                  {(["neutral", "happy", "serious"] as const).map((expr) => (
+                    <button
+                      key={expr}
+                      onClick={() => onAvatarExpressionChange(expr)}
+                      className={`flex-1 py-1.5 px-2 text-xs rounded border transition-colors ${
+                        avatarExpression === expr
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-muted hover:bg-muted/80 border-border"
+                      }`}
+                    >
+                      {expr === "neutral" && "😐"}
+                      {expr === "happy" && "😊"}
+                      {expr === "serious" && "🤨"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Position Presets */}
+            {onAvatarPositionPreset && (
+              <div>
+                <label className="text-xs text-muted-foreground block mb-2">Position</label>
+                <div className="grid grid-cols-3 gap-1">
+                  <button
+                    onClick={() => onAvatarPositionPreset({ x: 0.1, y: 0.1 })}
+                    className="py-1.5 px-2 text-xs rounded border bg-muted hover:bg-muted/80 border-border"
+                    title="Top Left"
+                  >
+                    ↖
+                  </button>
+                  <button
+                    onClick={() => onAvatarPositionPreset({ x: 0.5, y: 0.1 })}
+                    className="py-1.5 px-2 text-xs rounded border bg-muted hover:bg-muted/80 border-border"
+                    title="Top Center"
+                  >
+                    ↑
+                  </button>
+                  <button
+                    onClick={() => onAvatarPositionPreset({ x: 0.9, y: 0.1 })}
+                    className="py-1.5 px-2 text-xs rounded border bg-muted hover:bg-muted/80 border-border"
+                    title="Top Right"
+                  >
+                    ↗
+                  </button>
+                  <button
+                    onClick={() => onAvatarPositionPreset({ x: 0.1, y: 0.85 })}
+                    className="py-1.5 px-2 text-xs rounded border bg-muted hover:bg-muted/80 border-border"
+                    title="Bottom Left"
+                  >
+                    ↙
+                  </button>
+                  <button
+                    onClick={() => onAvatarPositionPreset({ x: 0.5, y: 0.85 })}
+                    className="py-1.5 px-2 text-xs rounded border bg-muted hover:bg-muted/80 border-border"
+                    title="Bottom Center"
+                  >
+                    ↓
+                  </button>
+                  <button
+                    onClick={() => onAvatarPositionPreset({ x: 0.9, y: 0.85 })}
+                    className="py-1.5 px-2 text-xs rounded border bg-primary/20 hover:bg-primary/30 border-primary text-primary"
+                    title="Bottom Right (Default)"
+                  >
+                    ↘
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <p className="text-xs text-muted-foreground mt-3">
               Avatar will appear in camera bubble when enabled
             </p>
           </>

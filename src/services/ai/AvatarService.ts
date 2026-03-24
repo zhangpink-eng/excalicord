@@ -93,6 +93,13 @@ export class AvatarService {
   }
 
   /**
+   * Set avatar expression
+   */
+  setExpression(expression: "neutral" | "happy" | "serious"): void {
+    webGLAvatarRenderer.setExpression(expression)
+  }
+
+  /**
    * Start avatar rendering and return the output stream
    */
   start(sourceStream: MediaStream): MediaStream | null {
