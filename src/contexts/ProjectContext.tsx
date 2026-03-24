@@ -99,15 +99,37 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       projectId = newProject.id
     }
 
+    // Optimistic update: create local slide immediately
+    const tempId = `temp-${Date.now()}`
+    const newSlide: Slide = {
+      id: tempId,
+      projectId,
+      name: `Slide ${slides.length + 1}`,
+      position: slides.length,
+      content: {},
+      slideType: "slide",
+      backgroundStyle: {},
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }
+
+    setSlides((prev) => [...prev, newSlide])
+
+    // Sync to database in background
     try {
-      const position = slides.length
       const { data, error } = await db.slides.create({
         project_id: projectId,
-        position,
+        position: slides.length,
       })
       if (error) throw error
-      setSlides((prev) => [...prev, data])
+
+      // Replace temp slide with real slide from database
+      setSlides((prev) =>
+        prev.map((s) => (s.id === tempId ? data : s))
+      )
     } catch (err) {
+      // Rollback on failure
+      setSlides((prev) => prev.filter((s) => s.id !== tempId))
       setError(err instanceof Error ? err.message : "Failed to add slide")
     }
   }, [project, slides.length, createProject])
