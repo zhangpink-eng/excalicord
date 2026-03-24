@@ -1,5 +1,6 @@
 export { LoginPage } from "./LoginPage"
 export { SignUpPage } from "./SignUpPage"
 export { DashboardPage } from "./DashboardPage"
+export { ProjectsPage } from "./ProjectsPage"
 export { PricingPage } from "./PricingPage"
 export { AuthCallbackPage } from "./AuthCallbackPage"
