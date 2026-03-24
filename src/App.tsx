@@ -55,15 +55,17 @@ function createSlideFrameElement(slideId: string, index: number, isActive: boole
 }
 
 // Helper to generate slide frame elements for Excalidraw
-// Position is computed from index for consistency
+// Uses stored positions from framePositionsRef for dragged frames
 function createSlideFrameElements(
   slides: { id: string }[],
-  currentIndex: number
+  currentIndex: number,
+  framePositions: Record<number, { x: number; y: number }>
 ): any[] {
   return slides.map((slide, index) => {
     const isActive = index === currentIndex
-    const x = DEFAULT_FRAME_X + index * DEFAULT_FRAME_OFFSET_X
-    const y = DEFAULT_FRAME_Y
+    const stored = framePositions[index]
+    const x = stored ? stored.x : (DEFAULT_FRAME_X + index * DEFAULT_FRAME_OFFSET_X)
+    const y = stored ? stored.y : DEFAULT_FRAME_Y
     return createSlideFrameElement(slide.id, index, isActive, x, y)
   })
 }
@@ -97,6 +99,7 @@ function App() {
 
   // Track slide frame positions (keyed by index)
   const framePositionsRef = useRef<Record<number, { x: number; y: number }>>({})
+  const [framePositionsState, setFramePositionsState] = useState<Record<number, { x: number; y: number }>>({})
 
   // Initialize frame positions when slides change
   useEffect(() => {
@@ -108,6 +111,8 @@ function App() {
         }
       }
     })
+    // Sync to state for re-renders
+    setFramePositionsState({ ...framePositionsRef.current })
   }, [slides])
 
   // Auto-save debounce refs
@@ -647,7 +652,7 @@ function App() {
               key={slides[currentSlideIndex]?.id}
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               elements={slides[currentSlideIndex]?.content?.elements as any[] || []}
-              slideFrameElements={createSlideFrameElements(slides, currentSlideIndex)}
+              slideFrameElements={createSlideFrameElements(slides, currentSlideIndex, framePositionsState)}
               onElementsChange={(elements) => {
                 const currentSlide = slides[currentSlideIndex]
                 if (!currentSlide) return
@@ -672,8 +677,10 @@ function App() {
                     const deltaX = frameEl.x - originalPos.x
                     const deltaY = frameEl.y - originalPos.y
 
-                    // Update stored position
-                    framePositionsRef.current[index] = { x: frameEl.x, y: frameEl.y }
+                    // Update stored position (both ref and state)
+                    const newPos = { x: frameEl.x, y: frameEl.y }
+                    framePositionsRef.current[index] = newPos
+                    setFramePositionsState(prev => ({ ...prev, [index]: newPos }))
 
                     // Mark this slide as having its frame moved
                     movedSlides.push({ index, deltaX, deltaY })
