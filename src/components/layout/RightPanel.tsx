@@ -161,14 +161,17 @@ export function RightPanel({
           {/* Preset ratios */}
           <div className="grid grid-cols-4 gap-2 mb-4">
             {[
-              { ratio: "16:9", label: "16:9" },
-              { ratio: "4:3", label: "4:3" },
-              { ratio: "1:1", label: "1:1" },
-              { ratio: "9:16", label: "9:16" },
-            ].map(({ ratio, label }) => (
+              { ratio: "16:9", label: "16:9", width: 960, height: 540 },
+              { ratio: "4:3", label: "4:3", width: 720, height: 540 },
+              { ratio: "1:1", label: "1:1", width: 540, height: 540 },
+              { ratio: "9:16", label: "9:16", width: 303, height: 540 },
+            ].map(({ ratio, label, width, height }) => (
               <button
                 key={ratio}
-                onClick={() => onAspectRatioChange(ratio)}
+                onClick={() => {
+                  onAspectRatioChange(ratio)
+                  onCustomSizeChange?.(width, height)
+                }}
                 className={`py-2 px-3 text-xs rounded-md border transition-colors ${
                   aspectRatio === ratio
                     ? "bg-primary text-primary-foreground border-primary"
