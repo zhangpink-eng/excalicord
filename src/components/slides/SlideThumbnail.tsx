@@ -31,6 +31,7 @@ interface SlideThumbnailProps {
   onDelete?: () => void
   onRename?: (name: string) => void
   canDelete?: boolean
+  showName?: boolean
 }
 
 export function SlideThumbnail({
@@ -41,6 +42,7 @@ export function SlideThumbnail({
   onDelete,
   onRename,
   canDelete = true,
+  showName = true,
 }: SlideThumbnailProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editName, setEditName] = useState(slide.name)
@@ -66,15 +68,15 @@ export function SlideThumbnail({
     const ctx = canvas.getContext("2d")
     if (!ctx) return
 
-    // Set canvas size to match thumbnail display size (64x48 at 2x for retina)
+    // Set canvas size to match thumbnail display size (16x12 at 2x for retina)
     const dpr = 2
-    canvas.width = 64 * dpr
-    canvas.height = 48 * dpr
+    canvas.width = 16 * dpr
+    canvas.height = 12 * dpr
     ctx.scale(dpr, dpr)
 
     // Clear and fill background
     ctx.fillStyle = "#fafafa"
-    ctx.fillRect(0, 0, 64, 48)
+    ctx.fillRect(0, 0, 16, 12)
 
     // Calculate bounds of all elements
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
@@ -91,10 +93,10 @@ export function SlideThumbnail({
 
     const contentWidth = maxX - minX || 1
     const contentHeight = maxY - minY || 1
-    const scale = Math.min(56 / contentWidth, 40 / contentHeight, 1)
+    const scale = Math.min(14 / contentWidth, 10 / contentHeight, 1)
 
-    const offsetX = (64 - contentWidth * scale) / 2 - minX * scale
-    const offsetY = (48 - contentHeight * scale) / 2 - minY * scale
+    const offsetX = (16 - contentWidth * scale) / 2 - minX * scale
+    const offsetY = (12 - contentHeight * scale) / 2 - minY * scale
 
     // Render each element
     elements.forEach((el: SlideElement) => {
@@ -201,10 +203,10 @@ export function SlideThumbnail({
         onClick={onClick}
         onDoubleClick={handleDoubleClick}
         className={`
-          relative w-16 h-12 rounded border-2 cursor-pointer overflow-hidden
+          relative w-4 h-3 rounded border cursor-pointer overflow-hidden
           transition-all duration-200
           ${isSelected
-            ? "border-primary shadow-lg ring-2 ring-primary/20"
+            ? "border-primary shadow-lg ring-1 ring-primary/20"
             : "border-border hover:border-primary/50"
           }
         `}
@@ -217,7 +219,7 @@ export function SlideThumbnail({
           />
         ) : (
           <div className="absolute inset-0 bg-muted flex items-center justify-center">
-            <span className="text-xs text-muted-foreground font-medium">
+            <span className="text-[6px] text-muted-foreground font-medium leading-none">
               {index + 1}
             </span>
           </div>
@@ -227,8 +229,8 @@ export function SlideThumbnail({
         <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
       </div>
 
-      {/* Slide number label */}
-      {isEditing ? (
+      {/* Slide number label - only show when showName is true */}
+      {showName && (isEditing ? (
         <input
           ref={inputRef}
           type="text"
@@ -248,14 +250,14 @@ export function SlideThumbnail({
         >
           {slide.name}
         </span>
-      )}
+      ))}
 
       {/* Delete button */}
       {canDelete && onDelete && (
         <button
           onClick={handleDeleteClick}
-          className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-destructive text-destructive-foreground rounded-full text-[10px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hover:bg-destructive/90 z-10 leading-none"
-          title="Delete slide"
+          className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-destructive text-destructive-foreground rounded-full text-[6px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hover:bg-destructive/90 z-10 leading-none"
+          title="删除幻灯片"
         >
           ×
         </button>
