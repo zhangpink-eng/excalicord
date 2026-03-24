@@ -175,12 +175,12 @@ function App() {
   const cameraBubbleSize = useRef({ width: 120, height: 90 })
 
   // Slide frames state (draggable and resizable)
-  const slideFrameSize = useRef({ width: 720, height: 540 })
-  const slideFramePositions = useRef<Map<string, { x: number; y: number }>>(new Map())
+  const [slideFrameSize, setSlideFrameSize] = useState({ width: 720, height: 540 })
+  const [slideFramePositions, setSlideFramePositions] = useState<Record<string, { x: number; y: number }>>({})
   const [activeSlideFrame, setActiveSlideFrame] = useState<string | null>(null)
   const [isDraggingSlide, setIsDraggingSlide] = useState(false)
   const [isResizingSlide, setIsResizingSlide] = useState(false)
-  const slideDragRef = useRef({ startX: 0, startY: 0, startPosX: 0, startPosY: 0 })
+  const slideDragRef = useRef({ startX: 0, startY: 0, startPosX: 0, startPosY: 0, slideId: "" })
 
   // Camera bubble settings state
   const [cameraBubbleShape, setCameraBubbleShape] = useState<BubbleShape>("rounded-rect")
@@ -190,8 +190,8 @@ function App() {
 
   // Slide frame handlers
   const getSlideFramePosition = useCallback((slideId: string) => {
-    return slideFramePositions.current.get(slideId) || { x: 0, y: 0 }
-  }, [])
+    return slideFramePositions[slideId] || { x: 0, y: 0 }
+  }, [slideFramePositions])
 
   const handleSlideFrameDragStart = useCallback((e: React.MouseEvent, slideId: string) => {
     if ((e.target as HTMLElement).closest(".slide-resize-handle")) return
@@ -204,6 +204,7 @@ function App() {
       startY: e.clientY,
       startPosX: pos.x,
       startPosY: pos.y,
+      slideId,
     }
   }, [getSlideFramePosition])
 
@@ -213,28 +214,32 @@ function App() {
     slideDragRef.current = {
       startX: e.clientX,
       startY: e.clientY,
-      startPosX: slideFrameSize.current.width,
-      startPosY: slideFrameSize.current.height,
+      startPosX: slideFrameSize.width,
+      startPosY: slideFrameSize.height,
+      slideId: "",
     }
-  }, [])
+  }, [slideFrameSize])
 
   // Global mouse handlers for slide frame drag/resize
   useEffect(() => {
     if (!isDraggingSlide && !isResizingSlide) return
 
     const handleMouseMove = (e: MouseEvent) => {
-      if (isDraggingSlide && activeSlideFrame) {
+      if (isDraggingSlide && slideDragRef.current.slideId) {
         const deltaX = e.clientX - slideDragRef.current.startX
         const deltaY = e.clientY - slideDragRef.current.startY
         const newX = slideDragRef.current.startPosX + deltaX
         const newY = slideDragRef.current.startPosY + deltaY
-        slideFramePositions.current.set(activeSlideFrame, { x: newX, y: newY })
+        setSlideFramePositions(prev => ({
+          ...prev,
+          [slideDragRef.current.slideId]: { x: newX, y: newY }
+        }))
       } else if (isResizingSlide) {
         const deltaX = e.clientX - slideDragRef.current.startX
         const deltaY = e.clientY - slideDragRef.current.startY
         const newWidth = Math.max(480, Math.min(1280, slideDragRef.current.startPosX + deltaX))
         const newHeight = Math.max(360, Math.min(720, slideDragRef.current.startPosY + deltaY))
-        slideFrameSize.current = { width: newWidth, height: newHeight }
+        setSlideFrameSize({ width: newWidth, height: newHeight })
       }
     }
 
@@ -249,7 +254,7 @@ function App() {
       window.removeEventListener("mousemove", handleMouseMove)
       window.removeEventListener("mouseup", handleMouseUp)
     }
-  }, [isDraggingSlide, isResizingSlide, activeSlideFrame])
+  }, [isDraggingSlide, isResizingSlide])
 
   // Initialize analytics
   useEffect(() => {
@@ -655,7 +660,7 @@ function App() {
             {/* Slide frames as purely visual overlays - scrollable container */}
             <div
               ref={slidesContainerRef}
-              className="absolute inset-0 flex items-center overflow-x-auto pointer-events-none"
+              className="absolute inset-0 flex items-center overflow-x-auto"
               style={{ scrollBehavior: 'smooth' }}
             >
               <div className="flex items-center gap-4 px-4 min-w-max">
@@ -670,9 +675,10 @@ function App() {
                         isActive ? "z-20" : "z-10"
                       }`}
                       style={{
-                        width: `${slideFrameSize.current.width}px`,
-                        height: `${slideFrameSize.current.height}px`,
+                        width: `${slideFrameSize.width}px`,
+                        height: `${slideFrameSize.height}px`,
                         transform: `translate(${pos.x}px, ${pos.y}px)`,
+                        cursor: isDraggingSlide ? "grabbing" : "grab",
                       }}
                       onMouseDown={(e) => handleSlideFrameDragStart(e, slide.id)}
                     >
