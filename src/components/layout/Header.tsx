@@ -2,6 +2,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui"
 import { useTranslation } from "@/hooks/useTranslation"
 import { APP_NAME } from "@/lib/constants"
+import { useAuth } from "@/contexts"
 
 interface HeaderProps {
   projectName?: string
@@ -9,10 +10,11 @@ interface HeaderProps {
   onTogglePanel?: () => void
   onShare?: () => void
   onPricing?: () => void
-  onBackToProjects?: () => void
+  onOpenProjectsPanel?: () => void
   panelVisible?: boolean
   languageSelector?: React.ReactNode
   themeToggle?: React.ReactNode
+  onSignOut?: () => void
 }
 
 export function Header({
@@ -21,14 +23,17 @@ export function Header({
   onTogglePanel,
   onShare,
   onPricing,
-  onBackToProjects,
+  onOpenProjectsPanel,
   panelVisible,
   languageSelector,
   themeToggle,
+  onSignOut,
 }: HeaderProps) {
   const { t } = useTranslation()
+  const { user } = useAuth()
   const [isEditing, setIsEditing] = useState(false)
   const [editName, setEditName] = useState(projectName || "")
+  const [showUserMenu, setShowUserMenu] = useState(false)
 
   const handleStartEdit = () => {
     setEditName(projectName || "")
@@ -53,25 +58,8 @@ export function Header({
   return (
     <header className="h-12 border-b bg-background flex items-center justify-between px-4">
       <div className="flex items-center gap-3">
-        {onBackToProjects && (
-          <Button variant="ghost" size="icon" onClick={onBackToProjects} title={t("common.backToProjects")} className="mr-1">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="m15 18-6-6 6-6" />
-            </svg>
-          </Button>
-        )}
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded bg-primary flex items-center justify-center">
+          <div className="w-6 h-6 rounded bg-blue-600 flex items-center justify-center">
             <span className="text-white text-xs font-bold">E</span>
           </div>
           <span className="font-semibold text-sm">{APP_NAME}</span>
@@ -105,6 +93,26 @@ export function Header({
         {languageSelector}
         {themeToggle}
         <span className="text-xs text-muted-foreground mr-2">{t("header.autoSaved")}</span>
+
+        {/* Projects button */}
+        {onOpenProjectsPanel && (
+          <Button variant="ghost" size="icon" onClick={onOpenProjectsPanel} title="Projects">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+              <polyline points="14 2 14 8 20 8" />
+            </svg>
+          </Button>
+        )}
 
         {/* Pricing icon */}
         <Button variant="ghost" size="icon" onClick={onPricing} title={t("header.pricing")}>
@@ -167,6 +175,62 @@ export function Header({
             <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
           </svg>
         </Button>
+
+        {/* User Avatar */}
+        {user && (
+          <div className="relative">
+            <button
+              onClick={() => setShowUserMenu(!showUserMenu)}
+              className="flex items-center gap-2 hover:bg-accent rounded-lg p-1 transition-colors"
+            >
+              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center overflow-hidden">
+                {user.avatarUrl ? (
+                  <img src={user.avatarUrl} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-white text-xs font-medium">
+                    {user.fullName?.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() || user.email?.[0]?.toUpperCase() || "U"}
+                  </span>
+                )}
+              </div>
+            </button>
+
+            {/* User Dropdown */}
+            {showUserMenu && (
+              <div className="absolute right-0 mt-2 w-48 bg-background border border-border rounded-xl shadow-lg overflow-hidden z-50">
+                <div className="px-4 py-3 border-b border-border">
+                  <p className="text-sm font-medium">{user.fullName || "User"}</p>
+                  <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                </div>
+                {onSignOut && (
+                  <button
+                    onClick={() => {
+                      setShowUserMenu(false)
+                      onSignOut()
+                    }}
+                    className="w-full px-4 py-2.5 text-left text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors flex items-center gap-2"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                      <polyline points="16 17 21 12 16 7" />
+                      <line x1="21" x2="9" y1="12" y2="12" />
+                    </svg>
+                    Sign out
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </header>
   )

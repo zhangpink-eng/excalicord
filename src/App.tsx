@@ -11,6 +11,7 @@ import { useAuth } from "@/contexts"
 import { useProject } from "@/contexts"
 import { LoginPage, SignUpPage, DashboardPage, PricingPage, AuthCallbackPage } from "@/pages"
 import { analytics } from "@/services/api/analytics"
+import { db } from "@/services/api/supabase"
 import { defaultBeautySettings, type BeautySettings } from "@/services/beauty/BeautyFilter"
 import type { BubbleShape } from "@/components/canvas/CameraBubbleSettings"
 
@@ -37,6 +38,22 @@ function App() {
 
   // Use slides from ProjectContext (synced with database)
   const { project, slides, addSlide: addSlideToProject, deleteSlide, updateSlide, reorderSlides, createProject, loadProject, updateProject } = useProject()
+
+  // Projects list for the projects panel
+  const [projects, setProjects] = useState<Array<{ id: string; title: string; updatedAt: string }>>([])
+
+  useEffect(() => {
+    const loadProjects = async () => {
+      try {
+        const { data, error } = await db.projects.list()
+        if (error) throw error
+        setProjects(data || [])
+      } catch (err) {
+        console.error("Failed to load projects:", err)
+      }
+    }
+    loadProjects()
+  }, [])
 
   // Handle project name change - save to database if project exists
   const handleProjectNameChange = useCallback((name: string) => {
@@ -114,12 +131,20 @@ function App() {
   // Right panel visibility (default: hidden)
   const [rightPanelVisible, setRightPanelVisible] = useState(false)
 
+  // Projects panel visibility (default: hidden)
+  const [projectsPanelVisible, setProjectsPanelVisible] = useState(false)
+
   // Canvas tool state
   const [activeTool, setActiveTool] = useState<string>("select")
 
   // Toggle right panel
   const toggleRightPanel = useCallback(() => {
     setRightPanelVisible((v) => !v)
+  }, [])
+
+  // Toggle projects panel
+  const toggleProjectsPanel = useCallback(() => {
+    setProjectsPanelVisible((v) => !v)
   }, [])
 
   const cameraVideoRef = useRef<HTMLVideoElement>(null)
@@ -157,7 +182,7 @@ function App() {
       // On initial mount, set page based on auth state
       if (!authLoading) {
         if (user) {
-          setCurrentPage("editor")
+          setCurrentPage("dashboard")
         } else {
           setCurrentPage("login")
         }
@@ -335,11 +360,6 @@ function App() {
     console.log("Share clicked")
   }, [])
 
-  // Back to projects handler
-  const handleBackToProjects = useCallback(() => {
-    setCurrentPage("dashboard")
-  }, [])
-
   // Auth handlers
   const handleAuthSuccess = useCallback(() => {
     setCurrentPage("dashboard")
@@ -424,10 +444,11 @@ function App() {
             onTogglePanel={toggleRightPanel}
             onShare={handleShare}
             onPricing={handlePricing}
-            onBackToProjects={handleBackToProjects}
+            onOpenProjectsPanel={toggleProjectsPanel}
             panelVisible={rightPanelVisible}
             languageSelector={<LanguageSelector />}
             themeToggle={<ThemeToggle />}
+            onSignOut={handleSignOut}
           />
         }
         slideRail={
@@ -596,6 +617,107 @@ function App() {
           onExport={handlePreviewExport}
           onDownload={handlePreviewDownload}
         />
+      )}
+
+      {/* Projects Panel Overlay */}
+      {projectsPanelVisible && (
+        <>
+          <div
+            className="fixed inset-0 bg-black/20 z-40"
+            onClick={() => setProjectsPanelVisible(false)}
+          />
+          <div className="fixed top-0 right-0 w-80 h-full bg-white border-l border-gray-200 shadow-xl z-50 overflow-y-auto">
+            <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+              <h2 className="font-semibold text-gray-900">All Projects</h2>
+              <button
+                onClick={() => setProjectsPanelVisible(false)}
+                className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="text-gray-500"
+                >
+                  <path d="M18 6L6 18M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-4">
+              <button
+                onClick={() => {
+                  handleCreateProject()
+                  setProjectsPanelVisible(false)
+                }}
+                className="w-full mb-4 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white border-0 rounded-lg transition-colors flex items-center justify-center gap-2"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
+                New Project
+              </button>
+              {projects.length === 0 ? (
+                <p className="text-sm text-gray-500 text-center py-8">No projects yet</p>
+              ) : (
+                <div className="space-y-2">
+                  {projects.map((project) => (
+                    <button
+                      key={project.id}
+                      onClick={() => {
+                        handleOpenProject(project.id)
+                        setProjectsPanelVisible(false)
+                      }}
+                      className="w-full p-3 text-left bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors group"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center shrink-0">
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="18"
+                            height="18"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="#9333EA"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+                            <polyline points="14 2 14 8 20 8" />
+                          </svg>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">
+                            {project.title}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {new Date(project.updatedAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </>
       )}
     </>
   )
