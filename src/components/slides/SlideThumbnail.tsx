@@ -49,7 +49,7 @@ export function SlideThumbnail({
   const [isEditing, setIsEditing] = useState(false)
   const [editName, setEditName] = useState(slide.name)
   const [thumbCanvas, setThumbCanvas] = useState<string | null>(slide.thumbnail || null)
-  const [thumbSize, setThumbSize] = useState({ width: 60, height: 48 })
+  const [thumbSize, setThumbSize] = useState({ width: 16, height: 12 })
   const inputRef = useRef<HTMLInputElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
