@@ -260,6 +260,11 @@ function App() {
   // Avatar scale state
   const [avatarScale, setAvatarScaleState] = useState(1.0)
 
+  // Aspect ratio state
+  const [aspectRatio, setAspectRatio] = useState("16:9")
+  const [customWidth, setCustomWidth] = useState(1920)
+  const [customHeight, setCustomHeight] = useState(1080)
+
   // Camera and mic toggle state (default: enabled)
   const [cameraEnabled, setCameraEnabled] = useState(true)
   const [micEnabled, setMicEnabled] = useState(true)
@@ -870,6 +875,11 @@ function App() {
               micEnabled={micEnabled}
               onCameraToggle={handleToggleCamera}
               onMicToggle={handleToggleMic}
+              aspectRatio={aspectRatio}
+              customWidth={customWidth}
+              customHeight={customHeight}
+              onAspectRatioChange={setAspectRatio}
+              onCustomSizeChange={(w, h) => { setCustomWidth(w); setCustomHeight(h) }}
             />
           ) : null
         }

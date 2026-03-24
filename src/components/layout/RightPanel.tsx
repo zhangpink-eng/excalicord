@@ -41,6 +41,12 @@ export interface RightPanelProps {
   micEnabled?: boolean
   onCameraToggle?: () => void
   onMicToggle?: () => void
+  // Aspect ratio settings
+  aspectRatio?: string
+  customWidth?: number
+  customHeight?: number
+  onAspectRatioChange?: (ratio: string) => void
+  onCustomSizeChange?: (width: number, height: number) => void
 }
 
 export function RightPanel({
@@ -76,6 +82,11 @@ export function RightPanel({
   micEnabled = true,
   onCameraToggle,
   onMicToggle,
+  aspectRatio = "16:9",
+  customWidth = 1920,
+  customHeight = 1080,
+  onAspectRatioChange,
+  onCustomSizeChange,
 }: RightPanelProps) {
   return (
     <div className="p-4 space-y-6">
@@ -139,6 +150,62 @@ export function RightPanel({
               Mic
             </button>
           </div>
+        </section>
+      )}
+
+      {/* Aspect Ratio Settings */}
+      {onAspectRatioChange && (
+        <section>
+          <h3 className="font-semibold text-sm mb-4">画面比例</h3>
+
+          {/* Preset ratios */}
+          <div className="grid grid-cols-4 gap-2 mb-4">
+            {[
+              { ratio: "16:9", label: "16:9" },
+              { ratio: "4:3", label: "4:3" },
+              { ratio: "1:1", label: "1:1" },
+              { ratio: "9:16", label: "9:16" },
+            ].map(({ ratio, label }) => (
+              <button
+                key={ratio}
+                onClick={() => onAspectRatioChange(ratio)}
+                className={`py-2 px-3 text-xs rounded-md border transition-colors ${
+                  aspectRatio === ratio
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-muted hover:bg-muted/80 border-border"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {/* Custom width/height */}
+          {onCustomSizeChange && (
+            <div>
+              <label className="text-xs text-muted-foreground block mb-2">自定义</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  value={customWidth}
+                  onChange={(e) => onCustomSizeChange(parseInt(e.target.value) || 1920, customHeight)}
+                  className="w-full h-8 px-2 text-sm rounded border border-input bg-background"
+                  min={1}
+                />
+                <span className="text-muted-foreground">×</span>
+                <input
+                  type="number"
+                  value={customHeight}
+                  onChange={(e) => onCustomSizeChange(customWidth, parseInt(e.target.value) || 1080)}
+                  className="w-full h-8 px-2 text-sm rounded border border-input bg-background"
+                  min={1}
+                />
+              </div>
+              <div className="text-xs text-muted-foreground mt-2">
+                当前比例: {aspectRatio}
+              </div>
+            </div>
+          )}
         </section>
       )}
 
