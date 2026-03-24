@@ -18,39 +18,52 @@ import type { BubbleShape } from "@/components/canvas/CameraBubbleSettings"
 
 type Page = "login" | "signup" | "dashboard" | "editor"
 
+// Default slide frame dimensions
+const DEFAULT_FRAME_X = 100
+const DEFAULT_FRAME_Y = 100
+const DEFAULT_FRAME_WIDTH = 720
+const DEFAULT_FRAME_HEIGHT = 540
+const DEFAULT_FRAME_OFFSET_X = 800 // horizontal spacing between frames
+
+// Generate slide frame element
+function createSlideFrameElement(slideId: string, index: number, isActive: boolean, x: number, y: number): any {
+  return {
+    id: `slide-frame-${slideId}`,
+    type: "rectangle",
+    x,
+    y,
+    width: DEFAULT_FRAME_WIDTH,
+    height: DEFAULT_FRAME_HEIGHT,
+    strokeColor: isActive ? "#2563eb" : "#e5e7eb",
+    backgroundColor: "transparent",
+    fillStyle: "solid",
+    strokeWidth: isActive ? 4 : 2,
+    borderRadius: 8,
+    roughness: 0,
+    groupIds: [],
+    frameId: null,
+    roundness: null,
+    seed: index,
+    version: 1,
+    versionNonce: 0,
+    isDeleted: false,
+    boundElements: [],
+    updated: 0,
+    link: null,
+    locked: false,
+  }
+}
+
 // Helper to generate slide frame elements for Excalidraw
-function createSlideFrameElements(slides: { id: string }[], currentIndex: number): any[] {
+function createSlideFrameElements(
+  slides: { id: string; frameX?: number; frameY?: number }[],
+  currentIndex: number
+): any[] {
   return slides.map((slide, index) => {
     const isActive = index === currentIndex
-    const x = 100 + index * 800
-    const y = 100
-    const width = 720
-    const height = 540
-    return {
-      id: `slide-frame-${slide.id}`,
-      type: "rectangle",
-      x,
-      y,
-      width,
-      height,
-      strokeColor: isActive ? "#2563eb" : "#e5e7eb",
-      backgroundColor: "transparent",
-      fillStyle: "solid",
-      strokeWidth: isActive ? 4 : 2,
-      borderRadius: 8,
-      roughness: 0,
-      groupIds: [],
-      frameId: null,
-      roundness: null,
-      seed: index,
-      version: 1,
-      versionNonce: 0,
-      isDeleted: false,
-      boundElements: [],
-      updated: 0,
-      link: null,
-      locked: false,
-    }
+    const x = slide.frameX ?? (DEFAULT_FRAME_X + index * DEFAULT_FRAME_OFFSET_X)
+    const y = slide.frameY ?? DEFAULT_FRAME_Y
+    return createSlideFrameElement(slide.id, index, isActive, x, y)
   })
 }
 
@@ -80,6 +93,21 @@ function App() {
 
   // Use slides from ProjectContext (synced with database)
   const { project, slides, addSlide: addSlideToProject, deleteSlide, updateSlide, reorderSlides, createProject, loadProject, updateProject } = useProject()
+
+  // Track slide frame positions (keyed by slide id)
+  const framePositionsRef = useRef<Record<string, { x: number; y: number }>>({})
+
+  // Initialize frame positions when slides change
+  useEffect(() => {
+    slides.forEach((slide, index) => {
+      if (!framePositionsRef.current[slide.id]) {
+        framePositionsRef.current[slide.id] = {
+          x: DEFAULT_FRAME_X + index * DEFAULT_FRAME_OFFSET_X,
+          y: DEFAULT_FRAME_Y,
+        }
+      }
+    })
+  }, [slides])
 
   // Auto-save debounce refs
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -619,15 +647,56 @@ function App() {
               onElementsChange={(elements) => {
                 const currentSlide = slides[currentSlideIndex]
                 if (!currentSlide) return
-                // Filter out slide frame elements and bind remaining elements to current slide
+
+                // Separate slide frame elements from content elements
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const boundElements = elements
-                  .filter((el: any) => !el.id.startsWith("slide-frame-"))
-                  .map((el: any) => ({
+                const contentElements = elements.filter((el: any) => !el.id.startsWith("slide-frame-"))
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const frameElements = elements.filter((el: any) => el.id.startsWith("slide-frame-"))
+
+                // Track which slides had their frames moved
+                const movedSlides: { slideId: string; deltaX: number; deltaY: number }[] = []
+
+                // Check if any slide frame was moved
+                frameElements.forEach((frameEl: any) => {
+                  const slideId = frameEl.id.replace("slide-frame-", "")
+                  const originalPos = framePositionsRef.current[slideId]
+                  if (originalPos && (frameEl.x !== originalPos.x || frameEl.y !== originalPos.y)) {
+                    // Frame moved! Calculate delta
+                    const deltaX = frameEl.x - originalPos.x
+                    const deltaY = frameEl.y - originalPos.y
+
+                    // Update stored position
+                    framePositionsRef.current[slideId] = { x: frameEl.x, y: frameEl.y }
+
+                    // Mark this slide as having its frame moved
+                    movedSlides.push({ slideId, deltaX, deltaY })
+                  }
+                })
+
+                // Update content for slides whose frames were moved
+                movedSlides.forEach(({ slideId, deltaX, deltaY }) => {
+                  const slide = slides.find((s) => s.id === slideId)
+                  if (slide && slide.content?.elements) {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    const updatedElements = slide.content.elements.map((el: any) => ({
+                      ...el,
+                      x: (el.x || 0) + deltaX,
+                      y: (el.y || 0) + deltaY,
+                    }))
+                    updateSlide(slideId, { content: { elements: updatedElements } })
+                  }
+                })
+
+                // For current slide, if its frame wasn't moved, just update content normally
+                if (!movedSlides.some((m) => m.slideId === currentSlide.id)) {
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  const boundElements = contentElements.map((el: any) => ({
                     ...el,
                     slideId: currentSlide.id,
                   }))
-                updateSlide(currentSlide.id, { content: { elements: boundElements } })
+                  updateSlide(currentSlide.id, { content: { elements: boundElements } })
+                }
               }}
               onViewportChange={(scrollX, scrollY, zoom) => {
                 setViewport({ x: scrollX, y: scrollY, zoom })
