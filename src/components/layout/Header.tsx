@@ -12,6 +12,7 @@ interface HeaderProps {
   onBackToProjects?: () => void
   panelVisible?: boolean
   languageSelector?: React.ReactNode
+  themeToggle?: React.ReactNode
 }
 
 export function Header({
@@ -23,6 +24,7 @@ export function Header({
   onBackToProjects,
   panelVisible,
   languageSelector,
+  themeToggle,
 }: HeaderProps) {
   const { t } = useTranslation()
   const [isEditing, setIsEditing] = useState(false)
@@ -101,6 +103,7 @@ export function Header({
       </div>
       <div className="flex items-center gap-1">
         {languageSelector}
+        {themeToggle}
         <span className="text-xs text-muted-foreground mr-2">{t("header.autoSaved")}</span>
 
         {/* Pricing icon */}

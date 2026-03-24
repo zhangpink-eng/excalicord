@@ -1,7 +1,7 @@
 import { createRoot } from "react-dom/client"
 import "./index.css"
 import App from "./App"
-import { AuthProvider, ProjectProvider } from "./contexts"
+import { AuthProvider, ProjectProvider, ThemeProvider } from "./contexts"
 import { initSupabase } from "./services/api/supabase"
 
 // Initialize Supabase if credentials are available
@@ -13,9 +13,11 @@ if (supabaseUrl && supabaseAnonKey) {
 }
 
 createRoot(document.getElementById("root")!).render(
-  <AuthProvider>
-    <ProjectProvider>
-      <App />
-    </ProjectProvider>
-  </AuthProvider>
+  <ThemeProvider>
+    <AuthProvider>
+      <ProjectProvider>
+        <App />
+      </ProjectProvider>
+    </AuthProvider>
+  </ThemeProvider>
 )

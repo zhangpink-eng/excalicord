@@ -5,7 +5,7 @@ import { RecordingControls } from "@/components/recording/RecordingControls"
 import { PreviewPlayer } from "@/components/recording/PreviewPlayer"
 import { ExcalidrawCanvas, CameraBubble, CanvasOverlay, type Tool } from "@/components/canvas"
 import { RightPanel } from "@/components/layout/RightPanel"
-import { LanguageSelector } from "@/components/ui"
+import { LanguageSelector, ThemeToggle } from "@/components/ui"
 import { useMediaDevices, useTranslation, useCanvasRecorder } from "@/hooks"
 import { useAuth } from "@/contexts"
 import { useProject } from "@/contexts"
@@ -409,6 +409,7 @@ function App() {
             onBackToProjects={handleBackToProjects}
             panelVisible={rightPanelVisible}
             languageSelector={<LanguageSelector />}
+            themeToggle={<ThemeToggle />}
           />
         }
         slideRail={
