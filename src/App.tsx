@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { Header, MainLayout } from "@/components/layout"
-import { SlideRail } from "@/components/slides/SlideRail"
 import { DraggableRecordingControls } from "@/components/recording/DraggableRecordingControls"
 import { RecordingPreview } from "@/components/recording/RecordingPreview"
 import { PreviewPlayer } from "@/components/recording/PreviewPlayer"
@@ -627,24 +626,6 @@ function App() {
             isSaving={isSaving}
           />
         }
-        slideRail={
-          <SlideRail
-            slides={slides.map((s) => ({ id: s.id, name: s.name || `Slide ${s.position + 1}` }))}
-            currentIndex={currentSlideIndex}
-            onSelect={goToSlide}
-            onAdd={handleAddSlide}
-            onDelete={handleDeleteSlide}
-            onRename={(id, name) => {
-              updateSlide(id, { name })
-            }}
-            onReorder={(fromIndex, toIndex) => {
-              const reorderedSlides = [...slides]
-              const [moved] = reorderedSlides.splice(fromIndex, 1)
-              reorderedSlides.splice(toIndex, 0, moved)
-              reorderSlides(reorderedSlides.map((s, i) => ({ id: s.id, position: i })))
-            }}
-          />
-        }
         canvas={
           <div className="relative w-full h-full bg-canvas-light overflow-hidden">
             {/* Single shared Excalidraw canvas */}
@@ -711,6 +692,46 @@ function App() {
               onCameraBubbleStateChange={setCameraBubbleState}
               videoRef={cameraVideoRef}
             />
+
+            {/* Floating Slide Rail on right side, vertically centered */}
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 z-30">
+              <div className="flex flex-col items-center gap-1 py-2 bg-background/90 backdrop-blur-sm rounded-lg shadow-lg border">
+                <div className="text-[10px] font-medium text-muted-foreground mb-1">幻灯片</div>
+                {slides.map((slide, index) => (
+                  <button
+                    key={slide.id}
+                    onClick={() => goToSlide(index)}
+                    className={`w-10 h-8 rounded border flex items-center justify-center transition-all ${
+                      currentSlideIndex === index
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border hover:border-primary/50 text-muted-foreground hover:text-foreground"
+                    }`}
+                    title={slide.name || `Slide ${index + 1}`}
+                  >
+                    <span className="text-xs font-medium">{index + 1}</span>
+                  </button>
+                ))}
+                <button
+                  onClick={handleAddSlide}
+                  className="w-10 h-8 rounded border border-dashed border-border hover:border-primary flex items-center justify-center text-muted-foreground hover:text-primary transition-colors"
+                  title="添加幻灯片"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M12 5v14M5 12h14" />
+                  </svg>
+                </button>
+              </div>
+            </div>
 
             {/* Draggable Recording Controls */}
             <DraggableRecordingControls

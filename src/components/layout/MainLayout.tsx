@@ -10,7 +10,7 @@ interface MainLayoutProps {
 
 export function MainLayout({
   header,
-  slideRail,
+  slideRail: _slideRail,
   canvas,
   rightPanel,
   controlBar,
@@ -19,11 +19,6 @@ export function MainLayout({
     <div className="h-screen flex flex-col overflow-hidden">
       {header}
       <div className="flex-1 flex overflow-hidden relative">
-        {slideRail && (
-          <div className="w-16 border-r bg-background flex-shrink-0 z-10">
-            {slideRail}
-          </div>
-        )}
         <div className="flex-1 flex flex-col overflow-hidden">
           <div className="flex-1 overflow-hidden">{canvas}</div>
         </div>
