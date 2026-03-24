@@ -8,10 +8,9 @@ interface ProjectsPageProps {
   onOpenProject: (projectId: string) => void
   onCreateProject: () => void
   onSignOut: () => void
-  onBackToHome: () => void
 }
 
-export function ProjectsPage({ onOpenProject, onCreateProject, onSignOut, onBackToHome }: ProjectsPageProps) {
+export function ProjectsPage({ onOpenProject, onCreateProject, onSignOut }: ProjectsPageProps) {
   const { user } = useAuth()
   const [projects, setProjects] = useState<Project[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -75,14 +74,12 @@ export function ProjectsPage({ onOpenProject, onCreateProject, onSignOut, onBack
       <header className="bg-[#0F0E11] border-b border-white/5">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button onClick={onBackToHome} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-600 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/20">
-                <span className="text-white font-bold text-sm">E</span>
-              </div>
-              <span className="font-semibold text-white bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                Excalicord
-              </span>
-            </button>
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-600 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/20">
+              <span className="text-white font-bold text-sm">E</span>
+            </div>
+            <span className="font-semibold text-white bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+              Excalicord
+            </span>
           </div>
           <div className="flex items-center gap-4">
             {/* User Menu */}

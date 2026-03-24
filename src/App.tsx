@@ -406,8 +406,9 @@ function App() {
   if (currentPage === "dashboard") {
     return (
       <DashboardPage
+        onOpenProject={handleOpenProject}
+        onCreateProject={handleCreateProject}
         onSignOut={handleSignOut}
-        onGoToProjects={() => setCurrentPage("projects")}
       />
     )
   }
@@ -418,7 +419,6 @@ function App() {
         onOpenProject={handleOpenProject}
         onCreateProject={handleCreateProject}
         onSignOut={handleSignOut}
-        onBackToHome={() => setCurrentPage("dashboard")}
       />
     )
   }
