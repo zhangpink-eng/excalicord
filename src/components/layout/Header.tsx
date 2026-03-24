@@ -4,6 +4,14 @@ import { useTranslation } from "@/hooks/useTranslation"
 import { APP_NAME } from "@/lib/constants"
 import { useAuth } from "@/contexts"
 
+// Format time as HH:MM:SS
+function formatTime(date: Date): string {
+  const hours = date.getHours().toString().padStart(2, "0")
+  const minutes = date.getMinutes().toString().padStart(2, "0")
+  const seconds = date.getSeconds().toString().padStart(2, "0")
+  return `${hours}:${minutes}:${seconds}`
+}
+
 interface HeaderProps {
   projectName?: string
   onProjectNameChange?: (name: string) => void
@@ -15,6 +23,9 @@ interface HeaderProps {
   languageSelector?: React.ReactNode
   themeToggle?: React.ReactNode
   onSignOut?: () => void
+  onSave?: () => void
+  lastSavedAt?: Date | null
+  isSaving?: boolean
 }
 
 export function Header({
@@ -28,12 +39,16 @@ export function Header({
   languageSelector,
   themeToggle,
   onSignOut,
+  onSave,
+  lastSavedAt,
+  isSaving,
 }: HeaderProps) {
   const { t } = useTranslation()
   const { user } = useAuth()
   const [isEditing, setIsEditing] = useState(false)
   const [editName, setEditName] = useState(projectName || "")
   const [showUserMenu, setShowUserMenu] = useState(false)
+  const [showSaveTooltip, setShowSaveTooltip] = useState(false)
 
   const handleStartEdit = () => {
     setEditName(projectName || "")
@@ -92,7 +107,60 @@ export function Header({
       <div className="flex items-center gap-1">
         {languageSelector}
         {themeToggle}
-        <span className="text-xs text-muted-foreground mr-2">{t("header.autoSaved")}</span>
+        {/* Save button with tooltip */}
+        {onSave && (
+          <div className="relative">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                onSave()
+                setShowSaveTooltip(true)
+                setTimeout(() => setShowSaveTooltip(false), 2000)
+              }}
+              disabled={isSaving}
+              title={lastSavedAt ? `已保存于 ${formatTime(lastSavedAt)}` : "保存"}
+            >
+              {isSaving ? (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="animate-spin"
+                >
+                  <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                </svg>
+              ) : (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                  <polyline points="17 21 17 13 7 13 7 21" />
+                  <polyline points="7 3 7 8 15 8" />
+                </svg>
+              )}
+            </Button>
+            {showSaveTooltip && lastSavedAt && (
+              <div className="absolute right-0 top-full mt-1 px-2 py-1 bg-foreground text-background text-xs rounded whitespace-nowrap z-50">
+                已保存 {formatTime(lastSavedAt)}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Projects button */}
         {onOpenProjectsPanel && (

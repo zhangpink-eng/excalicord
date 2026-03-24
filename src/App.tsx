@@ -25,6 +25,11 @@ function App() {
   const [showPricing, setShowPricing] = useState(false)
   const [projectName, setProjectName] = useState("Untitled Project")
 
+  // Save state
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null)
+  const [isSaving, setIsSaving] = useState(false)
+  const pendingProjectNameRef = useRef<string | null>(null)
+
   // Sync currentPage with user state when auth changes
   useEffect(() => {
     console.log("Auth state changed - user:", user, "authLoading:", authLoading)
@@ -44,11 +49,34 @@ function App() {
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   // Debounced save function for project name
   const debouncedProjectNameSave = useCallback((name: string) => {
+    pendingProjectNameRef.current = name
     if (autoSaveTimeoutRef.current) clearTimeout(autoSaveTimeoutRef.current)
-    autoSaveTimeoutRef.current = setTimeout(() => {
-      updateProject({ title: name })
+    autoSaveTimeoutRef.current = setTimeout(async () => {
+      if (project && pendingProjectNameRef.current) {
+        setIsSaving(true)
+        await updateProject({ title: pendingProjectNameRef.current })
+        setLastSavedAt(new Date())
+        setIsSaving(false)
+        pendingProjectNameRef.current = null
+      }
     }, 1000)
-  }, [updateProject])
+  }, [project, updateProject])
+
+  // Manual save function
+  const handleManualSave = useCallback(async () => {
+    if (!project) return
+    setIsSaving(true)
+    // Save any pending project name
+    if (pendingProjectNameRef.current) {
+      await updateProject({ title: pendingProjectNameRef.current })
+      pendingProjectNameRef.current = null
+    } else {
+      // If no pending name, just update with current name
+      await updateProject({ title: projectName })
+    }
+    setLastSavedAt(new Date())
+    setIsSaving(false)
+  }, [project, projectName, updateProject])
 
   // Handle project name change
   const handleProjectNameChange = useCallback((name: string) => {
@@ -57,6 +85,13 @@ function App() {
       debouncedProjectNameSave(name)
     }
   }, [project, debouncedProjectNameSave])
+
+  // Sync projectName when project loads
+  useEffect(() => {
+    if (project?.title) {
+      setProjectName(project.title)
+    }
+  }, [project?.title])
 
   // Projects list for the projects panel
   const [projects, setProjects] = useState<Array<{ id: string; title: string; updatedAt: string }>>([])
@@ -524,6 +559,9 @@ function App() {
             languageSelector={<LanguageSelector />}
             themeToggle={<ThemeToggle />}
             onSignOut={handleSignOut}
+            onSave={handleManualSave}
+            lastSavedAt={lastSavedAt}
+            isSaving={isSaving}
           />
         }
         slideRail={
