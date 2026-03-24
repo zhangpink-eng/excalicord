@@ -23,7 +23,7 @@ function App() {
   const [projectName, setProjectName] = useState("Untitled Project")
 
   // Use slides from ProjectContext (synced with database)
-  const { project, slides, addSlide: addSlideToProject, deleteSlide, updateSlide, createProject, loadProject, updateProject } = useProject()
+  const { project, slides, addSlide: addSlideToProject, deleteSlide, updateSlide, reorderSlides, createProject, loadProject, updateProject } = useProject()
 
   // Handle project name change - save to database if project exists
   const handleProjectNameChange = useCallback((name: string) => {
@@ -410,6 +410,12 @@ function App() {
             onDelete={handleDeleteSlide}
             onRename={(id, name) => {
               updateSlide(id, { name })
+            }}
+            onReorder={(fromIndex, toIndex) => {
+              const reorderedSlides = [...slides]
+              const [moved] = reorderedSlides.splice(fromIndex, 1)
+              reorderedSlides.splice(toIndex, 0, moved)
+              reorderSlides(reorderedSlides.map((s, i) => ({ id: s.id, position: i })))
             }}
           />
         }

@@ -1,3 +1,4 @@
+import { useState, useCallback } from "react"
 import { SlideThumbnail } from "./SlideThumbnail"
 
 interface Slide {
@@ -13,22 +14,71 @@ interface SlideRailProps {
   onAdd: () => void
   onDelete?: (id: string) => void
   onRename?: (id: string, name: string) => void
+  onReorder?: (fromIndex: number, toIndex: number) => void
 }
 
-export function SlideRail({ slides, currentIndex, onSelect, onAdd, onDelete, onRename }: SlideRailProps) {
+export function SlideRail({ slides, currentIndex, onSelect, onAdd, onDelete, onRename, onReorder }: SlideRailProps) {
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
+
+  const handleDragStart = useCallback((e: React.DragEvent, index: number) => {
+    setDraggedIndex(index)
+    e.dataTransfer.effectAllowed = "move"
+    e.dataTransfer.setData("text/plain", String(index))
+  }, [])
+
+  const handleDragOver = useCallback((e: React.DragEvent, index: number) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = "move"
+    if (dragOverIndex !== index) {
+      setDragOverIndex(index)
+    }
+  }, [dragOverIndex])
+
+  const handleDragEnd = useCallback(() => {
+    setDraggedIndex(null)
+    setDragOverIndex(null)
+  }, [])
+
+  const handleDrop = useCallback((e: React.DragEvent, toIndex: number) => {
+    e.preventDefault()
+    const fromIndex = draggedIndex
+    if (fromIndex !== null && fromIndex !== toIndex && onReorder) {
+      onReorder(fromIndex, toIndex)
+    }
+    setDraggedIndex(null)
+    setDragOverIndex(null)
+  }, [draggedIndex, onReorder])
+
   return (
     <div className="h-full flex flex-col items-center py-2 gap-2 overflow-y-auto">
       {slides.map((slide, index) => (
-        <SlideThumbnail
+        <div
           key={slide.id}
-          slide={slide}
-          index={index}
-          isSelected={currentIndex === index}
-          onClick={() => onSelect(index)}
-          onDelete={onDelete ? () => onDelete(slide.id) : undefined}
-          onRename={onRename ? (name) => onRename(slide.id, name) : undefined}
-          canDelete={slides.length > 1}
-        />
+          draggable={!!onReorder}
+          onDragStart={(e) => handleDragStart(e, index)}
+          onDragOver={(e) => handleDragOver(e, index)}
+          onDragEnd={handleDragEnd}
+          onDrop={(e) => handleDrop(e, index)}
+          className={`
+            ${draggedIndex === index ? "opacity-50" : ""}
+            ${dragOverIndex === index && draggedIndex !== index ? "transform scale-105" : ""}
+            transition-all duration-200 cursor-grab active:cursor-grabbing
+          `}
+          style={{
+            transform: dragOverIndex === index && draggedIndex !== index ? "scale(1.05)" : undefined,
+          }}
+        >
+          <SlideThumbnail
+            slide={slide}
+            index={index}
+            isSelected={currentIndex === index}
+            onClick={() => onSelect(index)}
+            onDelete={onDelete ? () => onDelete(slide.id) : undefined}
+            onRename={onRename ? (name) => onRename(slide.id, name) : undefined}
+            canDelete={slides.length > 1}
+          />
+        </div>
       ))}
       <button
         onClick={onAdd}
