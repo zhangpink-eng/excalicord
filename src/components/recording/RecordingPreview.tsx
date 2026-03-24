@@ -16,6 +16,7 @@ interface RecordingPreviewProps {
   onCameraPositionChange: (pos: { x: number; y: number }) => void
   onCameraSizeChange: (size: { width: number; height: number }) => void
   onCameraBubbleStateChange?: (state: CameraBubbleState) => void
+  videoRef?: React.RefObject<HTMLVideoElement | null>
 }
 
 export function RecordingPreview({
@@ -32,9 +33,11 @@ export function RecordingPreview({
   onCameraPositionChange,
   onCameraSizeChange,
   onCameraBubbleStateChange,
+  videoRef: externalVideoRef,
 }: RecordingPreviewProps) {
   const containerRef = useRef<HTMLDivElement>(null)
-  const videoRef = useRef<HTMLVideoElement>(null)
+  const internalVideoRef = useRef<HTMLVideoElement>(null)
+  const videoRef = externalVideoRef || internalVideoRef
   const [isDragging, setIsDragging] = useState(false)
   const [isResizing, setIsResizing] = useState(false)
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
@@ -156,9 +159,9 @@ export function RecordingPreview({
       className="absolute inset-0 pointer-events-none"
       style={{ zIndex: 50 }}
     >
-      {/* Recording area frame - transparent background with dashed border */}
+      {/* Recording area frame - fully transparent with dashed border */}
       <div
-        className="absolute bg-white/10 backdrop-blur-sm border-2 border-dashed border-red-500 pointer-events-auto"
+        className="absolute bg-transparent border-2 border-dashed border-red-500 pointer-events-auto"
         style={{
           left: "50%",
           top: "50%",

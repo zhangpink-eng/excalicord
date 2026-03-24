@@ -133,6 +133,7 @@ function App() {
     stopRecording: stopCanvasRecording,
     setExcalidrawCanvas,
     setCameraBubbleState,
+    setCameraVideo,
     setBeautySettings,
     setPreviewArea,
     duration, // Get duration from recorder hook
@@ -268,6 +269,12 @@ function App() {
         borderColor: cameraBubbleBorderColor,
         borderWidth: cameraBubbleBorderWidth,
       })
+
+      // Attach stream to video element and tell recorder about it
+      if (cameraVideoRef.current) {
+        cameraVideoRef.current.srcObject = stream
+        setCameraVideo(cameraVideoRef.current)
+      }
     }
 
     // Apply beauty settings to recorder
@@ -623,6 +630,7 @@ function App() {
               onCameraPositionChange={(pos) => { cameraBubblePosition.current = pos }}
               onCameraSizeChange={(size) => { cameraBubbleSize.current = size }}
               onCameraBubbleStateChange={setCameraBubbleState}
+              videoRef={cameraVideoRef}
             />
 
             {/* Draggable Recording Controls */}
