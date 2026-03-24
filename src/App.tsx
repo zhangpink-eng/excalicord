@@ -683,20 +683,34 @@ function App() {
                     setFramePositionsState(prev => ({ ...prev, [index]: newPos }))
 
                     // Mark this slide as having its frame moved
-                    movedSlides.push({ index, deltaX, deltaY })
+                    movedSlides.push({ index, deltaX, deltaY, frameX: frameEl.x, frameY: frameEl.y, frameW: frameEl.width, frameH: frameEl.height })
                   }
                 })
 
                 // Update content for slides whose frames were moved
-                movedSlides.forEach(({ index, deltaX, deltaY }) => {
+                movedSlides.forEach(({ index, deltaX, deltaY, frameX, frameY, frameW, frameH }) => {
                   const slide = slides[index]
                   if (slide && slide.content?.elements) {
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    const updatedElements = slide.content.elements.map((el: any) => ({
-                      ...el,
-                      x: (el.x || 0) + deltaX,
-                      y: (el.y || 0) + deltaY,
-                    }))
+                    const updatedElements = slide.content.elements.map((el: any) => {
+                      // Check if element is inside the frame (using center point)
+                      const elCenterX = (el.x || 0) + (el.width || 0) / 2
+                      const elCenterY = (el.y || 0) + (el.height || 0) / 2
+                      const isInsideFrame =
+                        elCenterX >= frameX &&
+                        elCenterX <= frameX + frameW &&
+                        elCenterY >= frameY &&
+                        elCenterY <= frameY + frameH
+
+                      if (isInsideFrame) {
+                        return {
+                          ...el,
+                          x: (el.x || 0) + deltaX,
+                          y: (el.y || 0) + deltaY,
+                        }
+                      }
+                      return el
+                    })
                     updateSlide(slide.id, { content: { elements: updatedElements } })
                   }
                 })
