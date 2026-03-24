@@ -53,10 +53,11 @@ export function RecordingPreview({
     setLocalSize(cameraSize)
   }, [cameraSize])
 
-  // Attach stream to video
+  // Attach stream to video and ensure it plays
   useEffect(() => {
     if (videoRef.current && cameraStream) {
       videoRef.current.srcObject = cameraStream
+      videoRef.current.play().catch(err => console.log("Video play error:", err))
     }
   }, [cameraStream])
 

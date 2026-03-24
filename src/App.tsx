@@ -121,7 +121,6 @@ function App() {
 
   const {
     cameraStream,
-    micStream,
     startCamera,
     stopCamera,
     startMic,
@@ -214,29 +213,26 @@ function App() {
   }, [authLoading, user])
 
   const handleRecord = useCallback(async () => {
-    // Show the recording preview
+    // Show the recording preview first
     setShowRecordingPreview(true)
 
-    // Auto-enable camera if not already enabled
-    let stream = cameraStream
-    if (!cameraEnabled || !stream) {
-      try {
-        stream = await startCamera()
-        setCameraEnabled(true)
-      } catch (err) {
-        console.error("Failed to start camera:", err)
-      }
+    // Start camera and mic, using the returned streams directly
+    // Note: We use the return values directly instead of captured state to avoid closure issues
+    let cameraStreamToUse = null
+    let micStreamToUse = null
+
+    try {
+      cameraStreamToUse = await startCamera()
+      setCameraEnabled(true)
+    } catch (err) {
+      console.error("Failed to start camera:", err)
     }
 
-    // Auto-enable mic if not already enabled
-    let micStreamToUse = micStream
-    if (!micEnabled) {
-      try {
-        micStreamToUse = await startMic()
-        setMicEnabled(true)
-      } catch (err) {
-        console.error("Failed to start mic:", err)
-      }
+    try {
+      micStreamToUse = await startMic()
+      setMicEnabled(true)
+    } catch (err) {
+      console.error("Failed to start mic:", err)
     }
 
     // Set up preview area for the recorder
@@ -255,13 +251,13 @@ function App() {
     }
 
     // Set up camera bubble state - default to bottom-right of preview area
-    if (stream) {
+    if (cameraStreamToUse) {
       const defaultPos = {
         x: recordingPreviewSize.width - cameraBubbleSize.current.width - 20,
         y: recordingPreviewSize.height - cameraBubbleSize.current.height - 20,
       }
       setCameraBubbleState({
-        stream: stream,
+        stream: cameraStreamToUse,
         position: defaultPos,
         size: cameraBubbleSize.current,
         shape: cameraBubbleShape,
@@ -272,7 +268,8 @@ function App() {
 
       // Attach stream to video element and tell recorder about it
       if (cameraVideoRef.current) {
-        cameraVideoRef.current.srcObject = stream
+        cameraVideoRef.current.srcObject = cameraStreamToUse
+        cameraVideoRef.current.play().catch(err => console.log("Video play error:", err))
         setCameraVideo(cameraVideoRef.current)
       }
     }
@@ -293,7 +290,7 @@ function App() {
     startCanvasRecording()
 
     analytics.trackRecordingStarted(project?.id || "unknown")
-  }, [cameraEnabled, cameraStream, micEnabled, micStream, startCamera, startMic, setExcalidrawCanvas, setCameraBubbleState, setCameraVideo, setAudioStream, setBeautySettings, setPreviewArea, beautyEnabled, beautySettings, startCanvasRecording, project, recordingPreviewSize, cameraBubbleShape, cameraBubbleBorderColor, cameraBubbleBorderWidth, cameraBubbleBorderRadius])
+  }, [startCamera, startMic, setExcalidrawCanvas, setCameraBubbleState, setCameraVideo, setAudioStream, setBeautySettings, setPreviewArea, beautyEnabled, beautySettings, startCanvasRecording, project, recordingPreviewSize, cameraBubbleShape, cameraBubbleBorderColor, cameraBubbleBorderWidth, cameraBubbleBorderRadius])
 
   const handleStop = useCallback(async () => {
     setIsRecording(false)
@@ -622,7 +619,7 @@ function App() {
               visible={showRecordingPreview}
               width={recordingPreviewSize.width}
               height={recordingPreviewSize.height}
-              cameraStream={cameraEnabled ? cameraStream : null}
+              cameraStream={cameraStream}
               cameraPosition={cameraBubblePosition.current}
               cameraSize={cameraBubbleSize.current}
               cameraShape={cameraBubbleShape}
