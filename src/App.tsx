@@ -73,6 +73,10 @@ function createSlideFrameElements(
 function App() {
   const { t } = useTranslation()
   const { user, isLoading: authLoading } = useAuth()
+
+  // Use slides from ProjectContext (synced with database) - must be before useEffect that uses loadProject
+  const { project, slides, addSlide: addSlideToProject, deleteSlide, updateSlide, reorderSlides, createProject, loadProject, updateProject } = useProject()
+
   const [currentPage, setCurrentPage] = useState<Page>(user ? "editor" : "login")
   const [showPricing, setShowPricing] = useState(false)
   const [projectName, setProjectName] = useState("Untitled Project")
@@ -104,9 +108,6 @@ function App() {
       }
     }
   }, [user, authLoading, loadProject])
-
-  // Use slides from ProjectContext (synced with database)
-  const { project, slides, addSlide: addSlideToProject, deleteSlide, updateSlide, reorderSlides, createProject, loadProject, updateProject } = useProject()
 
   // Track slide frame positions (keyed by index)
   const framePositionsRef = useRef<Record<number, { x: number; y: number }>>({})
