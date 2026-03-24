@@ -4,7 +4,7 @@ import { SlideRail } from "@/components/slides/SlideRail"
 import { DraggableRecordingControls } from "@/components/recording/DraggableRecordingControls"
 import { RecordingPreview } from "@/components/recording/RecordingPreview"
 import { PreviewPlayer } from "@/components/recording/PreviewPlayer"
-import { ExcalidrawCanvas, CameraBubble, CanvasOverlay, type Tool } from "@/components/canvas"
+import { ExcalidrawCanvas, CameraBubble } from "@/components/canvas"
 import { RightPanel } from "@/components/layout/RightPanel"
 import { LanguageSelector, ThemeToggle } from "@/components/ui"
 import { useMediaDevices, useTranslation, useCanvasRecorder } from "@/hooks"
@@ -157,9 +157,6 @@ function App() {
 
   // Projects panel visibility (default: hidden)
   const [projectsPanelVisible, setProjectsPanelVisible] = useState(false)
-
-  // Canvas tool state
-  const [activeTool, setActiveTool] = useState<string>("select")
 
   // Toggle right panel
   const toggleRightPanel = useCallback(() => {
@@ -551,12 +548,6 @@ function App() {
                   }))
                 debouncedSave(currentSlide.id, boundElements)
               }}
-            />
-
-            {/* Canvas overlay toolbar */}
-            <CanvasOverlay
-              activeTool={activeTool as Tool}
-              onToolChange={(tool) => setActiveTool(tool)}
             />
 
             {/* Slide frames as purely visual overlays - scrollable container */}
