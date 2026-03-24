@@ -133,30 +133,28 @@ function App() {
     setFramePositionsState({ ...framePositionsRef.current })
   }, [slides])
 
-  // Initialize frame dimensions when slides change - extract from slide content elements
+  // Initialize frame dimensions from localStorage when project loads
   useEffect(() => {
-    if (slides.length === 0) return
+    if (!project?.id) return
 
-    slides.forEach((slide, index) => {
-      // Extract frame dimensions from slide content elements
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const elements = (slide.content?.elements || []) as any[]
-      const frameElement = elements.find((el: any) => el.type === "frame" || el.id?.startsWith("slide-frame-"))
-
-      if (frameElement) {
-        frameDimensionsRef.current[index] = {
-          width: frameElement.width || 1920,
-          height: frameElement.height || 1080,
-        }
-      } else if (!frameDimensionsRef.current[index]) {
-        // Fallback for new slides that don't have frame elements yet
-        frameDimensionsRef.current[index] = {
-          width: 1920,
-          height: 1080,
-        }
+    const savedDims = localStorage.getItem(`frameDims_${project.id}`)
+    if (savedDims) {
+      try {
+        const parsed = JSON.parse(savedDims)
+        Object.keys(parsed).forEach(key => {
+          frameDimensionsRef.current[parseInt(key)] = parsed[key]
+        })
+      } catch (e) {
+        console.error("Failed to parse saved frame dimensions:", e)
       }
-    })
-  }, [slides])
+    }
+  }, [project?.id])
+
+  // Save frame dimensions to localStorage when they change
+  useEffect(() => {
+    if (!project?.id) return
+    localStorage.setItem(`frameDims_${project.id}`, JSON.stringify(frameDimensionsRef.current))
+  }, [project?.id, frameDimensionsRef.current])
 
   // Auto-save debounce refs
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
