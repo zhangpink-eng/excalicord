@@ -1,0 +1,1846 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Components Manifest</title>
+  <style>
+      :root {
+          --bg: #0b0c10;
+          --panel: #121318;
+          --muted: #9aa0a6;
+          --fg: #e8eaed;
+          --ok: #22c55e;
+          --info: #1e88e5;
+          --err: #c62828;
+          --ok-bg: #0c1a13;
+          --info-bg: #0c1624;
+          --err-bg: #1a0e0e;
+          --chip: #1f2330;
+          --border: #2b2f3a;
+          --link: #8ab4f8;
+          --active-ring: 1px; /* 1px active ring for pills and toggles */
+      }
+
+      * {
+          box-sizing: border-box;
+      }
+
+      html,
+      body {
+          margin: 0;
+          background: var(--bg);
+          color: var(--fg);
+          font: 14px/1.5 system-ui,
+          -apple-system,
+          Segoe UI,
+          Roboto,
+          Ubuntu,
+          Cantarell,
+          'Helvetica Neue',
+          Arial,
+          'Noto Sans';
+      }
+
+      .wrap {
+          max-width: 1100px;
+          margin: 0 auto;
+          padding: 16px 20px;
+      }
+
+      header {
+          position: sticky;
+          top: 0;
+          backdrop-filter: blur(6px);
+          background: color-mix(in srgb, var(--bg) 84%, transparent);
+          border-bottom: 1px solid var(--border);
+          z-index: 10;
+      }
+
+      h1 {
+          font-size: 20px;
+          margin: 0 0 6px;
+      }
+
+      .summary {
+          display: flex;
+          gap: 12px;
+          flex-wrap: wrap;
+          align-items: center;
+      }
+
+      /* Top filter pills */
+      .filter-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 6px 12px;
+          border: 1px solid var(--border);
+          border-radius: 999px;
+          background: var(--panel);
+          text-decoration: none;
+          cursor: pointer;
+          user-select: none;
+          color: var(--fg);
+      }
+
+      .filter-pill.ok {
+          color: #b9f6ca;
+          border-color: color-mix(in srgb, var(--ok) 55%, var(--border));
+          background: color-mix(in srgb, var(--ok) 18%, #000);
+      }
+
+      .filter-pill.info {
+          color: #b3d9ff;
+          border-color: color-mix(in srgb, var(--info) 55%, var(--border));
+          background: var(--info-bg);
+      }
+
+      .filter-pill.err {
+          color: #ff9aa0;
+          border-color: color-mix(in srgb, var(--err) 55%, var(--border));
+          background: var(--err-bg);
+      }
+
+      .filter-pill.all {
+          color: #d7dbe0;
+          border-color: var(--border);
+          background: var(--panel);
+      }
+
+      .filter-pill[aria-disabled='true'] {
+          cursor: default;
+          text-decoration: none;
+      }
+
+      .filter-pill:focus,
+      .filter-pill:active {
+          outline: none;
+          box-shadow: none;
+      }
+
+      /* Selected top pill ring via :target */
+      #filter-all:target ~ header .filter-pill[data-k='all'],
+      #filter-errors:target ~ header .filter-pill[data-k='errors'],
+      #filter-infos:target ~ header .filter-pill[data-k='infos'],
+      #filter-story-errors:target ~ header .filter-pill[data-k='story-errors'],
+      #filter-doc-errors:target ~ header .filter-pill[data-k='docs'],
+      #filter-docs:target ~ header .filter-pill[data-k='docs'] {
+          box-shadow: 0 0 0 var(--active-ring) currentColor;
+          border-color: currentColor;
+      }
+
+      /* Hidden targets for filtering */
+      #filter-all,
+      #filter-errors,
+      #filter-infos,
+      #filter-story-errors,
+      #filter-doc-errors,
+      #filter-docs {
+          display: none;
+      }
+
+      main {
+          padding: 36px 0 40px;
+      }
+
+      .grid {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 18px;
+      }
+
+      /* one card per row */
+
+      .card {
+          border: 1px solid var(--border);
+          background: var(--panel);
+          border-radius: 14px;
+          padding: 14px;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+      }
+
+      .head {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+      }
+
+      .title {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+      }
+
+      .title h2 {
+          font-size: 16px;
+          margin: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+      }
+
+      .meta {
+          font-size: 12px;
+          color: var(--muted);
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+      }
+
+      .kv {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
+      }
+
+      .chip {
+          font-size: 12px;
+          padding: 4px 8px;
+          border-radius: 999px;
+          background: var(--chip);
+          border: 1px solid var(--border);
+      }
+
+      .hint {
+          color: var(--muted);
+          font-size: 12px;
+      }
+
+      .badges {
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+      }
+
+      /* Per-card badges: labels become toggles when clickable */
+      .badge {
+          font-size: 12px;
+          padding: 3px 8px;
+          border-radius: 999px;
+          border: 1px solid var(--border);
+          background: var(--chip);
+          color: #d7dbe0;
+      }
+
+      .badge.ok {
+          color: #b9f6ca;
+          border-color: color-mix(in srgb, var(--ok) 55%, var(--border));
+      }
+
+      .badge.info {
+          color: #b3d9ff;
+          border-color: color-mix(in srgb, var(--info) 55%, var(--border));
+      }
+
+      .badge.err {
+          color: #ff9aa0;
+          border-color: color-mix(in srgb, var(--err) 55%, var(--border));
+      }
+
+      .as-toggle {
+          cursor: pointer;
+      }
+
+      /* 1px ring on active toggle */
+      .tg-err:checked + label.as-toggle,
+      .tg-info:checked + label.as-toggle,
+      .tg-stories:checked + label.as-toggle,
+      .tg-docs:checked + label.as-toggle,
+      .tg-content:checked + label.as-toggle,
+      .tg-props:checked + label.as-toggle {
+          box-shadow: 0 0 0 var(--active-ring) currentColor;
+          border-color: currentColor;
+      }
+
+      /* Panels: hidden by default, shown when respective toggle checked */
+      .panels {
+          display: grid;
+          gap: 10px;
+      }
+
+      .panel {
+          display: none;
+      }
+
+      .tg-err:checked ~ .panels .panel-err {
+          display: grid;
+      }
+
+      .tg-info:checked ~ .panels .panel-info {
+          display: grid;
+          gap: 8px;
+      }
+
+      .tg-stories:checked ~ .panels .panel-stories {
+          display: grid;
+          gap: 8px;
+      }
+
+      .tg-docs:checked ~ .panels .panel-docs {
+          display: grid;
+          gap: 8px;
+      }
+
+      .tg-content:checked ~ .panels .panel-content {
+          display: grid;
+          gap: 8px;
+      }
+
+      .tg-props:checked ~ .panels .panel-props {
+          display: grid;
+      }
+
+      /* Colored notes for prop type error + info */
+      .note {
+          padding: 12px;
+          border: 1px solid var(--border);
+          border-radius: 10px;
+      }
+
+      .note.err {
+          border-color: color-mix(in srgb, var(--err) 55%, var(--border));
+          background: var(--err-bg);
+          color: #ffd1d4;
+      }
+
+      .note.info {
+          border-color: color-mix(in srgb, var(--info) 55%, var(--border));
+          background: var(--info-bg);
+          color: #d6e8ff;
+      }
+
+      .note.ok {
+          border-color: color-mix(in srgb, var(--ok) 55%, var(--border));
+          background: var(--ok-bg);
+          color: var(--fg);
+      }
+
+      .note-title {
+          font-weight: 600;
+          margin-bottom: 6px;
+      }
+
+      .note-body {
+          white-space: normal;
+      }
+
+      /* Story error cards */
+      .ex {
+          padding: 10px;
+          border: 1px solid var(--border);
+          border-radius: 10px;
+          background: #0f131b;
+      }
+
+      .ex.err {
+          border-color: color-mix(in srgb, var(--err) 55%, var(--border));
+      }
+
+      .row {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex-wrap: wrap;
+      }
+
+      .status-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          display: inline-block;
+      }
+
+      .dot-ok {
+          background: var(--ok);
+      }
+
+      .dot-err {
+          background: var(--err);
+      }
+
+      .ex-name {
+          font-weight: 600;
+      }
+
+      /* Error groups (visible in errors filter) */
+      .error-groups {
+          display: none;
+          margin-bottom: 16px;
+      }
+
+      .group {
+          border: 1px solid var(--border);
+          background: var(--panel);
+          border-radius: 14px;
+          overflow: hidden;
+      }
+
+      .group + .group {
+          margin-top: 12px;
+      }
+
+      .group-header {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 12px 14px;
+          cursor: pointer;
+          border-bottom: 1px solid var(--border);
+      }
+
+      .group-header:hover {
+          background: #141722;
+      }
+
+      .group-title {
+          font-weight: 600;
+          flex: 1;
+      }
+
+      .group-count {
+          font-size: 12px;
+          color: var(--muted);
+      }
+
+      .group-cards {
+          display: none;
+          padding: 12px;
+      }
+
+      .group .card {
+          margin: 12px 0;
+      }
+
+      .group .card:first-child {
+          margin-top: 0;
+      }
+
+      .group .card:last-child {
+          margin-bottom: 0;
+      }
+
+      /* caret rotation */
+      .group-tg:checked + label .caret {
+          transform: rotate(90deg);
+      }
+
+      .caret {
+          transition: transform 0.15s ease;
+      }
+
+      /* toggle body */
+      .group-tg:checked ~ .group-cards {
+          display: block;
+      }
+
+      /* CSS-only filtering of cards via top pills */
+      #filter-errors:target ~ main .card:not(.has-error):not(.has-story-error) {
+          display: none;
+      }
+
+      #filter-infos:target ~ main .card:not(.has-info) {
+          display: none;
+      }
+
+      #filter-story-errors:target ~ main .card:not(.has-story-error) {
+          display: none;
+      }
+
+      #filter-doc-errors:target ~ main .card:not(.has-doc-error) {
+          display: none;
+      }
+
+      #filter-docs:target ~ main .card:has(> .tg-docs),
+      #filter-docs:target ~ main .card.is-doc {
+          display: block;
+      }
+
+      #filter-docs:target ~ main .card:not(:has(> .tg-docs)):not(.is-doc) {
+          display: none;
+      }
+
+      #filter-all:target ~ main .card {
+          display: block;
+      }
+
+      /* In errors view, hide standalone component-error cards in the regular grid (they will appear in groups) */
+      #filter-errors:target ~ main .grid .card.has-error {
+          display: none;
+      }
+
+      /* Show grouped section only in errors view */
+      #filter-errors:target ~ main .error-groups {
+          display: block;
+      }
+
+      /* Section titles */
+      .section-title {
+          font-size: 16px;
+          font-weight: 600;
+          color: var(--muted);
+          margin: 24px 0 12px;
+          padding-bottom: 8px;
+          border-bottom: 1px solid var(--border);
+      }
+      .section-title:first-child {
+          margin-top: 0;
+      }
+
+      /* When a toggle is checked, show the corresponding panel */
+      .card > .tg-err:checked ~ .panels .panel-err {
+          display: grid;
+      }
+      
+      .card > .tg-info:checked ~ .panels .panel-info {
+          display: grid;
+      }
+      
+      .card > .tg-stories:checked ~ .panels .panel-stories {
+          display: grid;
+      }
+
+      .card > .tg-docs:checked ~ .panels .panel-docs {
+          display: grid;
+      }
+
+      .card > .tg-content:checked ~ .panels .panel-content {
+          display: grid;
+      }
+
+      /* Add vertical spacing around panels only when any panel is visible */
+      .card > .tg-err:checked ~ .panels,
+      .card > .tg-info:checked ~ .panels,
+      .card > .tg-stories:checked ~ .panels,
+      .card > .tg-docs:checked ~ .panels,
+      .card > .tg-content:checked ~ .panels,
+      .card > .tg-props:checked ~ .panels {
+          margin: 10px 0;
+      }
+
+      /* Optional: a subtle 1px ring on the active badge, using :has() if available */
+      @supports selector(.card:has(.tg-err:checked)) {
+          .card:has(.tg-err:checked) label[for$='-err'],
+          .card:has(.tg-info:checked) label[for$='-info'],
+          .card:has(.tg-stories:checked) label[for$='-stories'],
+          .card:has(.tg-docs:checked) label[for$='-docs'],
+          .card:has(.tg-content:checked) label[for$='-content'],
+          .card:has(.tg-props:checked) label[for$='-props'] {
+              box-shadow: 0 0 0 1px currentColor;
+              border-color: currentColor;
+          }
+      }
+
+      /* Wrap long lines in code blocks at ~120 characters */
+      pre, code {
+          font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      }
+      pre {
+          white-space: pre-wrap;
+          overflow-wrap: anywhere;
+          word-break: break-word;
+          overflow-x: auto; /* fallback for extremely long tokens */
+          margin: 8px 0 0;
+      }
+      pre > code {
+          display: block;
+          white-space: inherit;
+          overflow-wrap: inherit;
+          word-break: inherit;
+          inline-size: min(100%, 120ch);
+      }
+
+      /* MDX content container for docs */
+      .mdx-content {
+          background: #0f131b;
+          border: 1px solid var(--border);
+          border-radius: 10px;
+          padding: 12px;
+          max-height: 400px;
+          overflow-y: auto;
+          margin-top: 8px;
+      }
+  </style>
+</head>
+<body>
+<!-- Hidden targets for the top-level filters -->
+<span id="filter-all"></span>
+<span id="filter-errors"></span>
+<span id="filter-infos"></span>
+<span id="filter-story-errors"></span>
+<span id="filter-doc-errors"></span>
+<span id="filter-docs"></span>
+<header>
+  <div class="wrap">
+    <h1>Manifest Debugger</h1>
+    <div class="summary"><a class="filter-pill all" data-k="all" href="#filter-all">All</a><span class="filter-pill ok" aria-disabled="true">7 components ok</span><a class="filter-pill info" data-k="infos" href="#filter-infos">6/7 infos</a><span class="filter-pill ok" aria-disabled="true">26 stories ok</span><a class="filter-pill ok" data-k="docs" href="#filter-docs">1 doc ok</a></div>
+  </div>
+</header>
+<main>
+  <div class="wrap">
+    <div class="note info" style="margin-bottom: 16px;">
+            <strong>Tip:</strong> You are using <code>react-docgen</code> (the default). Generation took <strong>0.3s</strong>. For higher quality prop types, consider switching to <code>react-docgen-typescript</code> in your <code>main.ts</code>:
+            <pre><code>typescript: {
+  reactDocgen: 'react-docgen-typescript',
+}</code></pre>
+            Note: <code>react-docgen-typescript</code> can be slower. If performance is acceptable for your project, it generally produces better results.
+            <a href="https://storybook.js.org/docs/api/main-config/main-config-typescript#reactdocgen" target="_blank">Learn more</a>
+          </div>
+    <h2 class="section-title">Components</h2>
+    <div class="grid" role="list">
+      
+<article
+  class="card 
+  no-error 
+  has-info 
+  no-story-error
+  no-doc-error"
+  role="listitem"
+  aria-label="BeautyPanel">
+  <div class="head">
+    <div class="title">
+      <h2><span class="status-dot dot-ok"></span> BeautyPanel</h2>
+      <div class="badges">
+        <label for="c-0-beauty-beautypanel-props" class="badge ok as-toggle">5 prop types</label>
+        <label for="c-0-beauty-beautypanel-info" class="badge info as-toggle">1 info</label>
+        <label for="c-0-beauty-beautypanel-stories" class="badge ok as-toggle">3 stories</label>
+        
+      </div>
+    </div>
+    <div class="meta" title="./src/components/beauty/BeautyPanel.stories.tsx">beauty-beautypanel · ./src/components/beauty/BeautyPanel.stories.tsx</div>
+    
+    
+    
+  </div>
+
+  <!-- ⬇️ Hidden toggles must be siblings BEFORE .panels -->
+  
+  <input id="c-0-beauty-beautypanel-info" class="tg tg-info" type="checkbox" hidden />
+  <input id="c-0-beauty-beautypanel-stories" class="tg tg-stories" type="checkbox" hidden />
+  
+  <input id="c-0-beauty-beautypanel-props" class="tg tg-props" type="checkbox" hidden />
+
+  <div class="panels">
+    
+    
+        <div class="panel panel-info">
+          
+    <div class="note info">
+      <div class="note-title">Info</div>
+      <div class="note-body">No description found. Write a jsdoc comment such as /** Component description */.</div>
+    </div>
+        </div>
+    
+        <div class="panel panel-props">
+          <div class="note ok">
+            <div class="row">
+              <span class="ex-name">Prop types <small>(react-docgen)</small></span>
+              <span class="badge ok">5 prop types</span>
+            </div>
+            <pre><code>Component: src/components/beauty/BeautyPanel.tsx::BeautyPanel</code></pre>
+            <pre><code>Props:</code></pre>
+            <pre><code>isEnabled: boolean
+
+onReset: () =&gt; void
+
+onSettingChange: &lt;K extends keyof BeautySettings&gt;(key: K, value: BeautySettings[K]) =&gt; void
+
+onToggle: () =&gt; void
+
+settings: BeautySettings</code></pre>
+          </div>
+        </div>
+    
+        <div class="panel panel-stories">
+          
+          
+          
+          <div class="note ok">
+                <div class="row">
+                  <span class="ex-name">Imports</span>
+                </div>
+                <pre><code>import { BeautyPanel } from "excalicord";</code></pre>
+              </div>
+          
+          
+            <div class="note ok">
+              <div class="row">
+                <span class="ex-name">Default</span>
+                <span class="badge ok">story ok</span>
+              </div>
+              
+              
+              <pre><code>const Default = () =&gt; &lt;BeautyPanel
+    settings={defaultBeautySettings}
+    isEnabled={false}
+    onSettingChange={(key: string, value: number) =&gt; console.log(key, value)}
+    onToggle={() =&gt; console.log(&quot;toggled&quot;)}
+    onReset={() =&gt; console.log(&quot;reset&quot;)} /&gt;;</code></pre>
+            </div>
+            <div class="note ok">
+              <div class="row">
+                <span class="ex-name">Enabled</span>
+                <span class="badge ok">story ok</span>
+              </div>
+              
+              
+              <pre><code>const Enabled = () =&gt; &lt;BeautyPanel
+    settings={defaultBeautySettings}
+    isEnabled
+    onSettingChange={(key: string, value: number) =&gt; console.log(key, value)}
+    onToggle={() =&gt; console.log(&quot;toggled&quot;)}
+    onReset={() =&gt; console.log(&quot;reset&quot;)} /&gt;;</code></pre>
+            </div>
+            <div class="note ok">
+              <div class="row">
+                <span class="ex-name">Custom Settings</span>
+                <span class="badge ok">story ok</span>
+              </div>
+              
+              
+              <pre><code>const CustomSettings = () =&gt; &lt;BeautyPanel
+    settings={{
+      smoothing: 70,
+      whitening: 50,
+      faceSlimming: 30,
+      skinTone: 60,
+    }}
+    isEnabled
+    onSettingChange={(key: string, value: number) =&gt; console.log(key, value)}
+    onToggle={() =&gt; console.log(&quot;toggled&quot;)}
+    onReset={() =&gt; console.log(&quot;reset&quot;)} /&gt;;</code></pre>
+            </div>
+        </div>
+    
+  </div>
+</article>
+<article
+  class="card 
+  no-error 
+  has-info 
+  no-story-error
+  no-doc-error"
+  role="listitem"
+  aria-label="Button">
+  <div class="head">
+    <div class="title">
+      <h2><span class="status-dot dot-ok"></span> Button</h2>
+      <div class="badges">
+        <label for="c-1-ui-button-props" class="badge ok as-toggle">1 prop type</label>
+        <label for="c-1-ui-button-info" class="badge info as-toggle">1 info</label>
+        <label for="c-1-ui-button-stories" class="badge ok as-toggle">8 stories</label>
+        
+      </div>
+    </div>
+    <div class="meta" title="./src/components/ui/button.stories.tsx">ui-button · ./src/components/ui/button.stories.tsx</div>
+    
+    
+    
+  </div>
+
+  <!-- ⬇️ Hidden toggles must be siblings BEFORE .panels -->
+  
+  <input id="c-1-ui-button-info" class="tg tg-info" type="checkbox" hidden />
+  <input id="c-1-ui-button-stories" class="tg tg-stories" type="checkbox" hidden />
+  
+  <input id="c-1-ui-button-props" class="tg tg-props" type="checkbox" hidden />
+
+  <div class="panels">
+    
+    
+        <div class="panel panel-info">
+          
+    <div class="note info">
+      <div class="note-title">Info</div>
+      <div class="note-body">No description found. Write a jsdoc comment such as /** Component description */.</div>
+    </div>
+        </div>
+    
+        <div class="panel panel-props">
+          <div class="note ok">
+            <div class="row">
+              <span class="ex-name">Prop types <small>(react-docgen)</small></span>
+              <span class="badge ok">1 prop type</span>
+            </div>
+            <pre><code>Component: src/components/ui/button.tsx::Button</code></pre>
+            <pre><code>Props:</code></pre>
+            <pre><code>asChild?: boolean = false</code></pre>
+          </div>
+        </div>
+    
+        <div class="panel panel-stories">
+          
+          
+          
+          <div class="note ok">
+                <div class="row">
+                  <span class="ex-name">Imports</span>
+                </div>
+                <pre><code>import { Button } from "excalicord";</code></pre>
+              </div>
+          
+          
+            <div class="note ok">
+              <div class="row">
+                <span class="ex-name">Default</span>
+                <span class="badge ok">story ok</span>
+              </div>
+              
+              
+              <pre><code>const Default = () =&gt; &lt;Button&gt;Button&lt;/Button&gt;;</code></pre>
+            </div>
+            <div class="note ok">
+              <div class="row">
+                <span class="ex-name">Primary</span>
+                <span class="badge ok">story ok</span>
+              </div>
+              
+              
+              <pre><code>const Primary = () =&gt; &lt;Button variant=&quot;default&quot;&gt;Primary Button&lt;/Button&gt;;</code></pre>
+            </div>
+            <div class="note ok">
+              <div class="row">
+                <span class="ex-name">Destructive</span>
+                <span class="badge ok">story ok</span>
+              </div>
+              
+              
+              <pre><code>const Destructive = () =&gt; &lt;Button variant=&quot;destructive&quot;&gt;Delete&lt;/Button&gt;;</code></pre>
+            </div>
+            <div class="note ok">
+              <div class="row">
+                <span class="ex-name">Outline</span>
+                <span class="badge ok">story ok</span>
+              </div>
+              
+              
+              <pre><code>const Outline = () =&gt; &lt;Button variant=&quot;outline&quot;&gt;Outline Button&lt;/Button&gt;;</code></pre>
+            </div>
+            <div class="note ok">
+              <div class="row">
+                <span class="ex-name">Ghost</span>
+                <span class="badge ok">story ok</span>
+              </div>
+              
+              
+              <pre><code>const Ghost = () =&gt; &lt;Button variant=&quot;ghost&quot;&gt;Ghost Button&lt;/Button&gt;;</code></pre>
+            </div>
+            <div class="note ok">
+              <div class="row">
+                <span class="ex-name">Small</span>
+                <span class="badge ok">story ok</span>
+              </div>
+              
+              
+              <pre><code>const Small = () =&gt; &lt;Button size=&quot;sm&quot;&gt;Small Button&lt;/Button&gt;;</code></pre>
+            </div>
+            <div class="note ok">
+              <div class="row">
+                <span class="ex-name">Large</span>
+                <span class="badge ok">story ok</span>
+              </div>
+              
+              
+              <pre><code>const Large = () =&gt; &lt;Button size=&quot;lg&quot;&gt;Large Button&lt;/Button&gt;;</code></pre>
+            </div>
+            <div class="note ok">
+              <div class="row">
+                <span class="ex-name">Icon</span>
+                <span class="badge ok">story ok</span>
+              </div>
+              
+              
+              <pre><code>const Icon = () =&gt; &lt;Button size=&quot;icon&quot;&gt;🚀&lt;/Button&gt;;</code></pre>
+            </div>
+        </div>
+    
+  </div>
+</article>
+<article
+  class="card 
+  no-error 
+  no-info 
+  no-story-error
+  no-doc-error"
+  role="listitem"
+  aria-label="Button">
+  <div class="head">
+    <div class="title">
+      <h2><span class="status-dot dot-ok"></span> Button</h2>
+      <div class="badges">
+        <label for="c-2-example-button-props" class="badge ok as-toggle">5 prop types</label>
+        
+        <label for="c-2-example-button-stories" class="badge ok as-toggle">4 stories</label>
+        
+      </div>
+    </div>
+    <div class="meta" title="./src/stories/Button.stories.ts">example-button · ./src/stories/Button.stories.ts</div>
+    
+    <div class="hint">Primary UI component for user interaction</div>
+    
+  </div>
+
+  <!-- ⬇️ Hidden toggles must be siblings BEFORE .panels -->
+  
+  
+  <input id="c-2-example-button-stories" class="tg tg-stories" type="checkbox" hidden />
+  
+  <input id="c-2-example-button-props" class="tg tg-props" type="checkbox" hidden />
+
+  <div class="panels">
+    
+    
+    
+        <div class="panel panel-props">
+          <div class="note ok">
+            <div class="row">
+              <span class="ex-name">Prop types <small>(react-docgen)</small></span>
+              <span class="badge ok">5 prop types</span>
+            </div>
+            <pre><code>Component: src/stories/Button.tsx::Button</code></pre>
+            <pre><code>Props:</code></pre>
+            <pre><code>/**
+ * What background color to use
+ */
+backgroundColor?: string
+
+/**
+ * Button contents
+ */
+label: string
+
+/**
+ * Optional click handler
+ */
+onClick?: () =&gt; void
+
+/**
+ * Is this the principal call to action on the page?
+ */
+primary?: boolean = false
+
+/**
+ * How large should the button be?
+ */
+size?: &#39;small&#39; | &#39;medium&#39; | &#39;large&#39; = &#39;medium&#39;</code></pre>
+          </div>
+        </div>
+    
+        <div class="panel panel-stories">
+          
+          
+          
+          <div class="note ok">
+                <div class="row">
+                  <span class="ex-name">Imports</span>
+                </div>
+                <pre><code>import { Button } from "excalicord";</code></pre>
+              </div>
+          
+          
+            <div class="note ok">
+              <div class="row">
+                <span class="ex-name">Primary</span>
+                <span class="badge ok">story ok</span>
+              </div>
+              
+              
+              <pre><code>const Primary = () =&gt; &lt;Button onClick={fn()} primary label=&quot;Button&quot; /&gt;;</code></pre>
+            </div>
+            <div class="note ok">
+              <div class="row">
+                <span class="ex-name">Secondary</span>
+                <span class="badge ok">story ok</span>
+              </div>
+              
+              
+              <pre><code>const Secondary = () =&gt; &lt;Button onClick={fn()} label=&quot;Button&quot; /&gt;;</code></pre>
+            </div>
+            <div class="note ok">
+              <div class="row">
+                <span class="ex-name">Large</span>
+                <span class="badge ok">story ok</span>
+              </div>
+              
+              
+              <pre><code>const Large = () =&gt; &lt;Button onClick={fn()} size=&quot;large&quot; label=&quot;Button&quot; /&gt;;</code></pre>
+            </div>
+            <div class="note ok">
+              <div class="row">
+                <span class="ex-name">Small</span>
+                <span class="badge ok">story ok</span>
+              </div>
+              
+              
+              <pre><code>const Small = () =&gt; &lt;Button onClick={fn()} size=&quot;small&quot; label=&quot;Button&quot; /&gt;;</code></pre>
+            </div>
+        </div>
+    
+  </div>
+</article>
+<article
+  class="card 
+  no-error 
+  has-info 
+  no-story-error
+  no-doc-error"
+  role="listitem"
+  aria-label="Header">
+  <div class="head">
+    <div class="title">
+      <h2><span class="status-dot dot-ok"></span> Header</h2>
+      <div class="badges">
+        <label for="c-3-example-header-props" class="badge ok as-toggle">4 prop types</label>
+        <label for="c-3-example-header-info" class="badge info as-toggle">1 info</label>
+        <label for="c-3-example-header-stories" class="badge ok as-toggle">2 stories</label>
+        
+      </div>
+    </div>
+    <div class="meta" title="./src/stories/Header.stories.ts">example-header · ./src/stories/Header.stories.ts</div>
+    
+    
+    
+  </div>
+
+  <!-- ⬇️ Hidden toggles must be siblings BEFORE .panels -->
+  
+  <input id="c-3-example-header-info" class="tg tg-info" type="checkbox" hidden />
+  <input id="c-3-example-header-stories" class="tg tg-stories" type="checkbox" hidden />
+  
+  <input id="c-3-example-header-props" class="tg tg-props" type="checkbox" hidden />
+
+  <div class="panels">
+    
+    
+        <div class="panel panel-info">
+          
+    <div class="note info">
+      <div class="note-title">Info</div>
+      <div class="note-body">No description found. Write a jsdoc comment such as /** Component description */.</div>
+    </div>
+        </div>
+    
+        <div class="panel panel-props">
+          <div class="note ok">
+            <div class="row">
+              <span class="ex-name">Prop types <small>(react-docgen)</small></span>
+              <span class="badge ok">4 prop types</span>
+            </div>
+            <pre><code>Component: src/stories/Header.tsx::Header</code></pre>
+            <pre><code>Props:</code></pre>
+            <pre><code>onCreateAccount?: () =&gt; void
+
+onLogin?: () =&gt; void
+
+onLogout?: () =&gt; void
+
+user?: {
+  name: string;
+}</code></pre>
+          </div>
+        </div>
+    
+        <div class="panel panel-stories">
+          
+          
+          
+          <div class="note ok">
+                <div class="row">
+                  <span class="ex-name">Imports</span>
+                </div>
+                <pre><code>import { Header } from "excalicord";</code></pre>
+              </div>
+          
+          
+            <div class="note ok">
+              <div class="row">
+                <span class="ex-name">Logged In</span>
+                <span class="badge ok">story ok</span>
+              </div>
+              
+              
+              <pre><code>const LoggedIn = () =&gt; &lt;Header
+    onLogin={fn()}
+    onLogout={fn()}
+    onCreateAccount={fn()}
+    user={{
+      name: &#39;Jane Doe&#39;,
+    }} /&gt;;</code></pre>
+            </div>
+            <div class="note ok">
+              <div class="row">
+                <span class="ex-name">Logged Out</span>
+                <span class="badge ok">story ok</span>
+              </div>
+              
+              
+              <pre><code>const LoggedOut = () =&gt; &lt;Header onLogin={fn()} onLogout={fn()} onCreateAccount={fn()} /&gt;;</code></pre>
+            </div>
+        </div>
+    
+  </div>
+</article>
+<article
+  class="card 
+  no-error 
+  has-info 
+  no-story-error
+  no-doc-error"
+  role="listitem"
+  aria-label="Page">
+  <div class="head">
+    <div class="title">
+      <h2><span class="status-dot dot-ok"></span> Page</h2>
+      <div class="badges">
+        
+        <label for="c-4-example-page-info" class="badge info as-toggle">1 info</label>
+        <label for="c-4-example-page-stories" class="badge ok as-toggle">2 stories</label>
+        
+      </div>
+    </div>
+    <div class="meta" title="./src/stories/Page.stories.ts">example-page · ./src/stories/Page.stories.ts</div>
+    
+    
+    
+  </div>
+
+  <!-- ⬇️ Hidden toggles must be siblings BEFORE .panels -->
+  
+  <input id="c-4-example-page-info" class="tg tg-info" type="checkbox" hidden />
+  <input id="c-4-example-page-stories" class="tg tg-stories" type="checkbox" hidden />
+  
+  
+
+  <div class="panels">
+    
+    
+        <div class="panel panel-info">
+          
+    <div class="note info">
+      <div class="note-title">Info</div>
+      <div class="note-body">No description found. Write a jsdoc comment such as /** Component description */.</div>
+    </div>
+        </div>
+    
+    
+        <div class="panel panel-stories">
+          
+          
+          
+          <div class="note ok">
+                <div class="row">
+                  <span class="ex-name">Imports</span>
+                </div>
+                <pre><code>import { Page } from "excalicord";</code></pre>
+              </div>
+          
+          
+            <div class="note ok">
+              <div class="row">
+                <span class="ex-name">Logged Out</span>
+                <span class="badge ok">story ok</span>
+              </div>
+              
+              
+              <pre><code>const LoggedOut = () =&gt; &lt;Page /&gt;;</code></pre>
+            </div>
+            <div class="note ok">
+              <div class="row">
+                <span class="ex-name">Logged In</span>
+                <span class="badge ok">story ok</span>
+              </div>
+              
+              
+              <pre><code>const LoggedIn = () =&gt; &lt;Page /&gt;;</code></pre>
+            </div>
+        </div>
+    
+  </div>
+</article>
+<article
+  class="card 
+  no-error 
+  has-info 
+  no-story-error
+  no-doc-error"
+  role="listitem"
+  aria-label="SlideThumbnail">
+  <div class="head">
+    <div class="title">
+      <h2><span class="status-dot dot-ok"></span> SlideThumbnail</h2>
+      <div class="badges">
+        <label for="c-5-slides-slidethumbnail-props" class="badge ok as-toggle">7 prop types</label>
+        <label for="c-5-slides-slidethumbnail-info" class="badge info as-toggle">1 info</label>
+        <label for="c-5-slides-slidethumbnail-stories" class="badge ok as-toggle">5 stories</label>
+        
+      </div>
+    </div>
+    <div class="meta" title="./src/components/slides/SlideThumbnail.stories.tsx">slides-slidethumbnail · ./src/components/slides/SlideThumbnail.stories.tsx</div>
+    
+    
+    
+  </div>
+
+  <!-- ⬇️ Hidden toggles must be siblings BEFORE .panels -->
+  
+  <input id="c-5-slides-slidethumbnail-info" class="tg tg-info" type="checkbox" hidden />
+  <input id="c-5-slides-slidethumbnail-stories" class="tg tg-stories" type="checkbox" hidden />
+  
+  <input id="c-5-slides-slidethumbnail-props" class="tg tg-props" type="checkbox" hidden />
+
+  <div class="panels">
+    
+    
+        <div class="panel panel-info">
+          
+    <div class="note info">
+      <div class="note-title">Info</div>
+      <div class="note-body">No description found. Write a jsdoc comment such as /** Component description */.</div>
+    </div>
+        </div>
+    
+        <div class="panel panel-props">
+          <div class="note ok">
+            <div class="row">
+              <span class="ex-name">Prop types <small>(react-docgen)</small></span>
+              <span class="badge ok">7 prop types</span>
+            </div>
+            <pre><code>Component: src/components/slides/SlideThumbnail.tsx::SlideThumbnail</code></pre>
+            <pre><code>Props:</code></pre>
+            <pre><code>canDelete?: boolean = true
+
+index: number
+
+isSelected: boolean
+
+onClick: () =&gt; void
+
+onDelete?: () =&gt; void
+
+onRename?: (name: string) =&gt; void
+
+slide: Slide</code></pre>
+          </div>
+        </div>
+    
+        <div class="panel panel-stories">
+          
+          
+          
+          <div class="note ok">
+                <div class="row">
+                  <span class="ex-name">Imports</span>
+                </div>
+                <pre><code>import { SlideThumbnail } from "excalicord";</code></pre>
+              </div>
+          
+          
+            <div class="note ok">
+              <div class="row">
+                <span class="ex-name">Default</span>
+                <span class="badge ok">story ok</span>
+              </div>
+              
+              
+              <pre><code>const Default = () =&gt; &lt;SlideThumbnail
+    slide={{ id: &quot;1&quot;, name: &quot;Slide 1&quot; }}
+    index={0}
+    isSelected={false}
+    canDelete
+    onClick={() =&gt; console.log(&quot;clicked&quot;)}
+    onDelete={() =&gt; console.log(&quot;deleted&quot;)} /&gt;;</code></pre>
+            </div>
+            <div class="note ok">
+              <div class="row">
+                <span class="ex-name">Selected</span>
+                <span class="badge ok">story ok</span>
+              </div>
+              
+              
+              <pre><code>const Selected = () =&gt; &lt;SlideThumbnail
+    slide={{ id: &quot;1&quot;, name: &quot;Slide 1&quot; }}
+    index={0}
+    isSelected
+    canDelete
+    onClick={() =&gt; console.log(&quot;clicked&quot;)}
+    onDelete={() =&gt; console.log(&quot;deleted&quot;)} /&gt;;</code></pre>
+            </div>
+            <div class="note ok">
+              <div class="row">
+                <span class="ex-name">With Rename</span>
+                <span class="badge ok">story ok</span>
+              </div>
+              
+              
+              <pre><code>const WithRename = () =&gt; &lt;SlideThumbnail
+    slide={{ id: &quot;1&quot;, name: &quot;Slide 1&quot; }}
+    index={0}
+    isSelected={false}
+    canDelete
+    onClick={() =&gt; console.log(&quot;clicked&quot;)}
+    onDelete={() =&gt; console.log(&quot;deleted&quot;)}
+    onRename={(name: string) =&gt; console.log(&quot;renamed to&quot;, name)} /&gt;;</code></pre>
+            </div>
+            <div class="note ok">
+              <div class="row">
+                <span class="ex-name">Cannot Delete</span>
+                <span class="badge ok">story ok</span>
+              </div>
+              
+              
+              <pre><code>const CannotDelete = () =&gt; &lt;SlideThumbnail
+    slide={{ id: &quot;1&quot;, name: &quot;Slide 1&quot; }}
+    index={0}
+    isSelected={false}
+    canDelete={false}
+    onClick={() =&gt; console.log(&quot;clicked&quot;)} /&gt;;</code></pre>
+            </div>
+            <div class="note ok">
+              <div class="row">
+                <span class="ex-name">Multiple Slides</span>
+                <span class="badge ok">story ok</span>
+              </div>
+              
+              
+              <pre><code>const MultipleSlides = () =&gt; (
+  &lt;div className=&quot;flex gap-2 p-4&quot;&gt;
+    &lt;SlideThumbnail
+      slide={{ id: &quot;1&quot;, name: &quot;Slide 1&quot; }}
+      index={0}
+      isSelected={true}
+      canDelete={true}
+      onClick={() =&gt; console.log(&quot;clicked 1&quot;)}
+      onDelete={() =&gt; console.log(&quot;deleted 1&quot;)}
+    /&gt;
+    &lt;SlideThumbnail
+      slide={{ id: &quot;2&quot;, name: &quot;Slide 2&quot; }}
+      index={1}
+      isSelected={false}
+      canDelete={true}
+      onClick={() =&gt; console.log(&quot;clicked 2&quot;)}
+      onDelete={() =&gt; console.log(&quot;deleted 2&quot;)}
+    /&gt;
+    &lt;SlideThumbnail
+      slide={{ id: &quot;3&quot;, name: &quot;Slide 3&quot; }}
+      index={2}
+      isSelected={false}
+      canDelete={true}
+      onClick={() =&gt; console.log(&quot;clicked 3&quot;)}
+      onDelete={() =&gt; console.log(&quot;deleted 3&quot;)}
+    /&gt;
+  &lt;/div&gt;
+);</code></pre>
+            </div>
+        </div>
+    
+  </div>
+</article>
+<article
+  class="card 
+  no-error 
+  has-info 
+  no-story-error
+  no-doc-error"
+  role="listitem"
+  aria-label="ThemeToggle">
+  <div class="head">
+    <div class="title">
+      <h2><span class="status-dot dot-ok"></span> ThemeToggle</h2>
+      <div class="badges">
+        
+        <label for="c-6-ui-themetoggle-info" class="badge info as-toggle">1 info</label>
+        <label for="c-6-ui-themetoggle-stories" class="badge ok as-toggle">2 stories</label>
+        
+      </div>
+    </div>
+    <div class="meta" title="./src/components/ui/ThemeToggle.stories.tsx">ui-themetoggle · ./src/components/ui/ThemeToggle.stories.tsx</div>
+    
+    
+    
+  </div>
+
+  <!-- ⬇️ Hidden toggles must be siblings BEFORE .panels -->
+  
+  <input id="c-6-ui-themetoggle-info" class="tg tg-info" type="checkbox" hidden />
+  <input id="c-6-ui-themetoggle-stories" class="tg tg-stories" type="checkbox" hidden />
+  
+  
+
+  <div class="panels">
+    
+    
+        <div class="panel panel-info">
+          
+    <div class="note info">
+      <div class="note-title">Info</div>
+      <div class="note-body">No description found. Write a jsdoc comment such as /** Component description */.</div>
+    </div>
+        </div>
+    
+    
+        <div class="panel panel-stories">
+          
+          
+          
+          <div class="note ok">
+                <div class="row">
+                  <span class="ex-name">Imports</span>
+                </div>
+                <pre><code>import { ThemeProvider, ThemeToggle } from "excalicord";</code></pre>
+              </div>
+          
+          
+            <div class="note ok">
+              <div class="row">
+                <span class="ex-name">Default</span>
+                <span class="badge ok">story ok</span>
+              </div>
+              
+              
+              <pre><code>const Default = () =&gt; &lt;ThemeToggle /&gt;;</code></pre>
+            </div>
+            <div class="note ok">
+              <div class="row">
+                <span class="ex-name">Dark Mode</span>
+                <span class="badge ok">story ok</span>
+              </div>
+              
+              
+              <pre><code>const DarkMode = () =&gt; &lt;ThemeToggle /&gt;;</code></pre>
+            </div>
+        </div>
+    
+  </div>
+</article>
+    </div>
+    
+    <h2 class="section-title">Unattached Docs</h2>
+    <div class="grid" role="list">
+      
+<article
+  class="card is-doc no-doc-error"
+  role="listitem"
+  aria-label="Docs">
+  <div class="head">
+    <div class="title">
+      <h2><span class="status-dot dot-ok"></span> Configure your project</h2>
+      <div class="badges">
+        
+        <label for="doc-0-configure-your-project-docs-content" class="badge ok as-toggle">view content</label>
+      </div>
+    </div>
+    <div class="meta" title="./src/stories/Configure.mdx">configure-your-project--docs · ./src/stories/Configure.mdx</div>
+    
+  </div>
+
+  <!-- Hidden toggles must be siblings BEFORE .panels -->
+  
+  <input id="doc-0-configure-your-project-docs-content" class="tg tg-content" type="checkbox" hidden />
+
+  <div class="panels">
+    
+    
+        <div class="panel panel-content">
+          <div class="mdx-content">
+            <pre><code>import { Meta } from &quot;@storybook/addon-docs/blocks&quot;;
+
+import Github from &quot;./assets/github.svg&quot;;
+import Discord from &quot;./assets/discord.svg&quot;;
+import Youtube from &quot;./assets/youtube.svg&quot;;
+import Tutorials from &quot;./assets/tutorials.svg&quot;;
+import Styling from &quot;./assets/styling.png&quot;;
+import Context from &quot;./assets/context.png&quot;;
+import Assets from &quot;./assets/assets.png&quot;;
+import Docs from &quot;./assets/docs.png&quot;;
+import Share from &quot;./assets/share.png&quot;;
+import FigmaPlugin from &quot;./assets/figma-plugin.png&quot;;
+import Testing from &quot;./assets/testing.png&quot;;
+import Accessibility from &quot;./assets/accessibility.png&quot;;
+import Theming from &quot;./assets/theming.png&quot;;
+import AddonLibrary from &quot;./assets/addon-library.png&quot;;
+
+export const RightArrow = () =&gt; &lt;svg 
+    viewBox=&quot;0 0 14 14&quot; 
+    width=&quot;8px&quot; 
+    height=&quot;14px&quot; 
+    style={{ 
+      marginLeft: &#39;4px&#39;,
+      display: &#39;inline-block&#39;,
+      shapeRendering: &#39;inherit&#39;,
+      verticalAlign: &#39;middle&#39;,
+      fill: &#39;currentColor&#39;,
+      &#39;path fill&#39;: &#39;currentColor&#39;
+    }}
+&gt;
+  &lt;path d=&quot;m11.1 7.35-5.5 5.5a.5.5 0 0 1-.7-.7L10.04 7 4.9 1.85a.5.5 0 1 1 .7-.7l5.5 5.5c.2.2.2.5 0 .7Z&quot; /&gt;
+&lt;/svg&gt;
+
+&lt;Meta title=&quot;Configure your project&quot; /&gt;
+
+&lt;div className=&quot;sb-container&quot;&gt;
+  &lt;div className=&#39;sb-section-title&#39;&gt;
+    # Configure your project
+
+    Because Storybook works separately from your app, you&#39;ll need to configure it for your specific stack and setup. Below, explore guides for configuring Storybook with popular frameworks and tools. If you get stuck, learn how you can ask for help from our community.
+  &lt;/div&gt;
+  &lt;div className=&quot;sb-section&quot;&gt;
+    &lt;div className=&quot;sb-section-item&quot;&gt;
+      &lt;img
+        src={Styling}
+        alt=&quot;A wall of logos representing different styling technologies&quot;
+      /&gt;
+      &lt;h4 className=&quot;sb-section-item-heading&quot;&gt;Add styling and CSS&lt;/h4&gt;
+      &lt;p className=&quot;sb-section-item-paragraph&quot;&gt;Like with web applications, there are many ways to include CSS within Storybook. Learn more about setting up styling within Storybook.&lt;/p&gt;
+      &lt;a
+        className=&quot;sb-action-link&quot;
+        href=&quot;https://storybook.js.org/docs/configure/styling-and-css/?renderer=react&amp;ref=configure&quot;
+        target=&quot;_blank&quot;
+      &gt;Learn more&lt;RightArrow /&gt;&lt;/a&gt;
+    &lt;/div&gt;
+    &lt;div className=&quot;sb-section-item&quot;&gt;
+      &lt;img
+        src={Context}
+        alt=&quot;An abstraction representing the composition of data for a component&quot;
+      /&gt;
+      &lt;h4 className=&quot;sb-section-item-heading&quot;&gt;Provide context and mocking&lt;/h4&gt;
+      &lt;p className=&quot;sb-section-item-paragraph&quot;&gt;Often when a story doesn&#39;t render, it&#39;s because your component is expecting a specific environment or context (like a theme provider) to be available.&lt;/p&gt;
+      &lt;a
+        className=&quot;sb-action-link&quot;
+        href=&quot;https://storybook.js.org/docs/writing-stories/decorators/?renderer=react&amp;ref=configure#context-for-mocking&quot;
+        target=&quot;_blank&quot;
+      &gt;Learn more&lt;RightArrow /&gt;&lt;/a&gt;
+    &lt;/div&gt;
+    &lt;div className=&quot;sb-section-item&quot;&gt;
+      &lt;img src={Assets} alt=&quot;A representation of typography and image assets&quot; /&gt;
+      &lt;div&gt;
+        &lt;h4 className=&quot;sb-section-item-heading&quot;&gt;Load assets and resources&lt;/h4&gt;
+        &lt;p className=&quot;sb-section-item-paragraph&quot;&gt;To link static files (like fonts) to your projects and stories, use the
+        `staticDirs` configuration option to specify folders to load when
+        starting Storybook.&lt;/p&gt;
+        &lt;a
+          className=&quot;sb-action-link&quot;
+          href=&quot;https://storybook.js.org/docs/configure/images-and-assets/?renderer=react&amp;ref=configure&quot;
+          target=&quot;_blank&quot;
+        &gt;Learn more&lt;RightArrow /&gt;&lt;/a&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+&lt;div className=&quot;sb-container&quot;&gt;
+  &lt;div className=&#39;sb-section-title&#39;&gt;
+    # Do more with Storybook
+
+    Now that you know the basics, let&#39;s explore other parts of Storybook that will improve your experience. This list is just to get you started. You can customise Storybook in many ways to fit your needs.
+  &lt;/div&gt;
+
+  &lt;div className=&quot;sb-section&quot;&gt;
+    &lt;div className=&quot;sb-features-grid&quot;&gt;
+      &lt;div className=&quot;sb-grid-item&quot;&gt;
+        &lt;img src={Docs} alt=&quot;A screenshot showing the autodocs tag being set, pointing a docs page being generated&quot; /&gt;
+        &lt;h4 className=&quot;sb-section-item-heading&quot;&gt;Autodocs&lt;/h4&gt;
+        &lt;p className=&quot;sb-section-item-paragraph&quot;&gt;Auto-generate living,
+          interactive reference documentation from your components and stories.&lt;/p&gt;
+        &lt;a
+          className=&quot;sb-action-link&quot;
+          href=&quot;https://storybook.js.org/docs/writing-docs/autodocs/?renderer=react&amp;ref=configure&quot;
+          target=&quot;_blank&quot;
+        &gt;Learn more&lt;RightArrow /&gt;&lt;/a&gt;
+      &lt;/div&gt;
+      &lt;div className=&quot;sb-grid-item&quot;&gt;
+        &lt;img src={Share} alt=&quot;A browser window showing a Storybook being published to a chromatic.com URL&quot; /&gt;
+        &lt;h4 className=&quot;sb-section-item-heading&quot;&gt;Publish to Chromatic&lt;/h4&gt;
+        &lt;p className=&quot;sb-section-item-paragraph&quot;&gt;Publish your Storybook to review and collaborate with your entire team.&lt;/p&gt;
+        &lt;a
+          className=&quot;sb-action-link&quot;
+          href=&quot;https://storybook.js.org/docs/sharing/publish-storybook/?renderer=react&amp;ref=configure#publish-storybook-with-chromatic&quot;
+          target=&quot;_blank&quot;
+        &gt;Learn more&lt;RightArrow /&gt;&lt;/a&gt;
+      &lt;/div&gt;
+      &lt;div className=&quot;sb-grid-item&quot;&gt;
+        &lt;img src={FigmaPlugin} alt=&quot;Windows showing the Storybook plugin in Figma&quot; /&gt;
+        &lt;h4 className=&quot;sb-section-item-heading&quot;&gt;Figma Plugin&lt;/h4&gt;
+        &lt;p className=&quot;sb-section-item-paragraph&quot;&gt;Embed your stories into Figma to cross-reference the design and live
+          implementation in one place.&lt;/p&gt;
+        &lt;a
+          className=&quot;sb-action-link&quot;
+          href=&quot;https://storybook.js.org/docs/sharing/design-integrations/?renderer=react&amp;ref=configure#embed-storybook-in-figma-with-the-plugin&quot;
+          target=&quot;_blank&quot;
+        &gt;Learn more&lt;RightArrow /&gt;&lt;/a&gt;
+      &lt;/div&gt;
+      &lt;div className=&quot;sb-grid-item&quot;&gt;
+        &lt;img src={Testing} alt=&quot;Screenshot of tests passing and failing&quot; /&gt;
+        &lt;h4 className=&quot;sb-section-item-heading&quot;&gt;Testing&lt;/h4&gt;
+        &lt;p className=&quot;sb-section-item-paragraph&quot;&gt;Use stories to test a component in all its variations, no matter how
+          complex.&lt;/p&gt;
+        &lt;a
+          className=&quot;sb-action-link&quot;
+          href=&quot;https://storybook.js.org/docs/writing-tests/?renderer=react&amp;ref=configure&quot;
+          target=&quot;_blank&quot;
+        &gt;Learn more&lt;RightArrow /&gt;&lt;/a&gt;
+      &lt;/div&gt;
+      &lt;div className=&quot;sb-grid-item&quot;&gt;
+        &lt;img src={Accessibility} alt=&quot;Screenshot of accessibility tests passing and failing&quot; /&gt;
+        &lt;h4 className=&quot;sb-section-item-heading&quot;&gt;Accessibility&lt;/h4&gt;
+        &lt;p className=&quot;sb-section-item-paragraph&quot;&gt;Automatically test your components for a11y issues as you develop.&lt;/p&gt;
+        &lt;a
+          className=&quot;sb-action-link&quot;
+          href=&quot;https://storybook.js.org/docs/writing-tests/accessibility-testing/?renderer=react&amp;ref=configure&quot;
+          target=&quot;_blank&quot;
+        &gt;Learn more&lt;RightArrow /&gt;&lt;/a&gt;
+      &lt;/div&gt;
+      &lt;div className=&quot;sb-grid-item&quot;&gt;
+        &lt;img src={Theming} alt=&quot;Screenshot of Storybook in light and dark mode&quot; /&gt;
+        &lt;h4 className=&quot;sb-section-item-heading&quot;&gt;Theming&lt;/h4&gt;
+        &lt;p className=&quot;sb-section-item-paragraph&quot;&gt;Theme Storybook&#39;s UI to personalize it to your project.&lt;/p&gt;
+        &lt;a
+          className=&quot;sb-action-link&quot;
+          href=&quot;https://storybook.js.org/docs/configure/theming/?renderer=react&amp;ref=configure&quot;
+          target=&quot;_blank&quot;
+        &gt;Learn more&lt;RightArrow /&gt;&lt;/a&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+&lt;div className=&#39;sb-addon&#39;&gt;
+  &lt;div className=&#39;sb-addon-text&#39;&gt;
+    &lt;h4&gt;Addons&lt;/h4&gt;
+    &lt;p className=&quot;sb-section-item-paragraph&quot;&gt;Integrate your tools with Storybook to connect workflows.&lt;/p&gt;
+    &lt;a
+        className=&quot;sb-action-link&quot;
+        href=&quot;https://storybook.js.org/addons/?ref=configure&quot;
+        target=&quot;_blank&quot;
+      &gt;Discover all addons&lt;RightArrow /&gt;&lt;/a&gt;
+  &lt;/div&gt;
+  &lt;div className=&#39;sb-addon-img&#39;&gt;
+    &lt;img src={AddonLibrary} alt=&quot;Integrate your tools with Storybook to connect workflows.&quot; /&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div className=&quot;sb-section sb-socials&quot;&gt;
+    &lt;div className=&quot;sb-section-item&quot;&gt;
+      &lt;img src={Github} alt=&quot;Github logo&quot; className=&quot;sb-explore-image&quot;/&gt;
+      Join our contributors building the future of UI development.
+
+      &lt;a
+        className=&quot;sb-action-link&quot;
+        href=&quot;https://github.com/storybookjs/storybook&quot;
+        target=&quot;_blank&quot;
+      &gt;Star on GitHub&lt;RightArrow /&gt;&lt;/a&gt;
+    &lt;/div&gt;
+    &lt;div className=&quot;sb-section-item&quot;&gt;
+      &lt;img src={Discord} alt=&quot;Discord logo&quot; className=&quot;sb-explore-image&quot;/&gt;
+      &lt;div&gt;
+        Get support and chat with frontend developers.
+
+        &lt;a
+          className=&quot;sb-action-link&quot;
+          href=&quot;https://discord.gg/storybook&quot;
+          target=&quot;_blank&quot;
+        &gt;Join Discord server&lt;RightArrow /&gt;&lt;/a&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+    &lt;div className=&quot;sb-section-item&quot;&gt;
+      &lt;img src={Youtube} alt=&quot;Youtube logo&quot; className=&quot;sb-explore-image&quot;/&gt;
+      &lt;div&gt;
+        Watch tutorials, feature previews and interviews.
+
+        &lt;a
+          className=&quot;sb-action-link&quot;
+          href=&quot;https://www.youtube.com/@chromaticui&quot;
+          target=&quot;_blank&quot;
+        &gt;Watch on YouTube&lt;RightArrow /&gt;&lt;/a&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+    &lt;div className=&quot;sb-section-item&quot;&gt;
+      &lt;img src={Tutorials} alt=&quot;A book&quot; className=&quot;sb-explore-image&quot;/&gt;
+      &lt;p&gt;Follow guided walkthroughs on for key workflows.&lt;/p&gt;
+
+      &lt;a
+          className=&quot;sb-action-link&quot;
+          href=&quot;https://storybook.js.org/tutorials/?ref=configure&quot;
+          target=&quot;_blank&quot;
+        &gt;Discover tutorials&lt;RightArrow /&gt;&lt;/a&gt;
+    &lt;/div&gt;
+&lt;/div&gt;
+
+&lt;style&gt;
+  {`
+  .sb-container {
+    margin-bottom: 48px;
+  }
+
+  .sb-section {
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    gap: 20px;
+  }
+
+  img {
+    object-fit: cover;
+  }
+
+  .sb-section-title {
+    margin-bottom: 32px;
+  }
+
+  .sb-section a:not(h1 a, h2 a, h3 a) {
+    font-size: 14px;
+  }
+
+  .sb-section-item, .sb-grid-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sb-section-item-heading {
+    padding-top: 20px !important;
+    padding-bottom: 5px !important;
+    margin: 0 !important;
+  }
+  .sb-section-item-paragraph {
+    margin: 0;
+    padding-bottom: 10px;
+  }
+
+  .sb-action-link {
+    text-decoration: none;
+  }
+
+  .sb-action-link:hover, .sb-action-link:focus {
+    text-decoration: underline;
+    text-decoration-thickness: 0.03125rem;
+    text-underline-offset: 0.11em;
+  }
+
+  .sb-chevron {
+    margin-left: 5px;
+  }
+
+  .sb-features-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-gap: 32px 20px;
+  }
+
+  .sb-socials {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .sb-socials p {
+    margin-bottom: 10px;
+  }
+
+  .sb-explore-image {
+    max-height: 32px;
+    align-self: flex-start;
+  }
+
+  .sb-addon {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    position: relative;
+    background-color: #EEF3F8;
+    border-radius: 5px;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    background: #EEF3F8;
+    height: 180px;
+    margin-bottom: 48px;
+    overflow: hidden;
+  }
+
+  .sb-addon-text {
+    padding-left: 48px;
+    max-width: 240px;
+  }
+
+  .sb-addon-text h4 {
+    padding-top: 0px;
+  }
+
+  .sb-addon-img {
+    position: absolute;
+    left: 345px;
+    top: 0;
+    height: 100%;
+    width: 200%;
+    overflow: hidden;
+  }
+
+  .sb-addon-img img {
+    width: 650px;
+    transform: rotate(-15deg);
+    margin-left: 40px;
+    margin-top: -72px;
+    box-shadow: 0 0 1px rgba(255, 255, 255, 0);
+    backface-visibility: hidden;
+  }
+
+  @media screen and (max-width: 800px) {
+    .sb-addon-img {
+      left: 300px;
+    }
+  }
+
+  @media screen and (max-width: 600px) {
+    .sb-section {
+      flex-direction: column;
+    }
+
+    .sb-features-grid {
+      grid-template-columns: repeat(1, 1fr);
+    }
+
+    .sb-socials {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .sb-addon {
+      height: 280px;
+      align-items: flex-start;
+      padding-top: 32px;
+      overflow: hidden;
+    }
+
+    .sb-addon-text {
+      padding-left: 24px;
+    }
+
+    .sb-addon-img {
+      right: 0;
+      left: 0;
+      top: 130px;
+      bottom: 0;
+      overflow: hidden;
+      height: auto;
+      width: 124%;
+    }
+
+    .sb-addon-img img {
+      width: 1200px;
+      transform: rotate(-12deg);
+      margin-left: 0;
+      margin-top: 48px;
+      margin-bottom: -40px;
+      margin-left: -24px;
+    }
+  }
+  `}
+&lt;/style&gt;
+</code></pre>
+          </div>
+        </div>
+  </div>
+</article>
+    </div>
+    
+  </div>
+</main>
+</body>
+</html>  
