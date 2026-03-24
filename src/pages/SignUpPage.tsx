@@ -47,15 +47,15 @@ export function SignUpPage({ onSignIn, onSuccess }: SignUpPageProps) {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
       <div className="w-full max-w-md p-8 bg-white rounded-xl shadow-lg">
         <div className="text-center mb-8">
-          <div className="w-12 h-12 mx-auto mb-4 rounded-xl bg-primary flex items-center justify-center">
+          <div className="w-12 h-12 mx-auto mb-4 rounded-xl bg-gradient-to-br from-purple-600 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/20">
             <span className="text-white text-xl font-bold">E</span>
           </div>
           <h1 className="text-2xl font-bold">Create an account</h1>
-          <p className="text-muted-foreground mt-2">Get started with Excalicord for free</p>
+          <p className="text-gray-500 mt-2">Get started with Excalicord for free</p>
         </div>
 
         {error && (
-          <div className="mb-4 p-3 bg-destructive/10 text-destructive text-sm rounded-lg">
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg">
             {error}
           </div>
         )}
@@ -70,7 +70,7 @@ export function SignUpPage({ onSignIn, onSuccess }: SignUpPageProps) {
               type="text"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
               placeholder="John Doe"
             />
           </div>
@@ -84,7 +84,7 @@ export function SignUpPage({ onSignIn, onSuccess }: SignUpPageProps) {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
               placeholder="you@example.com"
               required
             />
@@ -99,7 +99,7 @@ export function SignUpPage({ onSignIn, onSuccess }: SignUpPageProps) {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
               placeholder="••••••••"
               minLength={6}
               required
@@ -117,7 +117,7 @@ export function SignUpPage({ onSignIn, onSuccess }: SignUpPageProps) {
               <div className="w-full border-t" />
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-muted-foreground">Or continue with</span>
+              <span className="px-2 bg-white text-gray-500">Or continue with</span>
             </div>
           </div>
 
@@ -150,12 +150,12 @@ export function SignUpPage({ onSignIn, onSuccess }: SignUpPageProps) {
           </Button>
         </div>
 
-        <p className="mt-6 text-center text-sm text-muted-foreground">
+        <p className="mt-6 text-center text-sm text-gray-500">
           Already have an account?{" "}
           <button
             type="button"
             onClick={onSignIn}
-            className="text-primary hover:underline font-medium"
+            className="text-purple-600 hover:underline font-medium"
           >
             Sign in
           </button>
