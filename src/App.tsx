@@ -463,11 +463,9 @@ function App() {
 
   // Project handlers
   const handleCreateProject = useCallback(async () => {
-    await createProject("Untitled Project")
+    const project = await createProject("Untitled Project")
     setCurrentPage("editor")
-    // Note: project state is updated by createProject, but we use "unknown" here
-    // because the project context may not have updated yet
-    analytics.trackProjectCreated(user?.id || "unknown", "new-project")
+    analytics.trackProjectCreated(user?.id || "unknown", project?.id || "unknown")
   }, [createProject, user])
 
   const handleOpenProject = useCallback(async (projectId: string) => {

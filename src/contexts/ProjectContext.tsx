@@ -7,7 +7,7 @@ interface ProjectContextType {
   slides: Slide[]
   isLoading: boolean
   error: string | null
-  createProject: (title?: string) => Promise<void>
+  createProject: (title?: string) => Promise<Project | null>
   loadProject: (id: string) => Promise<void>
   updateProject: (updates: Partial<Project>) => Promise<void>
   deleteProject: () => Promise<void>
@@ -25,7 +25,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const createProject = useCallback(async (title?: string) => {
+  const createProject = useCallback(async (title?: string): Promise<Project | null> => {
     setIsLoading(true)
     setError(null)
     try {
@@ -33,8 +33,10 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       if (error) throw error
       setProject(data)
       setSlides([])
+      return data
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create project")
+      return null
     } finally {
       setIsLoading(false)
     }
@@ -87,12 +89,20 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   }, [project])
 
   const addSlide = useCallback(async () => {
-    if (!project) return
     setError(null)
+    let projectId = project?.id
+
+    // If no project exists, create one first
+    if (!projectId) {
+      const newProject = await createProject("Untitled Project")
+      if (!newProject) return
+      projectId = newProject.id
+    }
+
     try {
       const position = slides.length
       const { data, error } = await db.slides.create({
-        project_id: project.id,
+        project_id: projectId,
         position,
       })
       if (error) throw error
@@ -100,7 +110,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to add slide")
     }
-  }, [project, slides.length])
+  }, [project, slides.length, createProject])
 
   const updateSlide = useCallback(async (id: string, updates: Partial<Slide>) => {
     setError(null)
