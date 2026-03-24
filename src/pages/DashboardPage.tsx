@@ -69,15 +69,15 @@ export function DashboardPage({ onOpenProject, onCreateProject, onSignOut }: Das
   }
 
   return (
-    <div className="min-h-screen bg-[#0F0E11]">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* Navigation Bar */}
-      <header className="bg-[#0F0E11] border-b border-white/5">
+      <header className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-600 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/20">
               <span className="text-white font-bold text-sm">E</span>
             </div>
-            <span className="font-semibold text-white bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+            <span className="font-semibold text-gray-900">
               Excalicord
             </span>
           </div>
@@ -86,7 +86,7 @@ export function DashboardPage({ onOpenProject, onCreateProject, onSignOut }: Das
             <div className="relative" ref={userMenuRef}>
               <button
                 onClick={() => setShowUserMenu(!showUserMenu)}
-                className="flex items-center gap-3 hover:bg-white/5 rounded-lg px-3 py-2 transition-colors"
+                className="flex items-center gap-3 hover:bg-gray-100 rounded-lg px-3 py-2 transition-colors"
               >
                 {/* User Avatar */}
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
@@ -100,7 +100,7 @@ export function DashboardPage({ onOpenProject, onCreateProject, onSignOut }: Das
                 </div>
                 {/* User Name */}
                 <div className="hidden sm:block text-left">
-                  <p className="text-sm text-white font-medium leading-tight">
+                  <p className="text-sm text-gray-900 font-medium leading-tight">
                     {user?.fullName || "User"}
                   </p>
                 </div>
@@ -123,16 +123,16 @@ export function DashboardPage({ onOpenProject, onCreateProject, onSignOut }: Das
 
               {/* Dropdown Menu */}
               {showUserMenu && (
-                <div className="absolute right-0 mt-2 w-48 bg-[#1a1a1f] border border-white/10 rounded-xl shadow-xl overflow-hidden z-50">
-                  <div className="px-4 py-3 border-b border-white/5">
-                    <p className="text-sm text-white font-medium">{user?.fullName || "User"}</p>
+                <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden z-50">
+                  <div className="px-4 py-3 border-b border-gray-100">
+                    <p className="text-sm text-gray-900 font-medium">{user?.fullName || "User"}</p>
                   </div>
                   <button
                     onClick={() => {
                       setShowUserMenu(false)
                       onSignOut()
                     }}
-                    className="w-full px-4 py-3 text-left text-sm text-white/80 hover:bg-white/5 hover:text-white transition-colors flex items-center gap-2"
+                    className="w-full px-4 py-3 text-left text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors flex items-center gap-2"
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -163,8 +163,8 @@ export function DashboardPage({ onOpenProject, onCreateProject, onSignOut }: Das
         {/* Page Header */}
         <div className="flex items-center justify-between mb-10">
           <div>
-            <h1 className="text-2xl font-semibold text-white mb-1">Your Projects</h1>
-            <p className="text-sm text-white/40">
+            <h1 className="text-2xl font-semibold text-gray-900 mb-1">Your Projects</h1>
+            <p className="text-sm text-gray-500">
               {projects.length} project{projects.length !== 1 ? "s" : ""} • Create and manage your video projects
             </p>
           </div>
@@ -191,7 +191,7 @@ export function DashboardPage({ onOpenProject, onCreateProject, onSignOut }: Das
         </div>
 
         {deleteError && (
-          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">
             {deleteError}
           </div>
         )}
@@ -206,7 +206,7 @@ export function DashboardPage({ onOpenProject, onCreateProject, onSignOut }: Das
         ) : projects.length === 0 ? (
           /* Empty State */
           <div className="text-center py-24">
-            <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-purple-600/20 to-pink-600/20 border border-purple-500/20 flex items-center justify-center">
+            <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-purple-100 to-pink-100 border border-purple-200 flex items-center justify-center">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="36"
@@ -217,7 +217,7 @@ export function DashboardPage({ onOpenProject, onCreateProject, onSignOut }: Das
                 strokeWidth="1.5"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="text-purple-400"
+                className="text-purple-500"
               >
                 <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
                 <polyline points="14 2 14 8 20 8" />
@@ -225,8 +225,8 @@ export function DashboardPage({ onOpenProject, onCreateProject, onSignOut }: Das
                 <path d="M9 15h6" />
               </svg>
             </div>
-            <h2 className="text-xl font-semibold text-white mb-2">No projects yet</h2>
-            <p className="text-white/40 mb-8 max-w-md mx-auto">
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">No projects yet</h2>
+            <p className="text-gray-500 mb-8 max-w-md mx-auto">
               Create your first project to start turning your ideas into engaging whiteboard videos
             </p>
             <Button
@@ -242,11 +242,11 @@ export function DashboardPage({ onOpenProject, onCreateProject, onSignOut }: Das
             {projects.map((project) => (
               <div
                 key={project.id}
-                className="group relative bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-2xl overflow-hidden transition-all duration-200 cursor-pointer"
+                className="group relative bg-white hover:bg-gray-50 border border-gray-200 hover:border-gray-300 rounded-2xl overflow-hidden transition-all duration-200 cursor-pointer shadow-sm"
                 onClick={() => onOpenProject(project.id)}
               >
                 {/* Thumbnail */}
-                <div className="h-36 bg-gradient-to-br from-purple-600/30 via-pink-600/20 to-purple-600/10 relative">
+                <div className="h-36 bg-gradient-to-br from-purple-100 via-pink-50 to-purple-50 relative">
                   <div className="absolute inset-0 flex items-center justify-center">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -254,7 +254,7 @@ export function DashboardPage({ onOpenProject, onCreateProject, onSignOut }: Das
                       height="40"
                       viewBox="0 0 24 24"
                       fill="none"
-                      stroke="white"
+                      stroke="#9333EA"
                       strokeWidth="1.5"
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -274,7 +274,7 @@ export function DashboardPage({ onOpenProject, onCreateProject, onSignOut }: Das
                     e.stopPropagation()
                     handleDeleteProject(project.id)
                   }}
-                  className="absolute top-3 right-3 z-10 w-8 h-8 flex items-center justify-center rounded-lg bg-black/40 backdrop-blur-sm opacity-0 group-hover:opacity-100 hover:bg-red-500/80 transition-all duration-150"
+                  className="absolute top-3 right-3 z-10 w-8 h-8 flex items-center justify-center rounded-lg bg-white/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:text-red-500 transition-all duration-150 shadow-sm"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -286,6 +286,7 @@ export function DashboardPage({ onOpenProject, onCreateProject, onSignOut }: Das
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
+                    className="text-gray-500"
                   >
                     <path d="M3 6h18" />
                     <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
@@ -295,10 +296,10 @@ export function DashboardPage({ onOpenProject, onCreateProject, onSignOut }: Das
 
                 {/* Info */}
                 <div className="p-4">
-                  <h3 className="font-medium text-white text-sm truncate leading-tight mb-1">
+                  <h3 className="font-medium text-gray-900 text-sm truncate leading-tight mb-1">
                     {project.title}
                   </h3>
-                  <p className="text-xs text-white/40">
+                  <p className="text-xs text-gray-500">
                     {formatDate(project.updatedAt)}
                   </p>
                 </div>
