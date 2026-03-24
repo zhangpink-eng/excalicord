@@ -25,7 +25,7 @@ const DEFAULT_FRAME_HEIGHT = 540
 const DEFAULT_FRAME_OFFSET_X = 800 // horizontal spacing between frames
 
 // Generate slide frame element (as Excalidraw native frame)
-function createSlideFrameElement(slideId: string, index: number, isActive: boolean, x: number, y: number, name?: string): any {
+function createSlideFrameElement(index: number, isActive: boolean, x: number, y: number, name?: string): any {
   return {
     id: `slide-frame-${index}`, // Use index for stable ID
     type: "frame",
@@ -57,7 +57,7 @@ function createSlideFrameElement(slideId: string, index: number, isActive: boole
 // Helper to generate slide frame elements for Excalidraw
 // Uses stored positions from framePositionsRef for dragged frames
 function createSlideFrameElements(
-  slides: { id: string }[],
+  slides: { id: string; name?: string }[],
   currentIndex: number,
   framePositions: Record<number, { x: number; y: number }>
 ): any[] {
@@ -66,7 +66,7 @@ function createSlideFrameElements(
     const stored = framePositions[index]
     const x = stored ? stored.x : (DEFAULT_FRAME_X + index * DEFAULT_FRAME_OFFSET_X)
     const y = stored ? stored.y : DEFAULT_FRAME_Y
-    return createSlideFrameElement(slide.id, index, isActive, x, y, slide.name || `第${index + 1}页`)
+    return createSlideFrameElement(index, isActive, x, y, slide.name || `第${index + 1}页`)
   })
 }
 
@@ -75,7 +75,7 @@ function App() {
   const { user, isLoading: authLoading } = useAuth()
 
   // Use slides from ProjectContext (synced with database) - must be before useEffect that uses loadProject
-  const { project, slides, addSlide: addSlideToProject, deleteSlide, updateSlide, reorderSlides, createProject, loadProject, updateProject } = useProject()
+  const { project, slides, addSlide: addSlideToProject, updateSlide, createProject, loadProject, updateProject } = useProject()
 
   const [currentPage, setCurrentPage] = useState<Page>(user ? "editor" : "login")
   const [showPricing, setShowPricing] = useState(false)
@@ -196,9 +196,6 @@ function App() {
 
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0)
 
-  // Viewport state for syncing slide frames with canvas pan/zoom
-  const [viewport, setViewport] = useState({ x: 0, y: 0, zoom: 1 })
-
   // Sync currentSlideIndex when project changes
   useEffect(() => {
     setCurrentSlideIndex(0)
@@ -214,10 +211,6 @@ function App() {
       setCurrentSlideIndex(newIndex)
     }
   }, [addSlideToProject])
-
-  const handleDeleteSlide = useCallback((id: string) => {
-    deleteSlide(id)
-  }, [deleteSlide])
 
   const {
     cameraStream,
@@ -282,7 +275,6 @@ function App() {
   }, [])
 
   const cameraVideoRef = useRef<HTMLVideoElement>(null)
-  const slidesContainerRef = useRef<HTMLDivElement>(null)
   const cameraBubblePosition = useRef({ x: 50, y: 50 })
   const cameraBubbleSize = useRef({ width: 120, height: 90 })
 
@@ -723,7 +715,8 @@ function App() {
                 updateSlide(currentSlide.id, { content: { elements: contentElements } })
               }}
               onViewportChange={(scrollX, scrollY, zoom) => {
-                setViewport({ x: scrollX, y: scrollY, zoom })
+                // Viewport tracking - currently not used but available for future features
+                console.debug(`Viewport: x=${scrollX}, y=${scrollY}, zoom=${zoom}`)
               }}
               onSlideFrameClick={(frameIndex) => {
                 // frameIndex is the index from slide-frame-N

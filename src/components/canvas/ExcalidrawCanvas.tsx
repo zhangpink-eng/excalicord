@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from "react"
-import { Excalidraw, type ExcalidrawImperativeAPI } from "@excalidraw/excalidraw"
+import { Excalidraw } from "@excalidraw/excalidraw"
 import "@excalidraw/excalidraw/index.css"
 
 interface ExcalidrawCanvasProps {
@@ -17,14 +17,15 @@ export function ExcalidrawCanvas({
   onViewportChange,
   onSlideFrameClick,
 }: ExcalidrawCanvasProps) {
-  const excalidrawApiRef = useRef<ExcalidrawImperativeAPI | null>(null)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const excalidrawApiRef = useRef<any | null>(null)
 
   // Use onScrollChange callback for viewport tracking (much cleaner than polling)
   useEffect(() => {
     const api = excalidrawApiRef.current
     if (!api || !onViewportChange) return
 
-    const unsubscribe = api.onScrollChange((scrollX, scrollY, zoom) => {
+    const unsubscribe = api.onScrollChange((scrollX: number, scrollY: number, zoom: { scale: number }) => {
       onViewportChange?.(scrollX, scrollY, zoom.scale)
     })
 
@@ -35,7 +36,7 @@ export function ExcalidrawCanvas({
   const handleChange = useCallback((allElements: any[]) => {
     // Check if any slide frame was clicked (simple detection via ID pattern)
     const frameClick = allElements.find(
-      (el) => el.id.startsWith("slide-frame-") && el.backgroundColor === "#2563eb"
+      (el: any) => el.id.startsWith("slide-frame-") && el.backgroundColor === "#2563eb"
     )
     if (frameClick) {
       const frameIndex = parseInt(frameClick.id.replace("slide-frame-", ""), 10)
@@ -53,8 +54,8 @@ export function ExcalidrawCanvas({
     <div className="excalidraw-canvas w-full h-full overflow-hidden bg-[#FAFAFA]">
       <Excalidraw
         initialData={{ elements: allElements }}
-        onChange={handleChange}
-        excalidrawAPI={(api) => {
+        onChange={handleChange as any}
+        excalidrawAPI={(api: any) => {
           excalidrawApiRef.current = api
         }}
       />
