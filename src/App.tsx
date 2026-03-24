@@ -245,9 +245,11 @@ function App() {
   const {
     presets: avatarPresets,
     isLoading: avatarLoading,
+    error: avatarError,
     outputStream: avatarStream,
     selectAvatar,
     setExpression,
+    setScale: setAvatarScale,
     setPosition: setAvatarPosition,
     start: startAvatar,
     stop: stopAvatar,
@@ -255,6 +257,8 @@ function App() {
 
   // Avatar expression state
   const [avatarExpression, setAvatarExpression] = useState<"neutral" | "happy" | "serious">("neutral")
+  // Avatar scale state
+  const [avatarScale, setAvatarScaleState] = useState(1.0)
 
   // Camera and mic toggle state (for control bar icons)
   const [cameraEnabled, setCameraEnabled] = useState(false)
@@ -853,13 +857,19 @@ function App() {
               onCameraBubblePositionPreset={(pos) => { cameraBubblePosition.current = pos }}
               avatarEnabled={avatarEnabled}
               avatarLoading={avatarLoading}
+              avatarError={avatarError}
               avatarPresets={avatarPresets}
               selectedAvatarId={selectedAvatarId}
               avatarExpression={avatarExpression}
+              avatarScale={avatarScale}
               onAvatarToggle={handleAvatarToggle}
               onAvatarSelect={handleAvatarSelect}
               onAvatarExpressionChange={handleAvatarExpressionChange}
               onAvatarPositionPreset={handleAvatarPositionPreset}
+              onAvatarScaleChange={(scale) => {
+                setAvatarScaleState(scale)
+                setAvatarScale(scale)
+              }}
             />
           ) : null
         }

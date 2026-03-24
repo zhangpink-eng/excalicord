@@ -333,30 +333,50 @@ export class WebGLAvatarRenderer {
     if (faceRegion) {
       // Calculate position for face overlay
       const faceSize = avatarSize * 0.6
-      const faceX = -faceSize * 0.1
+      const faceX = -avatarSize * 0.1
       const faceY = -avatarSize * 0.15
+      const radiusX = faceSize * 0.45
+      const radiusY = faceSize * 0.55
 
-      // Draw user's face as ellipse overlay
+      // Draw face with feathered edge effect (3 layers)
+      for (let layer = 3; layer >= 1; layer--) {
+        this.ctx.save()
+
+        // Create ellipse for this layer with slight expansion for feather effect
+        const expansion = (4 - layer) * 2
+        this.ctx.beginPath()
+        this.ctx.ellipse(faceX, faceY, radiusX + expansion, radiusY + expansion, 0, 0, Math.PI * 2)
+
+        if (layer === 1) {
+          // Bottom layer - clip to face shape
+          this.ctx.clip()
+        }
+
+        // Draw scaled face region
+        const scaleX = (radiusX * 2 + expansion * 2) / faceRegion.width
+        const scaleY = (radiusY * 2 + expansion * 2) / faceRegion.height
+        this.ctx.drawImage(
+          faceRegion,
+          faceX - (radiusX + expansion) * (faceRegion.width / (radiusX * 2)),
+          faceY - (radiusY + expansion) * (faceRegion.height / (radiusY * 2)),
+          faceRegion.width * scaleX,
+          faceRegion.height * scaleY
+        )
+
+        // Apply cartoon color tint (stronger on outer layers for edge blending)
+        this.ctx.fillStyle = layer === 1 ? "rgba(255, 255, 255, 0.15)" : "rgba(255, 255, 255, 0)"
+        this.ctx.fill()
+
+        this.ctx.restore()
+      }
+
+      // Draw face outline/shadow for definition
       this.ctx.save()
       this.ctx.beginPath()
-      this.ctx.ellipse(faceX, faceY, faceSize * 0.45, faceSize * 0.55, 0, 0, Math.PI * 2)
-
-      // Apply cartoon effect to face
-      this.ctx.clip()
-
-      // Draw scaled face region
-      this.ctx.drawImage(
-        faceRegion,
-        faceX - faceSize * 0.4,
-        faceY - faceSize * 0.5,
-        faceSize * 0.8,
-        faceSize
-      )
-
-      // Apply color overlay for cartoon effect
-      this.ctx.fillStyle = "rgba(255, 255, 255, 0.15)"
-      this.ctx.fill()
-
+      this.ctx.ellipse(faceX, faceY, radiusX, radiusY, 0, 0, Math.PI * 2)
+      this.ctx.strokeStyle = "rgba(0, 0, 0, 0.1)"
+      this.ctx.lineWidth = 2
+      this.ctx.stroke()
       this.ctx.restore()
     }
   }

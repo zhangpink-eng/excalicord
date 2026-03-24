@@ -5,6 +5,7 @@ export interface UseAvatarReturn {
   isActive: boolean
   isLoading: boolean
   isReady: boolean
+  error: string | null
   currentAvatar: AvatarPreset | null
   presets: AvatarPreset[]
   outputStream: MediaStream | null
@@ -21,6 +22,7 @@ export function useAvatar(): UseAvatarReturn {
   const [isActive, setIsActive] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [isReady, setIsReady] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [currentAvatar, setCurrentAvatar] = useState<AvatarPreset | null>(null)
   const [outputStream, setOutputStream] = useState<MediaStream | null>(null)
 
@@ -42,9 +44,11 @@ export function useAvatar(): UseAvatarReturn {
     avatarService.initialize(canvas).then(() => {
       setIsReady(true)
       setIsLoading(false)
+      setError(null)
       console.log("[useAvatar] Avatar service ready")
     }).catch((err) => {
       console.error("[useAvatar] Failed to initialize avatar service:", err)
+      setError("Failed to load AI Avatar models. Please refresh the page.")
       setIsLoading(false)
     })
 
@@ -97,6 +101,7 @@ export function useAvatar(): UseAvatarReturn {
     isActive,
     isLoading,
     isReady,
+    error,
     currentAvatar,
     presets,
     outputStream,

@@ -27,13 +27,16 @@ export interface RightPanelProps {
   // AI Avatar settings
   avatarEnabled?: boolean
   avatarLoading?: boolean
+  avatarError?: string | null
   avatarPresets?: AvatarPreset[]
   selectedAvatarId?: string | null
   avatarExpression?: AvatarExpression
+  avatarScale?: number
   onAvatarToggle?: () => void
   onAvatarSelect?: (presetId: string) => void
   onAvatarExpressionChange?: (expression: AvatarExpression) => void
   onAvatarPositionPreset?: (position: { x: number; y: number }) => void
+  onAvatarScaleChange?: (scale: number) => void
 }
 
 export function RightPanel({
@@ -55,13 +58,16 @@ export function RightPanel({
   onCameraBubblePositionPreset,
   avatarEnabled = false,
   avatarLoading = false,
+  avatarError = null,
   avatarPresets = [],
   selectedAvatarId = null,
   avatarExpression = "neutral",
+  avatarScale = 1.0,
   onAvatarToggle,
   onAvatarSelect,
   onAvatarExpressionChange,
   onAvatarPositionPreset,
+  onAvatarScaleChange,
 }: RightPanelProps) {
   return (
     <div className="p-4 space-y-6">
@@ -128,6 +134,13 @@ export function RightPanel({
         </div>
         {avatarEnabled && !avatarLoading && (
           <>
+            {/* Error message */}
+            {avatarError && (
+              <div className="mb-4 p-3 bg-destructive/10 border border-destructive/30 rounded-md">
+                <p className="text-xs text-destructive">{avatarError}</p>
+              </div>
+            )}
+
             {/* Avatar Presets */}
             <div className="space-y-2 mb-4">
               {avatarPresets.map((preset) => (
@@ -216,6 +229,22 @@ export function RightPanel({
               </div>
             )}
 
+            {/* Size Slider */}
+            {onAvatarScaleChange && (
+              <div className="mb-4">
+                <label className="text-xs text-muted-foreground block mb-2">Size: {Math.round(avatarScale * 100)}%</label>
+                <input
+                  type="range"
+                  min="0.5"
+                  max="2"
+                  step="0.1"
+                  value={avatarScale}
+                  onChange={(e) => onAvatarScaleChange(parseFloat(e.target.value))}
+                  className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+                />
+              </div>
+            )}
+
             <p className="text-xs text-muted-foreground mt-3">
               Avatar will appear in camera bubble when enabled
             </p>
@@ -287,6 +316,14 @@ function AvatarOption({
   selected?: boolean
   onSelect?: (id: string) => void
 }) {
+  // Get avatar color based on id
+  const getAvatarColor = (avatarId: string) => {
+    if (avatarId.includes("alex") || avatarId.includes("1")) return "bg-blue-500"
+    if (avatarId.includes("sam") || avatarId.includes("2")) return "bg-pink-500"
+    if (avatarId.includes("jordan") || avatarId.includes("3")) return "bg-amber-600"
+    return "bg-muted"
+  }
+
   return (
     <label
       className={`flex items-center gap-3 px-3 py-2 rounded-md cursor-pointer transition-colors ${
@@ -294,7 +331,7 @@ function AvatarOption({
       }`}
       onClick={() => onSelect?.(id)}
     >
-      <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-medium">
+      <div className={`w-8 h-8 rounded-full ${getAvatarColor(id)} flex items-center justify-center text-xs font-medium text-white shadow-sm`}>
         {name[0]}
       </div>
       <span className="text-sm flex-1">{name}</span>
