@@ -75,19 +75,21 @@ export const db = {
   projects: {
     create: async (data: { title?: string; description?: string }) => {
       if (!supabaseClient) throw new Error("Supabase not initialized")
-      const { data: user } = await supabaseClient.auth.getUser()
-      if (!user.user) return { data: null, error: new Error("Not authenticated") }
+      const { data: sessionData } = await supabaseClient.auth.getSession()
+      const user = sessionData?.session?.user
+      if (!user) return { data: null, error: new Error("Not authenticated") }
       return supabaseClient.from("projects").insert({
-        owner_id: user.user.id,
+        owner_id: user.id,
         title: data.title || "Untitled Project",
         description: data.description,
       }).select().single()
     },
     list: async () => {
       if (!supabaseClient) throw new Error("Supabase not initialized")
-      const { data: user } = await supabaseClient.auth.getUser()
-      if (!user.user) return { data: [], error: new Error("Not authenticated") }
-      return supabaseClient.from("projects").select("*").eq("owner_id", user.user.id).order("updated_at", { ascending: false })
+      const { data: sessionData } = await supabaseClient.auth.getSession()
+      const user = sessionData?.session?.user
+      if (!user) return { data: [], error: new Error("Not authenticated") }
+      return supabaseClient.from("projects").select("*").eq("owner_id", user.id).order("updated_at", { ascending: false })
     },
     get: async (id: string) => {
       if (!supabaseClient) throw new Error("Supabase not initialized")
@@ -136,10 +138,11 @@ export const db = {
   exports: {
     create: async (data: { project_id: string; export_type: "mp4" | "webm" | "gif" }) => {
       if (!supabaseClient) throw new Error("Supabase not initialized")
-      const { data: user } = await supabaseClient.auth.getUser()
-      if (!user.user) return { data: null, error: new Error("Not authenticated") }
+      const { data: sessionData } = await supabaseClient.auth.getSession()
+      const user = sessionData?.session?.user
+      if (!user) return { data: null, error: new Error("Not authenticated") }
       return supabaseClient.from("exports").insert({
-        user_id: user.user.id,
+        user_id: user.id,
         project_id: data.project_id,
         export_type: data.export_type,
         status: "pending",
@@ -155,23 +158,26 @@ export const db = {
     },
     list: async () => {
       if (!supabaseClient) throw new Error("Supabase not initialized")
-      const { data: user } = await supabaseClient.auth.getUser()
-      if (!user.user) return { data: [], error: new Error("Not authenticated") }
-      return supabaseClient.from("exports").select("*").eq("user_id", user.user.id).order("created_at", { ascending: false })
+      const { data: sessionData } = await supabaseClient.auth.getSession()
+      const user = sessionData?.session?.user
+      if (!user) return { data: [], error: new Error("Not authenticated") }
+      return supabaseClient.from("exports").select("*").eq("user_id", user.id).order("created_at", { ascending: false })
     },
   },
   profile: {
     get: async () => {
       if (!supabaseClient) throw new Error("Supabase not initialized")
-      const { data: user } = await supabaseClient.auth.getUser()
-      if (!user.user) return { data: null, error: new Error("Not authenticated") }
-      return supabaseClient.from("profiles").select("*").eq("id", user.user.id).single()
+      const { data: sessionData } = await supabaseClient.auth.getSession()
+      const user = sessionData?.session?.user
+      if (!user) return { data: null, error: new Error("Not authenticated") }
+      return supabaseClient.from("profiles").select("*").eq("id", user.id).single()
     },
     update: async (updates: Record<string, unknown>) => {
       if (!supabaseClient) throw new Error("Supabase not initialized")
-      const { data: user } = await supabaseClient.auth.getUser()
-      if (!user.user) return { data: null, error: new Error("Not authenticated") }
-      return supabaseClient.from("profiles").update(updates).eq("id", user.user.id).select().single()
+      const { data: sessionData } = await supabaseClient.auth.getSession()
+      const user = sessionData?.session?.user
+      if (!user) return { data: null, error: new Error("Not authenticated") }
+      return supabaseClient.from("profiles").update(updates).eq("id", user.id).select().single()
     },
   },
 }
