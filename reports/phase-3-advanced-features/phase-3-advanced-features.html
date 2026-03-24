@@ -4,11 +4,156 @@
   <meta charset="utf-8" />
   <meta name="generator" content="pandoc" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <title>Phase 3: Advanced Features - 阶段报告</title>
+  <title>Phase 3: Advanced Features</title>
   <style>
     /* Default styles provided by pandoc.
     ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
     */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
     code{white-space: pre-wrap;}
     span.smallcaps{font-variant: small-caps;}
     div.columns{display: flex; gap: min(4vw, 1.5em);}
@@ -90,11 +235,10 @@
     code span.vs { color: #4070a0; } /* VerbatimString */
     code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
   </style>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/github-markdown-css@5.2.0/github-markdown.min.css" />
 </head>
 <body>
 <header id="title-block-header">
-<h1 class="title">Phase 3: Advanced Features - 阶段报告</h1>
+<h1 class="title">Phase 3: Advanced Features</h1>
 </header>
 <h1 id="phase-3-advanced-features-阶段报告">Phase 3: Advanced Features
 阶段报告</h1>
@@ -120,6 +264,24 @@ Renderer</strong></label>
 <li>三种表情：neutral, happy, serious</li>
 <li>可配置的缩放和位置</li>
 </ul></li>
+<li><label><input type="checkbox" checked="" /><strong>AI Avatar
+实时人脸检测与叠加</strong></label>
+<ul>
+<li>face-api.js 实时人脸检测</li>
+<li>TinyFaceDetector 轻量级检测器</li>
+<li>68点面部特征点追踪</li>
+<li>用户面部图像提取与叠加</li>
+<li>3层羽化边缘效果</li>
+</ul></li>
+<li><label><input type="checkbox" checked="" /><strong>Avatar UI
+控制面板</strong></label>
+<ul>
+<li>头像选择器（3种预设）</li>
+<li>表情选择器（neutral/happy/serious）</li>
+<li>6个位置预设（左上/上/右上/左下/下/右下）</li>
+<li>大小滑块（50%-200%）</li>
+<li>彩色头像预览图标</li>
+</ul></li>
 <li><label><input type="checkbox" checked="" /><strong>useAvatar
 Hook</strong></label>
 <ul>
@@ -127,6 +289,7 @@ Hook</strong></label>
 <li>预设头像选择</li>
 <li>位置和缩放控制</li>
 <li>音视频流处理</li>
+<li>错误状态处理</li>
 </ul></li>
 <li><label><input type="checkbox" checked="" /><strong>PricingPage
 订阅页面</strong></label>
@@ -154,6 +317,12 @@ Hook</strong></label>
 <ul>
 <li>美颜开关</li>
 <li>滑块控制</li>
+</ul></li>
+<li><label><input type="checkbox"
+checked="" /><strong>录制集成</strong></label>
+<ul>
+<li>AI Avatar 与录制流程集成</li>
+<li>avatarStream 支持</li>
 </ul></li>
 </ul>
 <h4 id="未完成">未完成</h4>
@@ -220,6 +389,11 @@ class="sourceCode typescript"><code class="sourceCode typescript"><span id="cb3-
 API</li>
 <li><strong>表情系统</strong>: 实现了简单的卡通表情渲染</li>
 <li><strong>媒体流处理</strong>: MediaStream 的创建和音频轨道复制</li>
+<li><strong>face-api.js 集成</strong>: 学会了 face-api.js 的
+TinyFaceDetector 和面部特征点检测</li>
+<li><strong>图像羽化效果</strong>: 实现3层渲染实现平滑边缘叠加效果</li>
+<li><strong>异步模型加载</strong>: 处理 face-api.js
+模型异步加载和错误处理</li>
 </ol>
 <h3 id="架构优化">架构优化</h3>
 <ol type="1">
@@ -250,7 +424,22 @@ API</li>
 <tr>
 <td>AI 虚拟形象需要外部 API</td>
 <td>本地无法实现高质量 AI</td>
-<td>实现 WebGL-based 卡通头像作为替代</td>
+<td>实现 face-api.js + Canvas 卡通头像</td>
+</tr>
+<tr>
+<td>face-api.js 模型加载慢</td>
+<td>CDN 模型体积较大</td>
+<td>添加加载状态提示和错误处理</td>
+</tr>
+<tr>
+<td>人脸叠加边缘生硬</td>
+<td>直接绘制导致锯齿</td>
+<td>3层羽化渲染实现平滑过渡</td>
+</tr>
+<tr>
+<td>视频镜像问题</td>
+<td>预览和录制方向不一致</td>
+<td>正确处理坐标系变换和镜像</td>
 </tr>
 </tbody>
 </table>
@@ -264,9 +453,10 @@ API</li>
 </ol>
 <h3 id="需要改进的地方">需要改进的地方</h3>
 <ol type="1">
-<li>头像还没有真正的面部追踪</li>
+<li>AI 虚拟形象可通过 D-ID 或 HeyGen API 增强（当前为卡通风格）</li>
 <li>美颜滤镜可以考虑使用 WebGL 加速</li>
 <li>需要配置 Stripe 才能完成订阅流程</li>
+<li>人脸检测在低光环境下可能不稳定</li>
 </ol>
 <hr />
 <h2 id="下一步计划">下一步计划</h2>
@@ -299,6 +489,33 @@ API</li>
 </thead>
 <tbody>
 <tr>
+<td><code>223d266</code></td>
+<td>feat: enhance AI Avatar with expression, position presets, size
+control and error handling</td>
+</tr>
+<tr>
+<td><code>0bbe521</code></td>
+<td>feat: enhance AI Avatar with position presets, expressions, and
+recording integration</td>
+</tr>
+<tr>
+<td><code>2483e7f</code></td>
+<td>feat: implement real-time AI Avatar with face-api.js</td>
+</tr>
+<tr>
+<td><code>28138a2</code></td>
+<td>feat: integrate AI Avatar UI with avatar selection and toggle</td>
+</tr>
+<tr>
+<td><code>6b97dd0</code></td>
+<td>fix: move useProject() before useEffect to resolve loadProject
+ReferenceError</td>
+</tr>
+<tr>
+<td><code>224684d</code></td>
+<td>feat: auto-load last project on page refresh</td>
+</tr>
+<tr>
 <td><code>20b54b1</code></td>
 <td>feat(avatar): add WebGL avatar renderer and useAvatar hook</td>
 </tr>
@@ -326,6 +543,6 @@ hook</td>
 </tbody>
 </table>
 <hr />
-<p><em>报告版本：1.1</em> <em>生成时间：2026-03-23</em></p>
+<p><em>报告版本：1.2</em> <em>最后更新：2026-03-24</em></p>
 </body>
 </html>
