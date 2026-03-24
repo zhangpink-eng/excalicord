@@ -878,8 +878,8 @@ function App() {
             <RecordingPreview
               visible={showRecordingPreview}
               isPreview={isPreviewing}
-              width={Math.round((frameDimensionsRef.current[currentSlideIndex]?.width || customWidth) * 1.1)}
-              height={Math.round((frameDimensionsRef.current[currentSlideIndex]?.height || customHeight) * 1.1)}
+              width={Math.round((frameDimensionsRef.current[currentSlideIndex]?.width || 1920) * 1.1)}
+              height={Math.round((frameDimensionsRef.current[currentSlideIndex]?.height || 1080) * 1.1)}
               cameraStream={cameraStream}
               cameraPosition={cameraBubblePosition.current}
               cameraSize={cameraBubbleSize.current}
