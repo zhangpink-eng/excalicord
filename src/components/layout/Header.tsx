@@ -188,7 +188,7 @@ export function Header({
                   <img src={user.avatarUrl} alt="" className="w-full h-full object-cover" />
                 ) : (
                   <span className="text-white text-xs font-medium">
-                    {user.fullName?.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() || user.email?.[0]?.toUpperCase() || "U"}
+                    {(user.fullName || user.email || "U").slice(0, 2).toUpperCase()}
                   </span>
                 )}
               </div>
