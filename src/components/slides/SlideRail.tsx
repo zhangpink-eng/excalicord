@@ -1,7 +1,9 @@
+import { SlideThumbnail } from "./SlideThumbnail"
+
 interface Slide {
   id: string
   name: string
-  thumbnail: string
+  thumbnail?: string
 }
 
 interface SlideRailProps {
@@ -10,47 +12,33 @@ interface SlideRailProps {
   onSelect: (index: number) => void
   onAdd: () => void
   onDelete?: (id: string) => void
+  onRename?: (id: string, name: string) => void
 }
 
-export function SlideRail({ slides, currentIndex, onSelect, onAdd, onDelete }: SlideRailProps) {
+export function SlideRail({ slides, currentIndex, onSelect, onAdd, onDelete, onRename }: SlideRailProps) {
   return (
-    <div className="h-full flex flex-col items-center py-2 gap-2">
+    <div className="h-full flex flex-col items-center py-2 gap-2 overflow-y-auto">
       {slides.map((slide, index) => (
-        <div key={slide.id} className="relative group">
-          <button
-            onClick={() => onSelect(index)}
-            className={`w-12 h-10 rounded border-2 transition-colors ${
-              currentIndex === index
-                ? "border-primary bg-primary/10"
-                : "border-transparent hover:border-border"
-            }`}
-            title={slide.name}
-          >
-            <span className="text-xs">{index + 1}</span>
-          </button>
-          {slides.length > 1 && onDelete && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                onDelete(slide.id)
-              }}
-              className="absolute -top-1 -right-1 w-4 h-4 bg-destructive text-destructive-foreground rounded-full text-[8px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
-              title="Delete slide"
-            >
-              ×
-            </button>
-          )}
-        </div>
+        <SlideThumbnail
+          key={slide.id}
+          slide={slide}
+          index={index}
+          isSelected={currentIndex === index}
+          onClick={() => onSelect(index)}
+          onDelete={onDelete ? () => onDelete(slide.id) : undefined}
+          onRename={onRename ? (name) => onRename(slide.id, name) : undefined}
+          canDelete={slides.length > 1}
+        />
       ))}
       <button
         onClick={onAdd}
-        className="w-12 h-10 rounded border border-dashed border-border hover:border-primary flex items-center justify-center transition-colors"
+        className="w-16 h-12 rounded border border-dashed border-border hover:border-primary flex items-center justify-center transition-colors text-muted-foreground hover:text-primary"
         title="Add slide"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          width="16"
-          height="16"
+          width="20"
+          height="20"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"

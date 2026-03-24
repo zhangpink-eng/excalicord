@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { Header, MainLayout } from "@/components/layout"
 import { SlideRail } from "@/components/slides/SlideRail"
 import { RecordingControls } from "@/components/recording/RecordingControls"
+import { PreviewPlayer } from "@/components/recording/PreviewPlayer"
 import { ExcalidrawCanvas, CameraBubble } from "@/components/canvas"
 import { RightPanel } from "@/components/layout/RightPanel"
 import { LanguageSelector } from "@/components/ui"
@@ -94,6 +95,9 @@ function App() {
   // MP4 conversion state
   const [mp4Progress, setMp4Progress] = useState("")
 
+  // Preview state
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+
   // Right panel visibility (default: hidden)
   const [rightPanelVisible, setRightPanelVisible] = useState(false)
 
@@ -182,93 +186,73 @@ function App() {
     if (blob) {
       console.log("[handleStop] Recording stopped, blob:", blob.size, "bytes, type:", blob.type)
 
-      // Check if already MP4 (native recording on Safari)
-      const isMP4 = blob.type === "video/mp4"
-
-      if (isMP4) {
-        // Native MP4 - instant download!
-        setMp4Progress("正在下载 MP4...")
-        try {
-          const url = URL.createObjectURL(blob)
-          const a = document.createElement("a")
-          a.href = url
-          a.download = `recording-${Date.now()}.mp4`
-          document.body.appendChild(a)
-          a.click()
-          document.body.removeChild(a)
-          URL.revokeObjectURL(url)
-          setMp4Progress("MP4 下载完成！")
-          console.log("[handleStop] Native MP4 downloaded instantly")
-          setTimeout(() => setMp4Progress(""), 3000)
-        } catch (err) {
-          console.error("[handleStop] MP4 download failed:", err)
-          setMp4Progress("")
-        }
-      } else {
-        // WebM recording - need to convert
-        // 1. Immediately download WebM
-        setMp4Progress("正在下载 WebM...")
-        try {
-          const webmUrl = URL.createObjectURL(blob)
-          const webmA = document.createElement("a")
-          webmA.href = webmUrl
-          webmA.download = `recording-${Date.now()}.webm`
-          document.body.appendChild(webmA)
-          webmA.click()
-          document.body.removeChild(webmA)
-          URL.revokeObjectURL(webmUrl)
-          console.log("[handleStop] WebM downloaded immediately")
-        } catch (err) {
-          console.error("[handleStop] WebM download failed:", err)
-        }
-
-        // 2. Start MP4 conversion in background (async)
-        setMp4Progress("正在后台生成 MP4...")
-
-        setTimeout(async () => {
-          try {
-            const { videoConverter } = await import("@/services/video/VideoConverter")
-            await videoConverter.load()
-
-            setMp4Progress("正在转码为 MP4...")
-
-            const mp4Blob = await videoConverter.exportTo480P(blob, (progress) => {
-              setMp4Progress(`正在转码... ${progress.percent}%`)
-            })
-
-            console.log("[handleStop] MP4 generated, size:", mp4Blob.size)
-
-            const mp4Url = URL.createObjectURL(mp4Blob)
-            const mp4A = document.createElement("a")
-            mp4A.href = mp4Url
-            mp4A.download = `recording-${Date.now()}.mp4`
-            document.body.appendChild(mp4A)
-            mp4A.click()
-            document.body.removeChild(mp4A)
-            URL.revokeObjectURL(mp4Url)
-
-            setMp4Progress("MP4 生成完成！")
-            console.log("[handleStop] MP4 download triggered")
-
-            // Clear progress after 3 seconds
-            setTimeout(() => {
-              setMp4Progress("")
-            }, 3000)
-          } catch (err) {
-            console.error("[handleStop] MP4 conversion failed:", err)
-            setMp4Progress("MP4 生成失败，但 WebM 已下载")
-            setTimeout(() => {
-              setMp4Progress("")
-            }, 5000)
-          }
-        }, 100) // Small delay to let UI update first
-      }
+      // Create preview URL and show preview player
+      const url = URL.createObjectURL(blob)
+      setPreviewUrl(url)
     } else {
       console.warn("[handleStop] No blob received from recording")
     }
 
     analytics.trackRecordingStopped(project?.id || "unknown", duration)
   }, [stopCanvasRecording, project, duration])
+
+  const handlePreviewDownload = useCallback(() => {
+    if (!previewUrl) return
+    // Trigger download via link click
+    const a = document.createElement("a")
+    a.href = previewUrl
+    a.download = `recording-${Date.now()}.webm`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+  }, [previewUrl])
+
+  const handlePreviewExport = useCallback(async () => {
+    if (!previewUrl) return
+    setMp4Progress("正在转码为 MP4...")
+
+    try {
+      const { videoConverter } = await import("@/services/video/VideoConverter")
+      await videoConverter.load()
+
+      // Fetch the blob from previewUrl
+      const response = await fetch(previewUrl)
+      const blob = await response.blob()
+
+      const mp4Blob = await videoConverter.exportTo480P(blob, (progress) => {
+        setMp4Progress(`正在转码... ${progress.percent}%`)
+      })
+
+      console.log("[handlePreviewExport] MP4 generated, size:", mp4Blob.size)
+
+      const mp4Url = URL.createObjectURL(mp4Blob)
+      const mp4A = document.createElement("a")
+      mp4A.href = mp4Url
+      mp4A.download = `recording-${Date.now()}.mp4`
+      document.body.appendChild(mp4A)
+      mp4A.click()
+      document.body.removeChild(mp4A)
+      URL.revokeObjectURL(mp4Url)
+
+      setMp4Progress("MP4 生成完成！")
+      setPreviewUrl(null) // Close preview
+
+      setTimeout(() => {
+        setMp4Progress("")
+      }, 3000)
+    } catch (err) {
+      console.error("[handlePreviewExport] MP4 conversion failed:", err)
+      setMp4Progress("MP4 生成失败")
+      setTimeout(() => setMp4Progress(""), 5000)
+    }
+  }, [previewUrl])
+
+  const handlePreviewClose = useCallback(() => {
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl)
+    }
+    setPreviewUrl(null)
+  }, [previewUrl])
 
   // Toggle camera on/off (for control bar icon)
   const handleToggleCamera = useCallback(async () => {
@@ -419,11 +403,15 @@ function App() {
         }
         slideRail={
           <SlideRail
-            slides={slides.map((s) => ({ id: s.id, name: `Slide ${s.position + 1}`, thumbnail: "" }))}
+            slides={slides.map((s) => ({ id: s.id, name: `Slide ${s.position + 1}` }))}
             currentIndex={currentSlideIndex}
             onSelect={goToSlide}
             onAdd={handleAddSlide}
             onDelete={handleDeleteSlide}
+            onRename={(id, name) => {
+              // TODO: Persist slide name to database when name field is added
+              console.log("Rename slide:", id, name)
+            }}
           />
         }
         canvas={
@@ -541,6 +529,14 @@ function App() {
         <PricingPage
           onSelectPlan={handleSelectPlan}
           onClose={() => setShowPricing(false)}
+        />
+      )}
+      {previewUrl && (
+        <PreviewPlayer
+          src={previewUrl}
+          onClose={handlePreviewClose}
+          onExport={handlePreviewExport}
+          onDownload={handlePreviewDownload}
         />
       )}
     </>
