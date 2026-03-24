@@ -174,87 +174,11 @@ function App() {
   const cameraBubblePosition = useRef({ x: 50, y: 50 })
   const cameraBubbleSize = useRef({ width: 120, height: 90 })
 
-  // Slide frames state (draggable and resizable)
-  const [slideFrameSize, setSlideFrameSize] = useState({ width: 720, height: 540 })
-  const [slideFramePositions, setSlideFramePositions] = useState<Record<string, { x: number; y: number }>>({})
-  const [activeSlideFrame, setActiveSlideFrame] = useState<string | null>(null)
-  const [isDraggingSlide, setIsDraggingSlide] = useState(false)
-  const [isResizingSlide, setIsResizingSlide] = useState(false)
-  const slideDragRef = useRef({ startX: 0, startY: 0, startPosX: 0, startPosY: 0, slideId: "" })
-
   // Camera bubble settings state
   const [cameraBubbleShape, setCameraBubbleShape] = useState<BubbleShape>("rounded-rect")
   const [cameraBubbleBorderColor, setCameraBubbleBorderColor] = useState("#ffffff")
   const [cameraBubbleBorderWidth, setCameraBubbleBorderWidth] = useState(3)
   const [cameraBubbleBorderRadius, setCameraBubbleBorderRadius] = useState(16)
-
-  // Slide frame handlers
-  const getSlideFramePosition = useCallback((slideId: string) => {
-    return slideFramePositions[slideId] || { x: 0, y: 0 }
-  }, [slideFramePositions])
-
-  const handleSlideFrameDragStart = useCallback((e: React.MouseEvent, slideId: string) => {
-    if ((e.target as HTMLElement).closest(".slide-resize-handle")) return
-    e.stopPropagation()
-    setActiveSlideFrame(slideId)
-    setIsDraggingSlide(true)
-    const pos = getSlideFramePosition(slideId)
-    slideDragRef.current = {
-      startX: e.clientX,
-      startY: e.clientY,
-      startPosX: pos.x,
-      startPosY: pos.y,
-      slideId,
-    }
-  }, [getSlideFramePosition])
-
-  const handleSlideFrameResizeStart = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation()
-    setIsResizingSlide(true)
-    slideDragRef.current = {
-      startX: e.clientX,
-      startY: e.clientY,
-      startPosX: slideFrameSize.width,
-      startPosY: slideFrameSize.height,
-      slideId: "",
-    }
-  }, [slideFrameSize])
-
-  // Global mouse handlers for slide frame drag/resize
-  useEffect(() => {
-    if (!isDraggingSlide && !isResizingSlide) return
-
-    const handleMouseMove = (e: MouseEvent) => {
-      if (isDraggingSlide && slideDragRef.current.slideId) {
-        const deltaX = e.clientX - slideDragRef.current.startX
-        const deltaY = e.clientY - slideDragRef.current.startY
-        const newX = slideDragRef.current.startPosX + deltaX
-        const newY = slideDragRef.current.startPosY + deltaY
-        setSlideFramePositions(prev => ({
-          ...prev,
-          [slideDragRef.current.slideId]: { x: newX, y: newY }
-        }))
-      } else if (isResizingSlide) {
-        const deltaX = e.clientX - slideDragRef.current.startX
-        const deltaY = e.clientY - slideDragRef.current.startY
-        const newWidth = Math.max(480, Math.min(1280, slideDragRef.current.startPosX + deltaX))
-        const newHeight = Math.max(360, Math.min(720, slideDragRef.current.startPosY + deltaY))
-        setSlideFrameSize({ width: newWidth, height: newHeight })
-      }
-    }
-
-    const handleMouseUp = () => {
-      setIsDraggingSlide(false)
-      setIsResizingSlide(false)
-    }
-
-    window.addEventListener("mousemove", handleMouseMove)
-    window.addEventListener("mouseup", handleMouseUp)
-    return () => {
-      window.removeEventListener("mousemove", handleMouseMove)
-      window.removeEventListener("mouseup", handleMouseUp)
-    }
-  }, [isDraggingSlide, isResizingSlide])
 
   // Initialize analytics
   useEffect(() => {
@@ -660,57 +584,45 @@ function App() {
             {/* Slide frames as purely visual overlays - scrollable container */}
             <div
               ref={slidesContainerRef}
-              className="absolute inset-0 flex items-center overflow-x-auto"
+              className="absolute inset-0 flex items-center overflow-x-auto pointer-events-none"
               style={{ scrollBehavior: 'smooth' }}
             >
               <div className="flex items-center gap-4 px-4 min-w-max">
-                {slides.map((slide, index) => {
-                  const pos = getSlideFramePosition(slide.id)
-                  const isActive = activeSlideFrame === slide.id || currentSlideIndex === index
-                  return (
+                {slides.map((slide, index) => (
+                  <div
+                    key={slide.id}
+                    data-slide-index={index}
+                    className={`relative transition-all duration-200 ${
+                      currentSlideIndex === index
+                        ? "z-20"
+                        : "z-10"
+                    }`}
+                    style={{
+                      width: "480px",
+                      height: "360px",
+                      transform: currentSlideIndex === index ? "scale(1.02)" : "scale(1)",
+                    }}
+                  >
+                    {/* Pure visual border - no pointer events */}
                     <div
-                      key={slide.id}
-                      data-slide-index={index}
-                      className={`relative transition-all duration-200 ${
-                        isActive ? "z-20" : "z-10"
+                      className={`absolute inset-0 rounded-lg transition-all duration-200 pointer-events-none ${
+                        currentSlideIndex === index
+                          ? "border-4 border-primary shadow-2xl"
+                          : "border-2 border-border/70"
                       }`}
-                      style={{
-                        width: `${slideFrameSize.width}px`,
-                        height: `${slideFrameSize.height}px`,
-                        transform: `translate(${pos.x}px, ${pos.y}px)`,
-                        cursor: isDraggingSlide ? "grabbing" : "grab",
-                      }}
-                      onMouseDown={(e) => handleSlideFrameDragStart(e, slide.id)}
+                    />
+                    {/* Slide number label */}
+                    <div
+                      className={`absolute -top-8 left-1/2 -translate-x-1/2 text-sm font-medium px-3 py-1 rounded-full transition-colors pointer-events-none ${
+                        currentSlideIndex === index
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted text-muted-foreground"
+                      }`}
                     >
-                      {/* Pure visual border */}
-                      <div
-                        className={`absolute inset-0 rounded-lg transition-all duration-200 ${
-                          isActive
-                            ? "border-4 border-primary shadow-2xl"
-                            : "border-2 border-border/70"
-                        }`}
-                      />
-                      {/* Slide number label */}
-                      <div
-                        className={`absolute -top-8 left-1/2 -translate-x-1/2 text-sm font-medium px-3 py-1 rounded-full transition-colors ${
-                          isActive
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-muted text-muted-foreground"
-                        }`}
-                      >
-                        {index + 1}
-                      </div>
-                      {/* Resize handle */}
-                      <div
-                        onMouseDown={handleSlideFrameResizeStart}
-                        className="slide-resize-handle absolute right-0 bottom-0 w-6 h-6 cursor-se-resize opacity-0 hover:opacity-100 transition-opacity"
-                        style={{
-                          background: `linear-gradient(135deg, transparent 50%, ${isActive ? "#2563eb" : "#6b7280"} 50%)`,
-                        }}
-                      />
+                      {index + 1}
                     </div>
-                  )
-                })}
+                  </div>
+                ))}
               </div>
             </div>
 
