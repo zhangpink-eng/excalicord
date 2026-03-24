@@ -199,12 +199,28 @@ function App() {
 
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0)
 
-  // Sync currentSlideIndex when project changes
+  // Sync currentSlideIndex when project changes - restore from localStorage or default to 0
   useEffect(() => {
+    if (!project?.id) return
+    const savedIndex = localStorage.getItem(`slideIndex_${project.id}`)
+    if (savedIndex !== null) {
+      const index = parseInt(savedIndex, 10)
+      if (!isNaN(index) && index >= 0) {
+        setCurrentSlideIndex(index)
+        return
+      }
+    }
     setCurrentSlideIndex(0)
   }, [project?.id])
 
+  // Save currentSlideIndex to localStorage when it changes
+  useEffect(() => {
+    if (!project?.id) return
+    localStorage.setItem(`slideIndex_${project.id}`, String(currentSlideIndex))
+  }, [currentSlideIndex, project?.id])
+
   const goToSlide = useCallback((index: number) => {
+    console.log(`[App] goToSlide called with index=${index}, currentSlideIndex=${currentSlideIndex}`)
     setCurrentSlideIndex(index)
   }, [])
 
@@ -771,6 +787,7 @@ function App() {
                   goToSlide(frameIndex)
                 }
               }}
+              scrollToIndex={currentSlideIndex}
             />
 
             <CameraBubble
