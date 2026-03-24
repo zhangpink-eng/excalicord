@@ -28,6 +28,7 @@ export interface ProjectSettings {
 export interface Slide {
   id: string
   projectId: string
+  name: string
   position: number
   content: SlideContent
   slideType: 'slide' | 'section'

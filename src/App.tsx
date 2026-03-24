@@ -403,14 +403,13 @@ function App() {
         }
         slideRail={
           <SlideRail
-            slides={slides.map((s) => ({ id: s.id, name: `Slide ${s.position + 1}` }))}
+            slides={slides.map((s) => ({ id: s.id, name: s.name || `Slide ${s.position + 1}` }))}
             currentIndex={currentSlideIndex}
             onSelect={goToSlide}
             onAdd={handleAddSlide}
             onDelete={handleDeleteSlide}
             onRename={(id, name) => {
-              // TODO: Persist slide name to database when name field is added
-              console.log("Rename slide:", id, name)
+              updateSlide(id, { name })
             }}
           />
         }

@@ -20,6 +20,7 @@ export function useSlides(initialSlides?: Slide[]): UseSlidesReturn {
       {
         id: "1",
         projectId: "project-1",
+        name: "Slide 1",
         position: 0,
         content: {},
         slideType: "slide",
@@ -37,6 +38,7 @@ export function useSlides(initialSlides?: Slide[]): UseSlidesReturn {
     const newSlide: Slide = {
       id: String(Date.now()),
       projectId: slides[0]?.projectId || "project-1",
+      name: `Slide ${slides.length + 1}`,
       position: slides.length,
       content: {},
       slideType: "slide",
