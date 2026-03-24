@@ -110,7 +110,6 @@ export function DashboardPage({ onOpenProject, onCreateProject, onSignOut }: Das
                     <p className="text-sm text-white font-medium leading-tight">
                       {user?.fullName || "User"}
                     </p>
-                    <p className="text-xs text-white/40 leading-tight">{user?.email}</p>
                   </div>
                   {/* Dropdown Arrow */}
                   <svg
@@ -134,7 +133,6 @@ export function DashboardPage({ onOpenProject, onCreateProject, onSignOut }: Das
                   <div className="absolute right-0 mt-2 w-48 bg-[#1a1a1f] border border-white/10 rounded-xl shadow-xl overflow-hidden z-50">
                     <div className="px-4 py-3 border-b border-white/5">
                       <p className="text-sm text-white font-medium">{user?.fullName || "User"}</p>
-                      <p className="text-xs text-white/40">{user?.email}</p>
                     </div>
                     <button
                       onClick={() => {
