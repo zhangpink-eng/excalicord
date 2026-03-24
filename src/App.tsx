@@ -184,7 +184,7 @@ function App() {
     startCanvasRecording()
 
     analytics.trackRecordingStarted(project?.id || "unknown")
-  }, [cameraEnabled, cameraStream, setExcalidrawCanvas, setCameraBubbleState, setBeautySettings, beautyEnabled, beautySettings, startCanvasRecording, project])
+  }, [cameraEnabled, cameraStream, setExcalidrawCanvas, setCameraBubbleState, setBeautySettings, beautyEnabled, beautySettings, startCanvasRecording, project, cameraBubbleShape, cameraBubbleBorderColor, cameraBubbleBorderWidth, cameraBubbleBorderRadius])
 
   const handleStop = useCallback(async () => {
     setIsRecording(false)
@@ -435,6 +435,7 @@ function App() {
             {/* Single shared Excalidraw canvas - shows only current slide's elements */}
             <ExcalidrawCanvas
               key={slides[currentSlideIndex]?.id}
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               elements={slides[currentSlideIndex]?.content?.elements as any[] || []}
               onElementsChange={(elements) => {
                 const currentSlide = slides[currentSlideIndex]
@@ -442,7 +443,9 @@ function App() {
                 // Filter elements to only include those belonging to current slide
                 // This ensures elements don't leak between slides
                 const boundElements = elements
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   .filter((el: any) => !el.slideId || el.slideId === currentSlide.id)
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   .map((el: any) => ({
                     ...el,
                     slideId: currentSlide.id,

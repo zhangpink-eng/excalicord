@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from "@storybook/react"
+import type { Meta, StoryObj } from "@storybook/react-vite"
 import { SlideThumbnail } from "./SlideThumbnail"
 
 const meta = {
@@ -63,23 +63,22 @@ export const CannotDelete: Story = {
 }
 
 export const MultipleSlides: Story = {
-  render: () => (
+  args: {
+    slide: { id: "1", name: "Slide 1" },
+    index: 0,
+    isSelected: true,
+    canDelete: true,
+    onClick: () => console.log("clicked"),
+    onDelete: () => console.log("deleted"),
+  },
+  render: (args) => (
     <div className="flex gap-2 p-4">
+      <SlideThumbnail {...args} />
       <SlideThumbnail
-        slide={{ id: "1", name: "Slide 1" }}
-        index={0}
-        isSelected={true}
-        canDelete={true}
-        onClick={() => console.log("clicked 1")}
-        onDelete={() => console.log("deleted 1")}
-      />
-      <SlideThumbnail
+        {...args}
         slide={{ id: "2", name: "Slide 2" }}
         index={1}
         isSelected={false}
-        canDelete={true}
-        onClick={() => console.log("clicked 2")}
-        onDelete={() => console.log("deleted 2")}
       />
       <SlideThumbnail
         slide={{ id: "3", name: "Slide 3" }}

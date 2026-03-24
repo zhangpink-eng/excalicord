@@ -39,7 +39,7 @@ export function CameraBubble({
     if (videoRef.current && stream) {
       videoRef.current.srcObject = stream
     }
-  }, [stream])
+  }, [stream, videoRef])
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.target === containerRef.current) {

@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from "@storybook/react"
+import type { Meta, StoryObj } from "@storybook/react-vite"
 import { BeautyPanel } from "./BeautyPanel"
 import { defaultBeautySettings } from "@/services/beauty/BeautyFilter"
 
