@@ -4,11 +4,19 @@ import "@excalidraw/excalidraw/index.css"
 
 interface ExcalidrawCanvasProps {
   elements?: any[]
+  slideFrameElements?: any[]
   onElementsChange?: (elements: any[]) => void
   onViewportChange?: (scrollX: number, scrollY: number, zoom: number) => void
+  onSlideFrameClick?: (slideId: string) => void
 }
 
-export function ExcalidrawCanvas({ elements = [], onElementsChange, onViewportChange }: ExcalidrawCanvasProps) {
+export function ExcalidrawCanvas({
+  elements = [],
+  slideFrameElements = [],
+  onElementsChange,
+  onViewportChange,
+  onSlideFrameClick,
+}: ExcalidrawCanvasProps) {
   const excalidrawApiRef = useRef<ExcalidrawImperativeAPI | null>(null)
 
   // Use onScrollChange callback for viewport tracking (much cleaner than polling)
@@ -23,13 +31,28 @@ export function ExcalidrawCanvas({ elements = [], onElementsChange, onViewportCh
     return unsubscribe
   }, [onViewportChange])
 
+  // Handle element changes - detect slide frame clicks
+  const handleChange = useCallback((allElements: any[]) => {
+    // Check if any slide frame was clicked (simple detection via boundElements or ID pattern)
+    const slideFrameIds = slideFrameElements.map((el) => el.id)
+    const frameClick = allElements.find(
+      (el) => el.id.startsWith("slide-frame-") && el.backgroundColor === "#2563eb"
+    )
+    if (frameClick) {
+      const slideId = frameClick.id.replace("slide-frame-", "")
+      onSlideFrameClick?.(slideId)
+    }
+    onElementsChange?.([...allElements])
+  }, [slideFrameElements, onElementsChange, onSlideFrameClick])
+
+  // Combine regular elements with slide frame elements
+  const allElements = [...slideFrameElements, ...elements]
+
   return (
     <div className="excalidraw-canvas w-full h-full overflow-hidden bg-[#FAFAFA]">
       <Excalidraw
-        initialData={{ elements }}
-        onChange={(elements) => {
-          onElementsChange?.([...elements])
-        }}
+        initialData={{ elements: allElements }}
+        onChange={handleChange}
         excalidrawAPI={(api) => {
           excalidrawApiRef.current = api
         }}

@@ -18,6 +18,42 @@ import type { BubbleShape } from "@/components/canvas/CameraBubbleSettings"
 
 type Page = "login" | "signup" | "dashboard" | "editor"
 
+// Helper to generate slide frame elements for Excalidraw
+function createSlideFrameElements(slides: { id: string }[], currentIndex: number): any[] {
+  return slides.map((slide, index) => {
+    const isActive = index === currentIndex
+    const x = 100 + index * 800
+    const y = 100
+    const width = 720
+    const height = 540
+    return {
+      id: `slide-frame-${slide.id}`,
+      type: "rectangle",
+      x,
+      y,
+      width,
+      height,
+      strokeColor: isActive ? "#2563eb" : "#e5e7eb",
+      backgroundColor: "transparent",
+      fillStyle: "solid",
+      strokeWidth: isActive ? 4 : 2,
+      borderRadius: 8,
+      roughness: 0,
+      groupIds: [],
+      frameId: null,
+      roundness: null,
+      seed: index,
+      version: 1,
+      versionNonce: 0,
+      isDeleted: false,
+      boundElements: [],
+      updated: 0,
+      link: null,
+      locked: false,
+    }
+  })
+}
+
 function App() {
   const { t } = useTranslation()
   const { user, isLoading: authLoading } = useAuth()
@@ -114,28 +150,6 @@ function App() {
   // Viewport state for syncing slide frames with canvas pan/zoom
   const [viewport, setViewport] = useState({ x: 0, y: 0, zoom: 1 })
 
-  // Slide frame positions and sizes (using refs to avoid re-renders during drag/resize)
-  const slideFramesRef = useRef<Map<string, { x: number; y: number; width: number; height: number }>>(new Map())
-  const [slideFramePositions, setSlideFramePositions] = useState<Record<string, { x: number; y: number; width: number; height: number }>>({})
-
-  // Drag state
-  const draggingRef = useRef<{ slideId: string; startX: number; startY: number; origX: number; origY: number } | null>(null)
-  const resizingRef = useRef<{ slideId: string; handle: string; startX: number; startY: number; origX: number; origY: number; origW: number; origH: number } | null>(null)
-
-  // Get or initialize slide frame state
-  const getSlideFrame = useCallback((slideId: string, index: number) => {
-    if (!slideFramesRef.current.has(slideId)) {
-      // Default: center slides horizontally, stack vertically
-      slideFramesRef.current.set(slideId, {
-        x: 100 + index * 800, // offset each slide
-        y: 100,
-        width: 720,
-        height: 540,
-      })
-    }
-    return slideFramesRef.current.get(slideId)!
-  }, [])
-
   // Sync currentSlideIndex when project changes
   useEffect(() => {
     setCurrentSlideIndex(0)
@@ -143,113 +157,6 @@ function App() {
 
   const goToSlide = useCallback((index: number) => {
     setCurrentSlideIndex(index)
-    // Scroll the selected slide into center of view
-    setTimeout(() => {
-      if (!slidesContainerRef.current) return
-      const container = slidesContainerRef.current
-      const slideElements = container.querySelectorAll('[data-slide-index]')
-      const slide = slideElements[index] as HTMLElement
-      if (slide) {
-        const containerRect = container.getBoundingClientRect()
-        const slideRect = slide.getBoundingClientRect()
-        const scrollLeft = slide.offsetLeft - (containerRect.width / 2) + (slideRect.width / 2)
-        container.scrollTo({ left: scrollLeft, behavior: 'smooth' })
-      }
-    }, 50)
-  }, [])
-
-  // Handle drag start for slide frames
-  const handleSlideDragStart = useCallback((e: React.PointerEvent, slideId: string) => {
-    e.stopPropagation()
-    const frame = getSlideFrame(slideId, 0)
-    draggingRef.current = {
-      slideId,
-      startX: e.clientX,
-      startY: e.clientY,
-      origX: frame.x,
-      origY: frame.y,
-    }
-    ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
-  }, [getSlideFrame])
-
-  // Handle resize start for slide frames
-  const handleSlideResizeStart = useCallback((e: React.PointerEvent, slideId: string, handle: string) => {
-    e.stopPropagation()
-    const frame = getSlideFrame(slideId, 0)
-    resizingRef.current = {
-      slideId,
-      handle,
-      startX: e.clientX,
-      startY: e.clientY,
-      origX: frame.x,
-      origY: frame.y,
-      origW: frame.width,
-      origH: frame.height,
-    }
-    ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
-  }, [getSlideFrame])
-
-  // Global pointer move handler for drag/resize
-  useEffect(() => {
-    const handlePointerMove = (e: PointerEvent) => {
-      // Handle dragging
-      if (draggingRef.current) {
-        const { slideId, startX, startY, origX, origY } = draggingRef.current
-        const deltaX = e.clientX - startX
-        const deltaY = e.clientY - startY
-        const frame = slideFramesRef.current.get(slideId)
-        if (frame) {
-          frame.x = origX + deltaX
-          frame.y = origY + deltaY
-          // Force re-render
-          setSlideFramePositions(prev => ({ ...prev }))
-        }
-      }
-      // Handle resizing
-      if (resizingRef.current) {
-        const { slideId, handle, startX, startY, origX, origY, origW, origH } = resizingRef.current
-        const deltaX = e.clientX - startX
-        const deltaY = e.clientY - startY
-        const frame = slideFramesRef.current.get(slideId)
-        if (frame) {
-          switch (handle) {
-            case 'se': // bottom-right
-              frame.width = Math.max(400, Math.min(1200, origW + deltaX))
-              frame.height = Math.max(300, Math.min(900, origH + deltaY))
-              break
-            case 'sw': // bottom-left
-              frame.x = origX + deltaX
-              frame.width = Math.max(400, Math.min(1200, origW - deltaX))
-              frame.height = Math.max(300, Math.min(900, origH + deltaY))
-              break
-            case 'ne': // top-right
-              frame.y = origY + deltaY
-              frame.width = Math.max(400, Math.min(1200, origW + deltaX))
-              frame.height = Math.max(300, Math.min(900, origH - deltaY))
-              break
-            case 'nw': // top-left
-              frame.x = origX + deltaX
-              frame.y = origY + deltaY
-              frame.width = Math.max(400, Math.min(1200, origW - deltaX))
-              frame.height = Math.max(300, Math.min(900, origH - deltaY))
-              break
-          }
-          setSlideFramePositions(prev => ({ ...prev }))
-        }
-      }
-    }
-
-    const handlePointerUp = () => {
-      draggingRef.current = null
-      resizingRef.current = null
-    }
-
-    window.addEventListener('pointermove', handlePointerMove)
-    window.addEventListener('pointerup', handlePointerUp)
-    return () => {
-      window.removeEventListener('pointermove', handlePointerMove)
-      window.removeEventListener('pointerup', handlePointerUp)
-    }
   }, [])
 
   const handleAddSlide = useCallback(() => {
@@ -708,152 +615,30 @@ function App() {
               key={slides[currentSlideIndex]?.id}
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               elements={slides[currentSlideIndex]?.content?.elements as any[] || []}
+              slideFrameElements={createSlideFrameElements(slides, currentSlideIndex)}
               onElementsChange={(elements) => {
                 const currentSlide = slides[currentSlideIndex]
                 if (!currentSlide) return
+                // Filter out slide frame elements and bind remaining elements to current slide
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const boundElements = elements.map((el: any) => ({
-                  ...el,
-                  slideId: currentSlide.id,
-                }))
+                const boundElements = elements
+                  .filter((el: any) => !el.id.startsWith("slide-frame-"))
+                  .map((el: any) => ({
+                    ...el,
+                    slideId: currentSlide.id,
+                  }))
                 updateSlide(currentSlide.id, { content: { elements: boundElements } })
               }}
               onViewportChange={(scrollX, scrollY, zoom) => {
                 setViewport({ x: scrollX, y: scrollY, zoom })
               }}
+              onSlideFrameClick={(slideId) => {
+                const index = slides.findIndex((s) => s.id === slideId)
+                if (index !== -1) {
+                  goToSlide(index)
+                }
+              }}
             />
-
-            {/* Slide frames - draggable and resizable overlays */}
-            <div
-              ref={slidesContainerRef}
-              className="absolute inset-0 pointer-events-none overflow-hidden"
-            >
-              {slides.map((slide, index) => {
-                const isActive = currentSlideIndex === index
-                const frame = getSlideFrame(slide.id, index)
-                return (
-                  <div
-                    key={slide.id}
-                    data-slide-index={index}
-                    className={`absolute transition-all duration-200 ${
-                      isActive ? "z-20" : "z-10"
-                    }`}
-                    style={{
-                      left: frame.x,
-                      top: frame.y,
-                      width: frame.width,
-                      height: frame.height,
-                    }}
-                  >
-                    {/* Clickable title bar for slide switching */}
-                    <div
-                      className={`absolute -top-8 left-0 right-0 h-8 flex items-center justify-between px-2 group cursor-pointer ${
-                        isActive ? "z-30" : "z-20"
-                      }`}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        goToSlide(index)
-                      }}
-                      onPointerDown={(e) => {
-                        if (!isActive) {
-                          handleSlideDragStart(e, slide.id)
-                        }
-                      }}
-                    >
-                      <div
-                        className={`text-sm font-medium px-3 py-1 rounded-full transition-colors ${
-                          isActive
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-muted text-muted-foreground group-hover:bg-primary/80 group-hover:text-primary-foreground"
-                        }`}
-                      >
-                        {index + 1}
-                      </div>
-                      {/* Show delete button on hover for non-active slides */}
-                      {!isActive && slides.length > 1 && (
-                        <button
-                          className="opacity-0 group-hover:opacity-100 w-5 h-5 rounded-full bg-destructive text-destructive-foreground text-xs flex items-center justify-center transition-opacity"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleDeleteSlide(slide.id)
-                          }}
-                        >
-                          ×
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Slide content area - doesn't block events for editing */}
-                    <div
-                      className={`absolute inset-0 rounded-lg ${
-                        isActive ? "pointer-events-none" : "cursor-pointer"
-                      }`}
-                      onClick={(e) => {
-                        if (!isActive) {
-                          e.stopPropagation()
-                          goToSlide(index)
-                        }
-                      }}
-                    />
-
-                    {/* Border overlay */}
-                    <div
-                      className={`absolute inset-0 rounded-lg transition-all duration-200 pointer-events-none ${
-                        isActive
-                          ? "border-4 border-primary shadow-2xl"
-                          : "border-2 border-border/70"
-                      }`}
-                    />
-
-                    {/* Resize handles - only show for active slide */}
-                    {isActive && (
-                      <>
-                        {/* Bottom-right resize handle */}
-                        <div
-                          className="absolute -bottom-1 -right-1 w-4 h-4 cursor-se-resize z-40"
-                          onPointerDown={(e) => {
-                            e.stopPropagation()
-                            handleSlideResizeStart(e, slide.id, 'se')
-                          }}
-                        >
-                          <div className="absolute bottom-0 right-0 w-3 h-3 bg-primary/50 rounded-tl-sm" />
-                        </div>
-                        {/* Bottom-left resize handle */}
-                        <div
-                          className="absolute -bottom-1 -left-1 w-4 h-4 cursor-sw-resize z-40"
-                          onPointerDown={(e) => {
-                            e.stopPropagation()
-                            handleSlideResizeStart(e, slide.id, 'sw')
-                          }}
-                        >
-                          <div className="absolute bottom-0 left-0 w-3 h-3 bg-primary/50 rounded-tr-sm" />
-                        </div>
-                        {/* Top-right resize handle */}
-                        <div
-                          className="absolute -top-1 -right-1 w-4 h-4 cursor-ne-resize z-40"
-                          onPointerDown={(e) => {
-                            e.stopPropagation()
-                            handleSlideResizeStart(e, slide.id, 'ne')
-                          }}
-                        >
-                          <div className="absolute top-0 right-0 w-3 h-3 bg-primary/50 rounded-bl-sm" />
-                        </div>
-                        {/* Top-left resize handle */}
-                        <div
-                          className="absolute -top-1 -left-1 w-4 h-4 cursor-nw-resize z-40"
-                          onPointerDown={(e) => {
-                            e.stopPropagation()
-                            handleSlideResizeStart(e, slide.id, 'nw')
-                          }}
-                        >
-                          <div className="absolute top-0 left-0 w-3 h-3 bg-primary/50 rounded-br-sm" />
-                        </div>
-                      </>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
 
             <CameraBubble
               stream={cameraEnabled && !isRecording ? cameraStream : null}
