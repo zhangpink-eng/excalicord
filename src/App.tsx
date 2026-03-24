@@ -212,6 +212,31 @@ function App() {
     }
   }, [authLoading, user])
 
+  // Keyboard navigation for slides
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Only handle if not in an input/textarea
+      const target = e.target as HTMLElement
+      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) {
+        return
+      }
+
+      // Only handle if on editor page and not recording
+      if (currentPage !== "editor" || isRecording) return
+
+      if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+        e.preventDefault()
+        goToSlide(Math.max(0, currentSlideIndex - 1))
+      } else if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+        e.preventDefault()
+        goToSlide(Math.min(slides.length - 1, currentSlideIndex + 1))
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [currentPage, isRecording, currentSlideIndex, slides.length, goToSlide])
+
   const handleRecord = useCallback(async () => {
     // Show the recording preview first
     setShowRecordingPreview(true)

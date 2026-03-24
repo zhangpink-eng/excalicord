@@ -1,9 +1,26 @@
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
+
+interface SlideElement {
+  type: string
+  x: number
+  y: number
+  width?: number
+  height?: number
+  strokeColor?: string
+  backgroundColor?: string
+  strokeWidth?: number
+  text?: string
+  textColor?: string
+  fontSize?: number
+}
 
 interface Slide {
   id: string
   name: string
   thumbnail?: string
+  content?: {
+    elements?: SlideElement[]
+  }
 }
 
 interface SlideThumbnailProps {
@@ -27,7 +44,9 @@ export function SlideThumbnail({
 }: SlideThumbnailProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editName, setEditName] = useState(slide.name)
+  const [thumbCanvas, setThumbCanvas] = useState<string | null>(slide.thumbnail || null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -35,6 +54,110 @@ export function SlideThumbnail({
       inputRef.current.select()
     }
   }, [isEditing])
+
+  // Render slide elements to canvas for thumbnail
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+
+    const elements = slide.content?.elements || []
+    if (elements.length === 0) return
+
+    const ctx = canvas.getContext("2d")
+    if (!ctx) return
+
+    // Set canvas size to match thumbnail display size (64x48 at 2x for retina)
+    const dpr = 2
+    canvas.width = 64 * dpr
+    canvas.height = 48 * dpr
+    ctx.scale(dpr, dpr)
+
+    // Clear and fill background
+    ctx.fillStyle = "#fafafa"
+    ctx.fillRect(0, 0, 64, 48)
+
+    // Calculate bounds of all elements
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+    elements.forEach((el: SlideElement) => {
+      if ("x" in el && "y" in el) {
+        minX = Math.min(minX, el.x)
+        minY = Math.min(minY, el.y)
+        maxX = Math.max(maxX, el.x + ((el.width as number) || 0))
+        maxY = Math.max(maxY, el.y + ((el.height as number) || 0))
+      }
+    })
+
+    if (minX === Infinity) return
+
+    const contentWidth = maxX - minX || 1
+    const contentHeight = maxY - minY || 1
+    const scale = Math.min(56 / contentWidth, 40 / contentHeight, 1)
+
+    const offsetX = (64 - contentWidth * scale) / 2 - minX * scale
+    const offsetY = (48 - contentHeight * scale) / 2 - minY * scale
+
+    // Render each element
+    elements.forEach((el: SlideElement) => {
+      if (!("x" in el)) return
+
+      const x = el.x * scale + offsetX
+      const y = el.y * scale + offsetY
+      const w = (el.width as number) * scale || 0
+      const h = (el.height as number) * scale || 0
+
+      ctx.save()
+
+      switch (el.type) {
+        case "rectangle":
+        case "line":
+        case "diamond":
+        case "ellipse": {
+          const strokeColor = (el.strokeColor as string) || "#000"
+          const fillColor = (el.backgroundColor as string) || "transparent"
+          const strokeWidth = Math.max((el.strokeWidth as number) || 1, 0.5)
+
+          ctx.strokeStyle = strokeColor
+          ctx.lineWidth = strokeWidth
+          ctx.fillStyle = fillColor
+
+          if (el.type === "ellipse") {
+            ctx.beginPath()
+            ctx.ellipse(x + w / 2, y + h / 2, w / 2, h / 2, 0, 0, Math.PI * 2)
+            if (fillColor !== "transparent") ctx.fill()
+            ctx.stroke()
+          } else {
+            ctx.beginPath()
+            if (el.type === "diamond") {
+              ctx.moveTo(x + w / 2, y)
+              ctx.lineTo(x + w, y + h / 2)
+              ctx.lineTo(x + w / 2, y + h)
+              ctx.lineTo(x, y + h / 2)
+              ctx.closePath()
+            } else {
+              ctx.rect(x, y, w, h)
+            }
+            if (fillColor !== "transparent") ctx.fill()
+            ctx.stroke()
+          }
+          break
+        }
+        case "text": {
+          const text = (el.text as string) || ""
+          const fontSize = Math.max((el.fontSize as number) || 14, 6) * scale
+          ctx.fillStyle = (el.textColor as string) || "#000"
+          ctx.font = `${fontSize}px Inter, sans-serif`
+          ctx.textBaseline = "top"
+          ctx.fillText(text, x, y, w)
+          break
+        }
+      }
+
+      ctx.restore()
+    })
+
+    // Convert to data URL
+    setThumbCanvas(canvas.toDataURL("image/png"))
+  }, [slide.content?.elements, slide.id])
 
   const handleDoubleClick = () => {
     if (onRename) {
@@ -59,12 +182,20 @@ export function SlideThumbnail({
     }
   }
 
+  const handleDeleteClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation()
+    onDelete?.()
+  }, [onDelete])
+
   return (
     <div
       className={`relative group flex flex-col items-center gap-1 ${
         isSelected ? "scale-105" : ""
       } transition-all duration-200`}
     >
+      {/* Hidden canvas for rendering thumbnails */}
+      <canvas ref={canvasRef} className="hidden" />
+
       {/* Thumbnail area */}
       <div
         onClick={onClick}
@@ -78,12 +209,19 @@ export function SlideThumbnail({
           }
         `}
       >
-        {/* Placeholder for slide preview */}
-        <div className="absolute inset-0 bg-muted flex items-center justify-center">
-          <span className="text-xs text-muted-foreground font-medium">
-            {index + 1}
-          </span>
-        </div>
+        {thumbCanvas ? (
+          <img
+            src={thumbCanvas}
+            alt={slide.name}
+            className="w-full h-full object-contain bg-white"
+          />
+        ) : (
+          <div className="absolute inset-0 bg-muted flex items-center justify-center">
+            <span className="text-xs text-muted-foreground font-medium">
+              {index + 1}
+            </span>
+          </div>
+        )}
 
         {/* Hover overlay */}
         <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -115,11 +253,8 @@ export function SlideThumbnail({
       {/* Delete button */}
       {canDelete && onDelete && (
         <button
-          onClick={(e) => {
-            e.stopPropagation()
-            onDelete()
-          }}
-          className="absolute -top-1 -right-1 w-4 h-4 bg-destructive text-destructive-foreground rounded-full text-[10px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hover:bg-destructive/90 z-10"
+          onClick={handleDeleteClick}
+          className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-destructive text-destructive-foreground rounded-full text-[10px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hover:bg-destructive/90 z-10 leading-none"
           title="Delete slide"
         >
           ×

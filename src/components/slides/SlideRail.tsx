@@ -1,10 +1,22 @@
 import { useState, useCallback } from "react"
 import { SlideThumbnail } from "./SlideThumbnail"
 
+interface SlideElement {
+  type: string
+  x: number
+  y: number
+  width?: number
+  height?: number
+  [key: string]: unknown
+}
+
 interface Slide {
   id: string
   name: string
   thumbnail?: string
+  content?: {
+    elements?: SlideElement[]
+  }
 }
 
 interface SlideRailProps {
