@@ -1,5 +1,5 @@
-import { useEffect, useRef } from "react"
-import { Excalidraw, type ExcalidrawAPIType } from "@excalidraw/excalidraw"
+import { useCallback, useEffect, useRef } from "react"
+import { Excalidraw, type ExcalidrawImperativeAPI } from "@excalidraw/excalidraw"
 import "@excalidraw/excalidraw/index.css"
 
 interface ExcalidrawCanvasProps {
@@ -9,46 +9,29 @@ interface ExcalidrawCanvasProps {
 }
 
 export function ExcalidrawCanvas({ elements = [], onElementsChange, onViewportChange }: ExcalidrawCanvasProps) {
-  const excalidrawRef = useRef<ExcalidrawAPIType>(null)
+  const excalidrawApiRef = useRef<ExcalidrawImperativeAPI | null>(null)
 
-  // Poll viewport changes at ~30fps
+  // Use onScrollChange callback for viewport tracking (much cleaner than polling)
   useEffect(() => {
-    let lastScrollX = 0
-    let lastScrollY = 0
-    let lastZoom = 1
+    const api = excalidrawApiRef.current
+    if (!api || !onViewportChange) return
 
-    const pollViewport = () => {
-      const api = excalidrawRef.current
-      if (!api) {
-        rafId = requestAnimationFrame(pollViewport)
-        return
-      }
+    const unsubscribe = api.onScrollChange((scrollX, scrollY, zoom) => {
+      onViewportChange?.(scrollX, scrollY, zoom.scale)
+    })
 
-      const appState = api.getAppState()
-      if (appState) {
-        const { scrollX, scrollY, zoom } = appState
-        // Only notify if values changed meaningfully
-        if (Math.abs(scrollX - lastScrollX) > 0.5 || Math.abs(scrollY - lastScrollY) > 0.5 || Math.abs(zoom - lastZoom) > 0.001) {
-          lastScrollX = scrollX
-          lastScrollY = scrollY
-          lastZoom = zoom
-          onViewportChange?.(scrollX, scrollY, zoom)
-        }
-      }
-      rafId = requestAnimationFrame(pollViewport)
-    }
-
-    let rafId = requestAnimationFrame(pollViewport)
-    return () => cancelAnimationFrame(rafId)
+    return unsubscribe
   }, [onViewportChange])
 
   return (
     <div className="excalidraw-canvas w-full h-full overflow-hidden bg-[#FAFAFA]">
       <Excalidraw
-        ref={excalidrawRef}
         initialData={{ elements }}
         onChange={(elements) => {
           onElementsChange?.([...elements])
+        }}
+        excalidrawAPI={(api) => {
+          excalidrawApiRef.current = api
         }}
       />
     </div>
