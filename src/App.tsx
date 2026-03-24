@@ -58,15 +58,15 @@ function createSlideFrameElements(
   slides: { id: string; name?: string }[],
   currentIndex: number,
   framePositions: Record<number, { x: number; y: number }>,
-  frameWidth: number,
-  frameHeight: number
+  frameDimensions: Record<number, { width: number; height: number }>
 ): any[] {
   return slides.map((slide, index) => {
     const isActive = index === currentIndex
     const stored = framePositions[index]
     const x = stored ? stored.x : (DEFAULT_FRAME_X + index * DEFAULT_FRAME_OFFSET_X)
     const y = stored ? stored.y : DEFAULT_FRAME_Y
-    return createSlideFrameElement(index, isActive, x, y, frameWidth, frameHeight, slide.name || `第${index + 1}页`)
+    const dims = frameDimensions[index] || { width: 720, height: 540 }
+    return createSlideFrameElement(index, isActive, x, y, dims.width, dims.height, slide.name || `第${index + 1}页`)
   })
 }
 
@@ -112,6 +112,9 @@ function App() {
   // Track slide frame positions (keyed by index)
   const framePositionsRef = useRef<Record<number, { x: number; y: number }>>({})
   const [framePositionsState, setFramePositionsState] = useState<Record<number, { x: number; y: number }>>({})
+
+  // Track slide frame dimensions (keyed by index) - new slides use current aspect ratio, existing slides keep their dimensions
+  const frameDimensionsRef = useRef<Record<number, { width: number; height: number }>>({})
 
   // Initialize frame positions when slides change
   useEffect(() => {
@@ -205,12 +208,22 @@ function App() {
     setCurrentSlideIndex(index)
   }, [])
 
+  // Aspect ratio state - must be before handleAddSlide which uses it
+  const [aspectRatio, setAspectRatio] = useState("16:9")
+  const [customWidth, setCustomWidth] = useState(1920)
+  const [customHeight, setCustomHeight] = useState(1080)
+
   const handleAddSlide = useCallback(async () => {
     const newIndex = await addSlideToProject()
     if (newIndex >= 0) {
+      // Set dimensions for the new slide based on current aspect ratio
+      frameDimensionsRef.current[newIndex] = {
+        width: customWidth,
+        height: customHeight,
+      }
       setCurrentSlideIndex(newIndex)
     }
-  }, [addSlideToProject])
+  }, [addSlideToProject, customWidth, customHeight])
 
   const {
     cameraStream,
@@ -258,11 +271,6 @@ function App() {
   const [avatarExpression, setAvatarExpression] = useState<"neutral" | "happy" | "serious">("neutral")
   // Avatar scale state
   const [avatarScale, setAvatarScaleState] = useState(1.0)
-
-  // Aspect ratio state
-  const [aspectRatio, setAspectRatio] = useState("16:9")
-  const [customWidth, setCustomWidth] = useState(1920)
-  const [customHeight, setCustomHeight] = useState(1080)
 
   // Camera and mic toggle state (default: enabled)
   const [cameraEnabled, setCameraEnabled] = useState(true)
@@ -383,13 +391,13 @@ function App() {
       console.error("Failed to start mic:", err)
     }
 
-    // Set up preview area for the recorder
-    const slideDimensions = { width: customWidth, height: customHeight }
+    // Set up preview area for the recorder - use current slide's dimensions
+    const currentSlideDims = frameDimensionsRef.current[currentSlideIndex] || { width: customWidth, height: customHeight }
     const previewAreaConfig = {
       x: 0,
       y: 0,
-      width: slideDimensions.width,
-      height: slideDimensions.height,
+      width: currentSlideDims.width,
+      height: currentSlideDims.height,
     }
     setPreviewArea(previewAreaConfig)
 
@@ -401,15 +409,15 @@ function App() {
 
     // Camera bubble size is 10% larger than slide
     const cameraBubbleDimensions = {
-      width: Math.round(slideDimensions.width * 1.1),
-      height: Math.round(slideDimensions.height * 1.1),
+      width: Math.round(currentSlideDims.width * 1.1),
+      height: Math.round(currentSlideDims.height * 1.1),
     }
 
     // Set up camera bubble state - default to bottom-right of preview area
     if (cameraStreamToUse) {
       const defaultPos = {
-        x: slideDimensions.width - cameraBubbleDimensions.width - 20,
-        y: slideDimensions.height - cameraBubbleDimensions.height - 20,
+        x: currentSlideDims.width - cameraBubbleDimensions.width - 20,
+        y: currentSlideDims.height - cameraBubbleDimensions.height - 20,
       }
       // Use avatar stream if avatar is enabled, otherwise use camera stream
       const streamForRecording = avatarEnabled && avatarStream ? avatarStream : cameraStreamToUse
@@ -736,7 +744,7 @@ function App() {
                 ...el,
                 frameId: `slide-frame-${currentSlideIndex}`, // Set frameId for containment
               }))}
-              slideFrameElements={createSlideFrameElements(slides, currentSlideIndex, framePositionsState, customWidth, customHeight)}
+              slideFrameElements={createSlideFrameElements(slides, currentSlideIndex, framePositionsState, frameDimensionsRef.current)}
               onElementsChange={(elements) => {
                 const currentSlide = slides[currentSlideIndex]
                 if (!currentSlide) return
@@ -779,8 +787,8 @@ function App() {
             {/* Recording Preview Area - shown during recording */}
             <RecordingPreview
               visible={showRecordingPreview}
-              width={customWidth}
-              height={customHeight}
+              width={frameDimensionsRef.current[currentSlideIndex]?.width || customWidth}
+              height={frameDimensionsRef.current[currentSlideIndex]?.height || customHeight}
               cameraStream={cameraStream}
               cameraPosition={cameraBubblePosition.current}
               cameraSize={cameraBubbleSize.current}
