@@ -368,8 +368,8 @@ function App() {
         return
       }
 
-      // Only handle if on editor page and not recording
-      if (currentPage !== "editor" || isRecording) return
+      // Only handle if on editor page
+      if (currentPage !== "editor") return
 
       if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
         e.preventDefault()
@@ -382,7 +382,7 @@ function App() {
 
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [currentPage, isRecording, currentSlideIndex, slides.length, goToSlide])
+  }, [currentPage, currentSlideIndex, slides.length, goToSlide])
 
   const handleRecord = useCallback(async () => {
     // Show the recording preview first
