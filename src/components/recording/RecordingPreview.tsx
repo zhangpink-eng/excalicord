@@ -164,7 +164,7 @@ export function RecordingPreview({
     >
       {/* Recording area frame - fully transparent with dashed border */}
       <div
-        className={`absolute bg-transparent border-2 border-dashed pointer-events-auto ${isPreview ? "border-yellow-500" : "border-red-500"}`}
+        className={`absolute bg-transparent border-2 border-dashed pointer-events-auto ${isPreview ? "border-red-500" : "border-red-500"}`}
         style={{
           left: "50%",
           top: "50%",
@@ -174,7 +174,7 @@ export function RecordingPreview({
         }}
       >
         {/* Recording/Preview indicator */}
-        <div className={`absolute -top-10 left-1/2 -translate-x-1/2 flex items-center gap-2 ${isPreview ? "bg-yellow-500" : "bg-red-500"} text-white px-3 py-1 rounded-full`}>
+        <div className={`absolute -top-10 left-1/2 -translate-x-1/2 flex items-center gap-2 ${isPreview ? "bg-red-500" : "bg-red-500"} text-white px-3 py-1 rounded-full`}>
           <div className={`w-2 h-2 bg-white rounded-full ${isPreview ? "" : "animate-pulse"}`} />
           <span className="text-sm font-medium">{isPreview ? "Preview" : "Recording"}</span>
         </div>

@@ -253,6 +253,8 @@ function App() {
   const {
     startRecording: startCanvasRecording,
     stopRecording: stopCanvasRecording,
+    pauseRecording,
+    resumeRecording,
     setExcalidrawCanvas,
     setCameraBubbleState,
     setCameraVideo,
@@ -263,6 +265,7 @@ function App() {
   } = useCanvasRecorder()
 
   const [isRecording, setIsRecording] = useState(false)
+  const [isPaused, setIsPaused] = useState(false)
   const [isPreviewing, setIsPreviewing] = useState(false)
   const [showRecordingPreview, setShowRecordingPreview] = useState(false)
   const [beautyEnabled, setBeautyEnabled] = useState(false)
@@ -388,6 +391,7 @@ function App() {
   // Handle cancel from preview state
   const handleCancelRecording = useCallback(() => {
     setIsPreviewing(false)
+    setIsPaused(false)
     setShowRecordingPreview(false)
   }, [])
 
@@ -501,6 +505,7 @@ function App() {
 
   const handleStop = useCallback(async () => {
     setIsRecording(false)
+    setIsPaused(false)
     setShowRecordingPreview(false)
 
     // Stop canvas recording and get the blob
@@ -524,6 +529,20 @@ function App() {
 
     analytics.trackRecordingStopped(project?.id || "unknown", duration)
   }, [stopCanvasRecording, project, duration])
+
+  // Handle pause recording
+  const handlePauseRecording = useCallback(() => {
+    pauseRecording()
+    setIsPaused(true)
+    analytics.trackRecordingPaused(project?.id || "unknown", duration)
+  }, [pauseRecording, project, duration])
+
+  // Handle resume recording
+  const handleResumeRecording = useCallback(() => {
+    resumeRecording()
+    setIsPaused(false)
+    analytics.trackRecordingResumed(project?.id || "unknown")
+  }, [resumeRecording, project])
 
   const handlePreviewDownload = useCallback(() => {
     if (!previewUrl) return
@@ -918,11 +937,13 @@ function App() {
 
             {/* Draggable Recording Controls */}
             <DraggableRecordingControls
-              state={isPreviewing ? "previewing" : isRecording ? "recording" : "idle"}
+              state={isPreviewing ? "previewing" : isPaused ? "paused" : isRecording ? "recording" : "idle"}
               duration={duration}
               onRecord={isPreviewing ? handleStartRecording : handleRecord}
               onStop={handleStop}
               onCancel={isPreviewing ? handleCancelRecording : undefined}
+              onPause={isRecording ? handlePauseRecording : undefined}
+              onResume={isPaused ? handleResumeRecording : undefined}
             />
           </div>
         }

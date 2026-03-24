@@ -8,6 +8,8 @@ interface DraggableRecordingControlsProps {
   onRecord: () => void
   onStop: () => void
   onCancel?: () => void
+  onPause?: () => void
+  onResume?: () => void
 }
 
 function formatDuration(seconds: number): string {
@@ -22,6 +24,8 @@ export function DraggableRecordingControls({
   onRecord,
   onStop,
   onCancel,
+  onPause,
+  onResume,
 }: DraggableRecordingControlsProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [isDragging, setIsDragging] = useState(false)
@@ -29,19 +33,27 @@ export function DraggableRecordingControls({
   const [position, setPosition] = useState({ x: 0, y: 0 })
 
   const isRecording = state === "recording"
+  const isPaused = state === "paused"
   const isCountdown = state === "countdown"
   const isPreviewing = state === "previewing"
 
+  // Calculate container width based on state
+  const getContainerWidth = () => {
+    if (isPreviewing) return 280
+    if (isRecording || isPaused) return 280
+    return 140
+  }
+
   // Initialize position to bottom-right after mount
   useEffect(() => {
-    const containerWidth = isPreviewing ? 280 : 140
+    const containerWidth = getContainerWidth()
     const containerHeight = 48
     const margin = 80
     setPosition({
       x: window.innerWidth - containerWidth - margin,
       y: window.innerHeight - containerHeight - margin,
     })
-  }, [isPreviewing])
+  }, [state])
 
   const handleMouseDown = (e: React.MouseEvent) => {
     // Don't start drag if clicking on a button
@@ -59,7 +71,7 @@ export function DraggableRecordingControls({
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (!isDragging) return
-      const containerWidth = isPreviewing ? 280 : 140
+      const containerWidth = getContainerWidth()
       const containerHeight = 48
       const newX = Math.max(0, Math.min(window.innerWidth - containerWidth, e.clientX - dragStart.x))
       const newY = Math.max(0, Math.min(window.innerHeight - containerHeight, e.clientY - dragStart.y))
@@ -79,7 +91,7 @@ export function DraggableRecordingControls({
       document.removeEventListener("mousemove", handleMouseMove)
       document.removeEventListener("mouseup", handleMouseUp)
     }
-  }, [isDragging, dragStart, isPreviewing])
+  }, [isDragging, dragStart, state])
 
   return (
     <div
@@ -132,18 +144,123 @@ export function DraggableRecordingControls({
         </Button>
       )}
 
-      {/* Recording state indicator - only show when recording */}
-      {isRecording && (
+      {/* Recording state indicator - show when recording or paused */}
+      {(isRecording || isPaused) && (
         <div className="flex items-center gap-1.5 mr-2">
-          <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-          <span className="font-mono text-xs text-red-500">
+          <div className={`w-2 h-2 rounded-full ${isRecording ? "bg-red-500 animate-pulse" : "bg-yellow-500"}`} />
+          <span className={`font-mono text-xs ${isRecording ? "text-red-500" : "text-yellow-500"}`}>
             {formatDuration(duration)}
           </span>
         </div>
       )}
 
-      {/* Record/Stop button */}
-      {!isRecording ? (
+      {/* Previewing state: show Start Recording button */}
+      {isPreviewing && (
+        <Button
+          variant="recording"
+          onClick={onRecord}
+          size="sm"
+          className="h-8"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            className="mr-1"
+          >
+            <circle cx="12" cy="12" r="8" />
+          </svg>
+          开始录制
+        </Button>
+      )}
+
+      {/* Recording state: show Pause and Stop buttons */}
+      {isRecording && (
+        <>
+          {onPause && (
+            <Button
+              variant="secondary"
+              onClick={onPause}
+              size="sm"
+              className="h-8"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                className="mr-1"
+              >
+                <rect x="6" y="4" width="4" height="16" />
+                <rect x="14" y="4" width="4" height="16" />
+              </svg>
+              暂停
+            </Button>
+          )}
+          {onStop && (
+            <Button variant="destructive" onClick={onStop} size="sm" className="h-8">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                className="mr-1"
+              >
+                <rect x="4" y="4" width="16" height="16" rx="2" />
+              </svg>
+              停止
+            </Button>
+          )}
+        </>
+      )}
+
+      {/* Paused state: show Resume and Stop buttons */}
+      {isPaused && (
+        <>
+          {onResume && (
+            <Button
+              variant="recording"
+              onClick={onResume}
+              size="sm"
+              className="h-8"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                className="mr-1"
+              >
+                <polygon points="5,3 19,12 5,21" />
+              </svg>
+              继续
+            </Button>
+          )}
+          {onStop && (
+            <Button variant="destructive" onClick={onStop} size="sm" className="h-8">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                className="mr-1"
+              >
+                <rect x="4" y="4" width="16" height="16" rx="2" />
+              </svg>
+              停止
+            </Button>
+          )}
+        </>
+      )}
+
+      {/* Idle state: show Record button */}
+      {!isPreviewing && !isRecording && !isPaused && (
         <Button
           variant="recording"
           onClick={onRecord}
@@ -153,20 +270,6 @@ export function DraggableRecordingControls({
         >
           {isCountdown ? (
             "Starting..."
-          ) : isPreviewing ? (
-            <>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="12"
-                height="12"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-                className="mr-1"
-              >
-                <circle cx="12" cy="12" r="8" />
-              </svg>
-              开始录制
-            </>
           ) : (
             <>
               <svg
@@ -182,20 +285,6 @@ export function DraggableRecordingControls({
               Record
             </>
           )}
-        </Button>
-      ) : (
-        <Button variant="destructive" onClick={onStop} size="sm" className="h-8">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="12"
-            height="12"
-            viewBox="0 0 24 24"
-            fill="currentColor"
-            className="mr-1"
-          >
-            <rect x="4" y="4" width="16" height="16" rx="2" />
-          </svg>
-          Stop
         </Button>
       )}
     </div>

@@ -57,6 +57,14 @@ class Analytics {
     this.track({ name: "recording_stopped", properties: { projectId, duration } })
   }
 
+  trackRecordingPaused(projectId: string, duration: number): void {
+    this.track({ name: "recording_paused", properties: { projectId, duration } })
+  }
+
+  trackRecordingResumed(projectId: string): void {
+    this.track({ name: "recording_resumed", properties: { projectId } })
+  }
+
   trackExportStarted(projectId: string, format: string): void {
     this.track({ name: "export_started", properties: { projectId, format } })
   }
