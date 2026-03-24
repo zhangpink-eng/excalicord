@@ -105,7 +105,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     const newSlide: Slide = {
       id: tempId,
       projectId,
-      name: `Slide ${slides.length + 1}`,
+      name: `第${slides.length + 1}页`,
       position: slides.length,
       content: {},
       slideType: "slide",
