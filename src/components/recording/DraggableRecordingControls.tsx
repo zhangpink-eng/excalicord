@@ -111,13 +111,15 @@ export function DraggableRecordingControls({
         </div>
       </div>
 
-      {/* Recording state indicator - always show when recording */}
-      <div className="flex items-center gap-1.5 mr-2">
-        <div className={`w-2 h-2 rounded-full ${isRecording ? "bg-red-500 animate-pulse" : "bg-gray-400"}`} />
-        <span className={`font-mono text-xs ${isRecording ? "text-red-500" : "text-gray-500"}`}>
-          {formatDuration(duration)}
-        </span>
-      </div>
+      {/* Recording state indicator - only show when recording */}
+      {isRecording && (
+        <div className="flex items-center gap-1.5 mr-2">
+          <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+          <span className="font-mono text-xs text-red-500">
+            {formatDuration(duration)}
+          </span>
+        </div>
+      )}
 
       {/* Record/Stop button */}
       {!isRecording ? (

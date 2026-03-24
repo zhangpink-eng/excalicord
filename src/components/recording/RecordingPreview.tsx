@@ -156,9 +156,9 @@ export function RecordingPreview({
       className="absolute inset-0 pointer-events-none"
       style={{ zIndex: 50 }}
     >
-      {/* Recording area frame */}
+      {/* Recording area frame - transparent background with dashed border */}
       <div
-        className="absolute bg-white shadow-2xl border-4 border-red-500 pointer-events-auto"
+        className="absolute bg-white/10 backdrop-blur-sm border-2 border-dashed border-red-500 pointer-events-auto"
         style={{
           left: "50%",
           top: "50%",

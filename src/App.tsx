@@ -217,6 +217,27 @@ function App() {
     // Show the recording preview
     setShowRecordingPreview(true)
 
+    // Auto-enable camera if not already enabled
+    let stream = cameraStream
+    if (!cameraEnabled || !stream) {
+      try {
+        stream = await startCamera()
+        setCameraEnabled(true)
+      } catch (err) {
+        console.error("Failed to start camera:", err)
+      }
+    }
+
+    // Auto-enable mic if not already enabled
+    if (!micEnabled) {
+      try {
+        await startMic()
+        setMicEnabled(true)
+      } catch (err) {
+        console.error("Failed to start mic:", err)
+      }
+    }
+
     // Set up preview area for the recorder
     const previewAreaConfig = {
       x: 0,
@@ -233,13 +254,13 @@ function App() {
     }
 
     // Set up camera bubble state - default to bottom-right of preview area
-    if (cameraEnabled && cameraStream) {
+    if (stream) {
       const defaultPos = {
         x: recordingPreviewSize.width - cameraBubbleSize.current.width - 20,
         y: recordingPreviewSize.height - cameraBubbleSize.current.height - 20,
       }
       setCameraBubbleState({
-        stream: cameraStream,
+        stream: stream,
         position: defaultPos,
         size: cameraBubbleSize.current,
         shape: cameraBubbleShape,
@@ -257,7 +278,7 @@ function App() {
     startCanvasRecording()
 
     analytics.trackRecordingStarted(project?.id || "unknown")
-  }, [cameraEnabled, cameraStream, setExcalidrawCanvas, setCameraBubbleState, setBeautySettings, setPreviewArea, beautyEnabled, beautySettings, startCanvasRecording, project, recordingPreviewSize, cameraBubbleShape, cameraBubbleBorderColor, cameraBubbleBorderWidth, cameraBubbleBorderRadius])
+  }, [cameraEnabled, cameraStream, micEnabled, startCamera, startMic, setExcalidrawCanvas, setCameraBubbleState, setBeautySettings, setPreviewArea, beautyEnabled, beautySettings, startCanvasRecording, project, recordingPreviewSize, cameraBubbleShape, cameraBubbleBorderColor, cameraBubbleBorderWidth, cameraBubbleBorderRadius])
 
   const handleStop = useCallback(async () => {
     setIsRecording(false)

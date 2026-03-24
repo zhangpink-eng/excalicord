@@ -149,6 +149,10 @@ export function useCanvasRecorder(): UseCanvasRecorderReturn {
     stopTimer()
     setState("stopped")
 
+    // Reset duration
+    pausedDurationRef.current = 0
+    setDuration(0)
+
     const blob = await recorderRef.current?.stop() || null
     setRecordedBlob(blob)
     setState("idle")
