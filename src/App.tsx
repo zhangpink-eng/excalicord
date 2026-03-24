@@ -25,11 +25,11 @@ const DEFAULT_FRAME_WIDTH = 720
 const DEFAULT_FRAME_HEIGHT = 540
 const DEFAULT_FRAME_OFFSET_X = 800 // horizontal spacing between frames
 
-// Generate slide frame element
+// Generate slide frame element (as Excalidraw native frame)
 function createSlideFrameElement(slideId: string, index: number, isActive: boolean, x: number, y: number): any {
   return {
     id: `slide-frame-${index}`, // Use index for stable ID
-    type: "rectangle",
+    type: "frame",
     x,
     y,
     width: DEFAULT_FRAME_WIDTH,
@@ -651,79 +651,26 @@ function App() {
             <ExcalidrawCanvas
               key={slides[currentSlideIndex]?.id}
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              elements={slides[currentSlideIndex]?.content?.elements as any[] || []}
+              elements={(slides[currentSlideIndex]?.content?.elements || []).map((el: any) => ({
+                ...el,
+                frameId: `slide-frame-${currentSlideIndex}`, // Set frameId for containment
+              }))}
               slideFrameElements={createSlideFrameElements(slides, currentSlideIndex, framePositionsState)}
               onElementsChange={(elements) => {
                 const currentSlide = slides[currentSlideIndex]
                 if (!currentSlide) return
 
-                // Separate slide frame elements from content elements
+                // Excalidraw handles frame containment natively
+                // Elements inside a frame move with the frame automatically
+                // Filter out frame elements and save content elements
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const contentElements = elements.filter((el: any) => !el.id.startsWith("slide-frame-"))
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const frameElements = elements.filter((el: any) => el.id.startsWith("slide-frame-"))
-
-                // Track which slides had their frames moved
-                const movedSlides: { index: number; deltaX: number; deltaY: number }[] = []
-
-                // Check if any slide frame was moved
-                frameElements.forEach((frameEl: any) => {
-                  const index = parseInt(frameEl.id.replace("slide-frame-", ""), 10)
-                  if (isNaN(index)) return
-
-                  const originalPos = framePositionsRef.current[index]
-                  if (originalPos && (frameEl.x !== originalPos.x || frameEl.y !== originalPos.y)) {
-                    // Frame moved! Calculate delta
-                    const deltaX = frameEl.x - originalPos.x
-                    const deltaY = frameEl.y - originalPos.y
-
-                    // Update stored position (both ref and state)
-                    const newPos = { x: frameEl.x, y: frameEl.y }
-                    framePositionsRef.current[index] = newPos
-                    setFramePositionsState(prev => ({ ...prev, [index]: newPos }))
-
-                    // Mark this slide as having its frame moved
-                    movedSlides.push({ index, deltaX, deltaY, frameX: frameEl.x, frameY: frameEl.y, frameW: frameEl.width, frameH: frameEl.height })
-                  }
-                })
-
-                // Update content for slides whose frames were moved
-                movedSlides.forEach(({ index, deltaX, deltaY, frameX, frameY, frameW, frameH }) => {
-                  const slide = slides[index]
-                  if (slide && slide.content?.elements) {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    const updatedElements = slide.content.elements.map((el: any) => {
-                      // Check if element is inside the frame (using center point)
-                      const elCenterX = (el.x || 0) + (el.width || 0) / 2
-                      const elCenterY = (el.y || 0) + (el.height || 0) / 2
-                      const isInsideFrame =
-                        elCenterX >= frameX &&
-                        elCenterX <= frameX + frameW &&
-                        elCenterY >= frameY &&
-                        elCenterY <= frameY + frameH
-
-                      if (isInsideFrame) {
-                        return {
-                          ...el,
-                          x: (el.x || 0) + deltaX,
-                          y: (el.y || 0) + deltaY,
-                        }
-                      }
-                      return el
-                    })
-                    updateSlide(slide.id, { content: { elements: updatedElements } })
-                  }
-                })
-
-                // For current slide, if its frame wasn't moved, just update content normally
-                if (!movedSlides.some((m) => m.index === currentSlideIndex)) {
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  const boundElements = contentElements.map((el: any) => ({
+                const contentElements = elements
+                  .filter((el: any) => !el.id.startsWith("slide-frame-"))
+                  .map((el: any) => ({
                     ...el,
                     slideId: currentSlide.id,
                   }))
-                  updateSlide(currentSlide.id, { content: { elements: boundElements } })
-                }
+                updateSlide(currentSlide.id, { content: { elements: contentElements } })
               }}
               onViewportChange={(scrollX, scrollY, zoom) => {
                 setViewport({ x: scrollX, y: scrollY, zoom })
