@@ -607,15 +607,11 @@ function App() {
               }}
             />
 
-            {/* Slide frames - clickable overlays (synced with viewport) */}
+            {/* Slide frames - clickable overlays */}
             <div
               ref={slidesContainerRef}
-              className="absolute inset-0 flex items-center overflow-hidden"
-              style={{
-                pointerEvents: 'none',
-                transform: `translate(${-viewport.x}px, ${-viewport.y}px) scale(${viewport.zoom})`,
-                transformOrigin: '0 0',
-              }}
+              className="absolute inset-0 flex items-center overflow-x-auto"
+              style={{ pointerEvents: 'none', scrollBehavior: 'smooth' }}
             >
               <div className="flex items-center gap-4 px-4 min-w-max">
                 {slides.map((slide, index) => {
