@@ -598,8 +598,8 @@ function App() {
                         : "z-10"
                     }`}
                     style={{
-                      width: "480px",
-                      height: "360px",
+                      width: "720px",
+                      height: "540px",
                       transform: currentSlideIndex === index ? "scale(1.02)" : "scale(1)",
                     }}
                   >
