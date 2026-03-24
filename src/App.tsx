@@ -9,7 +9,7 @@ import { LanguageSelector, ThemeToggle } from "@/components/ui"
 import { useMediaDevices, useTranslation, useCanvasRecorder } from "@/hooks"
 import { useAuth } from "@/contexts"
 import { useProject } from "@/contexts"
-import { LoginPage, SignUpPage, DashboardPage, PricingPage } from "@/pages"
+import { LoginPage, SignUpPage, DashboardPage, PricingPage, AuthCallbackPage } from "@/pages"
 import { analytics } from "@/services/api/analytics"
 import { defaultBeautySettings, type BeautySettings } from "@/services/beauty/BeautyFilter"
 import type { BubbleShape } from "@/components/canvas/CameraBubbleSettings"
@@ -374,6 +374,11 @@ function App() {
         </div>
       </div>
     )
+  }
+
+  // Auth callback route
+  if (window.location.pathname === "/auth/callback") {
+    return <AuthCallbackPage />
   }
 
   // Render pages
