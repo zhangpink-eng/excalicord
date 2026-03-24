@@ -28,7 +28,7 @@ const DEFAULT_FRAME_OFFSET_X = 800 // horizontal spacing between frames
 // Generate slide frame element
 function createSlideFrameElement(slideId: string, index: number, isActive: boolean, x: number, y: number): any {
   return {
-    id: `slide-frame-${slideId}`,
+    id: `slide-frame-${index}`, // Use index for stable ID
     type: "rectangle",
     x,
     y,
@@ -55,14 +55,15 @@ function createSlideFrameElement(slideId: string, index: number, isActive: boole
 }
 
 // Helper to generate slide frame elements for Excalidraw
+// Position is computed from index for consistency
 function createSlideFrameElements(
-  slides: { id: string; frameX?: number; frameY?: number }[],
+  slides: { id: string }[],
   currentIndex: number
 ): any[] {
   return slides.map((slide, index) => {
     const isActive = index === currentIndex
-    const x = slide.frameX ?? (DEFAULT_FRAME_X + index * DEFAULT_FRAME_OFFSET_X)
-    const y = slide.frameY ?? DEFAULT_FRAME_Y
+    const x = DEFAULT_FRAME_X + index * DEFAULT_FRAME_OFFSET_X
+    const y = DEFAULT_FRAME_Y
     return createSlideFrameElement(slide.id, index, isActive, x, y)
   })
 }
@@ -94,14 +95,14 @@ function App() {
   // Use slides from ProjectContext (synced with database)
   const { project, slides, addSlide: addSlideToProject, deleteSlide, updateSlide, reorderSlides, createProject, loadProject, updateProject } = useProject()
 
-  // Track slide frame positions (keyed by slide id)
-  const framePositionsRef = useRef<Record<string, { x: number; y: number }>>({})
+  // Track slide frame positions (keyed by index)
+  const framePositionsRef = useRef<Record<number, { x: number; y: number }>>({})
 
   // Initialize frame positions when slides change
   useEffect(() => {
-    slides.forEach((slide, index) => {
-      if (!framePositionsRef.current[slide.id]) {
-        framePositionsRef.current[slide.id] = {
+    slides.forEach((_, index) => {
+      if (!framePositionsRef.current[index]) {
+        framePositionsRef.current[index] = {
           x: DEFAULT_FRAME_X + index * DEFAULT_FRAME_OFFSET_X,
           y: DEFAULT_FRAME_Y,
         }
@@ -655,28 +656,30 @@ function App() {
                 const frameElements = elements.filter((el: any) => el.id.startsWith("slide-frame-"))
 
                 // Track which slides had their frames moved
-                const movedSlides: { slideId: string; deltaX: number; deltaY: number }[] = []
+                const movedSlides: { index: number; deltaX: number; deltaY: number }[] = []
 
                 // Check if any slide frame was moved
                 frameElements.forEach((frameEl: any) => {
-                  const slideId = frameEl.id.replace("slide-frame-", "")
-                  const originalPos = framePositionsRef.current[slideId]
+                  const index = parseInt(frameEl.id.replace("slide-frame-", ""), 10)
+                  if (isNaN(index)) return
+
+                  const originalPos = framePositionsRef.current[index]
                   if (originalPos && (frameEl.x !== originalPos.x || frameEl.y !== originalPos.y)) {
                     // Frame moved! Calculate delta
                     const deltaX = frameEl.x - originalPos.x
                     const deltaY = frameEl.y - originalPos.y
 
                     // Update stored position
-                    framePositionsRef.current[slideId] = { x: frameEl.x, y: frameEl.y }
+                    framePositionsRef.current[index] = { x: frameEl.x, y: frameEl.y }
 
                     // Mark this slide as having its frame moved
-                    movedSlides.push({ slideId, deltaX, deltaY })
+                    movedSlides.push({ index, deltaX, deltaY })
                   }
                 })
 
                 // Update content for slides whose frames were moved
-                movedSlides.forEach(({ slideId, deltaX, deltaY }) => {
-                  const slide = slides.find((s) => s.id === slideId)
+                movedSlides.forEach(({ index, deltaX, deltaY }) => {
+                  const slide = slides[index]
                   if (slide && slide.content?.elements) {
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     const updatedElements = slide.content.elements.map((el: any) => ({
@@ -684,12 +687,12 @@ function App() {
                       x: (el.x || 0) + deltaX,
                       y: (el.y || 0) + deltaY,
                     }))
-                    updateSlide(slideId, { content: { elements: updatedElements } })
+                    updateSlide(slide.id, { content: { elements: updatedElements } })
                   }
                 })
 
                 // For current slide, if its frame wasn't moved, just update content normally
-                if (!movedSlides.some((m) => m.slideId === currentSlide.id)) {
+                if (!movedSlides.some((m) => m.index === currentSlideIndex)) {
                   // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   const boundElements = contentElements.map((el: any) => ({
                     ...el,
@@ -701,10 +704,10 @@ function App() {
               onViewportChange={(scrollX, scrollY, zoom) => {
                 setViewport({ x: scrollX, y: scrollY, zoom })
               }}
-              onSlideFrameClick={(slideId) => {
-                const index = slides.findIndex((s) => s.id === slideId)
-                if (index !== -1) {
-                  goToSlide(index)
+              onSlideFrameClick={(frameIndex) => {
+                // frameIndex is the index from slide-frame-N
+                if (frameIndex >= 0 && frameIndex < slides.length) {
+                  goToSlide(frameIndex)
                 }
               }}
             />

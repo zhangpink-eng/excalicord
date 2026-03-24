@@ -7,7 +7,7 @@ interface ExcalidrawCanvasProps {
   slideFrameElements?: any[]
   onElementsChange?: (elements: any[]) => void
   onViewportChange?: (scrollX: number, scrollY: number, zoom: number) => void
-  onSlideFrameClick?: (slideId: string) => void
+  onSlideFrameClick?: (index: number) => void
 }
 
 export function ExcalidrawCanvas({
@@ -33,17 +33,18 @@ export function ExcalidrawCanvas({
 
   // Handle element changes - detect slide frame clicks
   const handleChange = useCallback((allElements: any[]) => {
-    // Check if any slide frame was clicked (simple detection via boundElements or ID pattern)
-    const slideFrameIds = slideFrameElements.map((el) => el.id)
+    // Check if any slide frame was clicked (simple detection via ID pattern)
     const frameClick = allElements.find(
       (el) => el.id.startsWith("slide-frame-") && el.backgroundColor === "#2563eb"
     )
     if (frameClick) {
-      const slideId = frameClick.id.replace("slide-frame-", "")
-      onSlideFrameClick?.(slideId)
+      const frameIndex = parseInt(frameClick.id.replace("slide-frame-", ""), 10)
+      if (!isNaN(frameIndex)) {
+        onSlideFrameClick?.(frameIndex)
+      }
     }
     onElementsChange?.([...allElements])
-  }, [slideFrameElements, onElementsChange, onSlideFrameClick])
+  }, [onElementsChange, onSlideFrameClick])
 
   // Combine regular elements with slide frame elements
   const allElements = [...slideFrameElements, ...elements]
