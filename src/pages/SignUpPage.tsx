@@ -44,40 +44,25 @@ export function SignUpPage({ onSignIn, onSuccess }: SignUpPageProps) {
   }
 
   return (
-    <div className="min-h-screen bg-[#0F0E11] flex items-center justify-center">
-      {/* Navigation Bar */}
-      <header className="absolute top-0 left-0 right-0 bg-[#0F0E11] border-b border-white/5">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-600 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/20">
-              <span className="text-white font-bold text-sm">E</span>
-            </div>
-            <span className="font-semibold text-white bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-              Excalicord
-            </span>
-          </div>
-        </div>
-      </header>
-
-      {/* Sign Up Card */}
-      <div className="w-full max-w-md p-8 bg-white/5 border border-white/10 rounded-2xl shadow-xl mt-16">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+      <div className="w-full max-w-md p-8 bg-white rounded-xl shadow-lg">
         <div className="text-center mb-8">
-          <div className="w-12 h-12 mx-auto mb-4 rounded-xl bg-gradient-to-br from-purple-600 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/20">
+          <div className="w-12 h-12 mx-auto mb-4 rounded-xl bg-primary flex items-center justify-center">
             <span className="text-white text-xl font-bold">E</span>
           </div>
-          <h1 className="text-2xl font-bold text-white mb-1">Create an account</h1>
-          <p className="text-sm text-white/40">Get started with Excalicord for free</p>
+          <h1 className="text-2xl font-bold">Create an account</h1>
+          <p className="text-muted-foreground mt-2">Get started with Excalicord for free</p>
         </div>
 
         {error && (
-          <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">
+          <div className="mb-4 p-3 bg-destructive/10 text-destructive text-sm rounded-lg">
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="fullName" className="block text-sm font-medium text-white/80 mb-1">
+            <label htmlFor="fullName" className="block text-sm font-medium mb-1">
               Full name
             </label>
             <input
@@ -85,13 +70,13 @@ export function SignUpPage({ onSignIn, onSuccess }: SignUpPageProps) {
               type="text"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="John Doe"
             />
           </div>
 
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-white/80 mb-1">
+            <label htmlFor="email" className="block text-sm font-medium mb-1">
               Email
             </label>
             <input
@@ -99,14 +84,14 @@ export function SignUpPage({ onSignIn, onSuccess }: SignUpPageProps) {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="you@example.com"
               required
             />
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-white/80 mb-1">
+            <label htmlFor="password" className="block text-sm font-medium mb-1">
               Password
             </label>
             <input
@@ -114,18 +99,14 @@ export function SignUpPage({ onSignIn, onSuccess }: SignUpPageProps) {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="••••••••"
               minLength={6}
               required
             />
           </div>
 
-          <Button
-            type="submit"
-            className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white border-0 shadow-lg shadow-purple-500/20"
-            disabled={isLoading}
-          >
+          <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? "Creating account..." : "Create account"}
           </Button>
         </form>
@@ -133,17 +114,17 @@ export function SignUpPage({ onSignIn, onSuccess }: SignUpPageProps) {
         <div className="mt-6">
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-white/10" />
+              <div className="w-full border-t" />
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-3 bg-[#0F0E11] text-white/40">Or continue with</span>
+              <span className="px-2 bg-white text-muted-foreground">Or continue with</span>
             </div>
           </div>
 
           <Button
             type="button"
             variant="outline"
-            className="w-full mt-4 bg-white/5 border-white/10 text-white hover:bg-white/10 hover:border-white/20"
+            className="w-full mt-4"
             onClick={handleGoogleSignIn}
             disabled={isLoading}
           >
@@ -169,12 +150,12 @@ export function SignUpPage({ onSignIn, onSuccess }: SignUpPageProps) {
           </Button>
         </div>
 
-        <p className="mt-6 text-center text-sm text-white/40">
+        <p className="mt-6 text-center text-sm text-muted-foreground">
           Already have an account?{" "}
           <button
             type="button"
             onClick={onSignIn}
-            className="text-purple-400 hover:text-purple-300 font-medium transition-colors"
+            className="text-primary hover:underline font-medium"
           >
             Sign in
           </button>
