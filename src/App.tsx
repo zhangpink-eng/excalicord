@@ -25,7 +25,7 @@ const DEFAULT_FRAME_HEIGHT = 540
 const DEFAULT_FRAME_OFFSET_X = 800 // horizontal spacing between frames
 
 // Generate slide frame element (as Excalidraw native frame)
-function createSlideFrameElement(slideId: string, index: number, isActive: boolean, x: number, y: number): any {
+function createSlideFrameElement(slideId: string, index: number, isActive: boolean, x: number, y: number, name?: string): any {
   return {
     id: `slide-frame-${index}`, // Use index for stable ID
     type: "frame",
@@ -50,6 +50,7 @@ function createSlideFrameElement(slideId: string, index: number, isActive: boole
     updated: 0,
     link: null,
     locked: false,
+    name: name || `第${index + 1}页`,
   }
 }
 
@@ -65,7 +66,7 @@ function createSlideFrameElements(
     const stored = framePositions[index]
     const x = stored ? stored.x : (DEFAULT_FRAME_X + index * DEFAULT_FRAME_OFFSET_X)
     const y = stored ? stored.y : DEFAULT_FRAME_Y
-    return createSlideFrameElement(slide.id, index, isActive, x, y)
+    return createSlideFrameElement(slide.id, index, isActive, x, y, slide.name || `第${index + 1}页`)
   })
 }
 
