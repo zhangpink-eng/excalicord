@@ -9,12 +9,12 @@ import { LanguageSelector, ThemeToggle } from "@/components/ui"
 import { useMediaDevices, useTranslation, useCanvasRecorder } from "@/hooks"
 import { useAuth } from "@/contexts"
 import { useProject } from "@/contexts"
-import { LoginPage, SignUpPage, DashboardPage, ProjectsPage, PricingPage, AuthCallbackPage } from "@/pages"
+import { LoginPage, SignUpPage, DashboardPage, PricingPage, AuthCallbackPage } from "@/pages"
 import { analytics } from "@/services/api/analytics"
 import { defaultBeautySettings, type BeautySettings } from "@/services/beauty/BeautyFilter"
 import type { BubbleShape } from "@/components/canvas/CameraBubbleSettings"
 
-type Page = "login" | "signup" | "dashboard" | "projects" | "editor"
+type Page = "login" | "signup" | "dashboard" | "editor"
 
 function App() {
   const { t } = useTranslation()
@@ -406,16 +406,6 @@ function App() {
   if (currentPage === "dashboard") {
     return (
       <DashboardPage
-        onOpenProject={handleOpenProject}
-        onCreateProject={handleCreateProject}
-        onSignOut={handleSignOut}
-      />
-    )
-  }
-
-  if (currentPage === "projects") {
-    return (
-      <ProjectsPage
         onOpenProject={handleOpenProject}
         onCreateProject={handleCreateProject}
         onSignOut={handleSignOut}

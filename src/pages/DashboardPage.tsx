@@ -15,13 +15,18 @@ export function DashboardPage({ onOpenProject, onCreateProject, onSignOut }: Das
   const [projects, setProjects] = useState<Project[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [showUserMenu, setShowUserMenu] = useState(false)
+  const [showProjectsPanel, setShowProjectsPanel] = useState(false)
   const userMenuRef = useRef<HTMLDivElement>(null)
+  const projectsPanelRef = useRef<HTMLDivElement>(null)
 
   // Close menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
         setShowUserMenu(false)
+      }
+      if (projectsPanelRef.current && !projectsPanelRef.current.contains(event.target as Node)) {
+        setShowProjectsPanel(false)
       }
     }
     document.addEventListener("mousedown", handleClickOutside)
@@ -82,6 +87,33 @@ export function DashboardPage({ onOpenProject, onCreateProject, onSignOut }: Das
             </span>
           </div>
           <div className="flex items-center gap-4">
+            {/* Projects Button */}
+            <button
+              onClick={() => setShowProjectsPanel(!showProjectsPanel)}
+              className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+                <polyline points="14 2 14 8 20 8" />
+              </svg>
+              <span className="hidden sm:inline">Projects</span>
+              {projects.length > 0 && (
+                <span className="ml-1 px-1.5 py-0.5 text-xs bg-gray-100 rounded-full">
+                  {projects.length}
+                </span>
+              )}
+            </button>
+
             {/* User Menu */}
             <div className="relative" ref={userMenuRef}>
               <button
@@ -89,9 +121,9 @@ export function DashboardPage({ onOpenProject, onCreateProject, onSignOut }: Das
                 className="flex items-center gap-3 hover:bg-gray-100 rounded-lg px-3 py-2 transition-colors"
               >
                 {/* User Avatar */}
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center overflow-hidden">
                   {user?.avatarUrl ? (
-                    <img src={user.avatarUrl} alt="" className="w-8 h-8 rounded-full object-cover" />
+                    <img src={user.avatarUrl} alt="" className="w-full h-full object-cover" />
                   ) : (
                     <span className="text-white text-sm font-medium">
                       {user?.fullName?.charAt(0) || user?.email?.charAt(0) || "U"}
@@ -115,7 +147,7 @@ export function DashboardPage({ onOpenProject, onCreateProject, onSignOut }: Das
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  className={`text-white/40 transition-transform ${showUserMenu ? "rotate-180" : ""}`}
+                  className={`text-gray-400 transition-transform ${showUserMenu ? "rotate-180" : ""}`}
                 >
                   <path d="m6 9 6 6 6-6" />
                 </svg>
@@ -282,7 +314,7 @@ export function DashboardPage({ onOpenProject, onCreateProject, onSignOut }: Das
                     height="14"
                     viewBox="0 0 24 24"
                     fill="none"
-                    stroke="white"
+                    stroke="currentColor"
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -308,6 +340,144 @@ export function DashboardPage({ onOpenProject, onCreateProject, onSignOut }: Das
           </div>
         )}
       </main>
+
+      {/* Projects Panel (Right Sidebar) */}
+      {showProjectsPanel && (
+        <div
+          ref={projectsPanelRef}
+          className="fixed top-0 right-0 w-80 h-full bg-white border-l border-gray-200 shadow-xl z-50 overflow-y-auto"
+        >
+          <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+            <h2 className="font-semibold text-gray-900">All Projects</h2>
+            <button
+              onClick={() => setShowProjectsPanel(false)}
+              className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="text-gray-500"
+              >
+                <path d="M18 6L6 18M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <div className="p-4">
+            <Button
+              onClick={() => {
+                onCreateProject()
+                setShowProjectsPanel(false)
+              }}
+              className="w-full mb-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white border-0"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="mr-2"
+              >
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+              New Project
+            </Button>
+
+            {isLoading ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="h-16 bg-gray-100 rounded-lg animate-pulse" />
+                ))}
+              </div>
+            ) : projects.length === 0 ? (
+              <p className="text-sm text-gray-500 text-center py-8">No projects yet</p>
+            ) : (
+              <div className="space-y-2">
+                {projects.map((project) => (
+                  <button
+                    key={project.id}
+                    onClick={() => {
+                      onOpenProject(project.id)
+                      setShowProjectsPanel(false)
+                    }}
+                    className="w-full p-3 text-left bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors group"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center shrink-0">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="18"
+                          height="18"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="#9333EA"
+                          strokeWidth="1.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+                          <polyline points="14 2 14 8 20 8" />
+                        </svg>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate">
+                          {project.title}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {formatDate(project.updatedAt)}
+                        </p>
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDeleteProject(project.id)
+                        }}
+                        className="p-1 opacity-0 group-hover:opacity-100 hover:bg-red-100 rounded transition-all"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="14"
+                          height="14"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="text-gray-400 hover:text-red-500"
+                        >
+                          <path d="M3 6h18" />
+                          <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                          <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                        </svg>
+                      </button>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Overlay */}
+      {showProjectsPanel && (
+        <div
+          className="fixed inset-0 bg-black/20 z-40"
+          onClick={() => setShowProjectsPanel(false)}
+        />
+      )}
     </div>
   )
 }
