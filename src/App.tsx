@@ -20,19 +20,17 @@ type Page = "login" | "signup" | "dashboard" | "editor"
 // Default slide frame dimensions
 const DEFAULT_FRAME_X = 100
 const DEFAULT_FRAME_Y = 100
-const DEFAULT_FRAME_WIDTH = 720
-const DEFAULT_FRAME_HEIGHT = 540
 const DEFAULT_FRAME_OFFSET_X = 800 // horizontal spacing between frames
 
 // Generate slide frame element (as Excalidraw native frame)
-function createSlideFrameElement(index: number, isActive: boolean, x: number, y: number, name?: string): any {
+function createSlideFrameElement(index: number, isActive: boolean, x: number, y: number, width: number, height: number, name?: string): any {
   return {
     id: `slide-frame-${index}`, // Use index for stable ID
     type: "frame",
     x,
     y,
-    width: DEFAULT_FRAME_WIDTH,
-    height: DEFAULT_FRAME_HEIGHT,
+    width,
+    height,
     strokeColor: isActive ? "#2563eb" : "#e5e7eb",
     backgroundColor: "transparent",
     fillStyle: "solid",
@@ -59,14 +57,16 @@ function createSlideFrameElement(index: number, isActive: boolean, x: number, y:
 function createSlideFrameElements(
   slides: { id: string; name?: string }[],
   currentIndex: number,
-  framePositions: Record<number, { x: number; y: number }>
+  framePositions: Record<number, { x: number; y: number }>,
+  frameWidth: number,
+  frameHeight: number
 ): any[] {
   return slides.map((slide, index) => {
     const isActive = index === currentIndex
     const stored = framePositions[index]
     const x = stored ? stored.x : (DEFAULT_FRAME_X + index * DEFAULT_FRAME_OFFSET_X)
     const y = stored ? stored.y : DEFAULT_FRAME_Y
-    return createSlideFrameElement(index, isActive, x, y, slide.name || `第${index + 1}页`)
+    return createSlideFrameElement(index, isActive, x, y, frameWidth, frameHeight, slide.name || `第${index + 1}页`)
   })
 }
 
@@ -235,7 +235,6 @@ function App() {
 
   const [isRecording, setIsRecording] = useState(false)
   const [showRecordingPreview, setShowRecordingPreview] = useState(false)
-  const [recordingPreviewSize] = useState({ width: 640, height: 360 })
   const [beautyEnabled, setBeautyEnabled] = useState(false)
   const [beautySettings, setBeautySettingsState] = useState<BeautySettings>(defaultBeautySettings)
 
@@ -385,11 +384,12 @@ function App() {
     }
 
     // Set up preview area for the recorder
+    const slideDimensions = { width: customWidth, height: customHeight }
     const previewAreaConfig = {
       x: 0,
       y: 0,
-      width: recordingPreviewSize.width,
-      height: recordingPreviewSize.height,
+      width: slideDimensions.width,
+      height: slideDimensions.height,
     }
     setPreviewArea(previewAreaConfig)
 
@@ -399,11 +399,17 @@ function App() {
       setExcalidrawCanvas(excalidrawCanvas)
     }
 
+    // Camera bubble size is 10% larger than slide
+    const cameraBubbleDimensions = {
+      width: Math.round(slideDimensions.width * 1.1),
+      height: Math.round(slideDimensions.height * 1.1),
+    }
+
     // Set up camera bubble state - default to bottom-right of preview area
     if (cameraStreamToUse) {
       const defaultPos = {
-        x: recordingPreviewSize.width - cameraBubbleSize.current.width - 20,
-        y: recordingPreviewSize.height - cameraBubbleSize.current.height - 20,
+        x: slideDimensions.width - cameraBubbleDimensions.width - 20,
+        y: slideDimensions.height - cameraBubbleDimensions.height - 20,
       }
       // Use avatar stream if avatar is enabled, otherwise use camera stream
       const streamForRecording = avatarEnabled && avatarStream ? avatarStream : cameraStreamToUse
@@ -441,7 +447,7 @@ function App() {
     startCanvasRecording()
 
     analytics.trackRecordingStarted(project?.id || "unknown")
-  }, [startCamera, startMic, setExcalidrawCanvas, setCameraBubbleState, setCameraVideo, setAudioStream, setBeautySettings, setPreviewArea, beautyEnabled, beautySettings, startCanvasRecording, project, recordingPreviewSize, cameraBubbleShape, cameraBubbleBorderColor, cameraBubbleBorderWidth, cameraBubbleBorderRadius, avatarEnabled, avatarStream])
+  }, [startCamera, startMic, setExcalidrawCanvas, setCameraBubbleState, setCameraVideo, setAudioStream, setBeautySettings, setPreviewArea, beautyEnabled, beautySettings, startCanvasRecording, project, customWidth, customHeight, cameraBubbleShape, cameraBubbleBorderColor, cameraBubbleBorderWidth, cameraBubbleBorderRadius, avatarEnabled, avatarStream])
 
   const handleStop = useCallback(async () => {
     setIsRecording(false)
@@ -730,7 +736,7 @@ function App() {
                 ...el,
                 frameId: `slide-frame-${currentSlideIndex}`, // Set frameId for containment
               }))}
-              slideFrameElements={createSlideFrameElements(slides, currentSlideIndex, framePositionsState)}
+              slideFrameElements={createSlideFrameElements(slides, currentSlideIndex, framePositionsState, customWidth, customHeight)}
               onElementsChange={(elements) => {
                 const currentSlide = slides[currentSlideIndex]
                 if (!currentSlide) return
@@ -773,8 +779,8 @@ function App() {
             {/* Recording Preview Area - shown during recording */}
             <RecordingPreview
               visible={showRecordingPreview}
-              width={recordingPreviewSize.width}
-              height={recordingPreviewSize.height}
+              width={customWidth}
+              height={customHeight}
               cameraStream={cameraStream}
               cameraPosition={cameraBubblePosition.current}
               cameraSize={cameraBubbleSize.current}
