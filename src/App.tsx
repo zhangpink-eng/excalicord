@@ -42,19 +42,6 @@ function App() {
 
   // Auto-save debounce refs
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const lastSavedElementsRef = useRef<string>("")
-
-  // Debounced save function for slide elements
-  const debouncedSave = useCallback((slideId: string, elements: unknown[]) => {
-    const elementsString = JSON.stringify(elements)
-    if (elementsString === lastSavedElementsRef.current) return
-    if (autoSaveTimeoutRef.current) clearTimeout(autoSaveTimeoutRef.current)
-    autoSaveTimeoutRef.current = setTimeout(() => {
-      lastSavedElementsRef.current = elementsString
-      updateSlide(slideId, { content: { elements } })
-    }, 1000)
-  }, [updateSlide])
-
   // Debounced save function for project name
   const debouncedProjectNameSave = useCallback((name: string) => {
     if (autoSaveTimeoutRef.current) clearTimeout(autoSaveTimeoutRef.current)
@@ -558,71 +545,78 @@ function App() {
           />
         }
         canvas={
-          <div className="relative w-full h-full bg-canvas-light">
-            {/* Single shared Excalidraw canvas - shows only current slide's elements */}
-            <ExcalidrawCanvas
-              key={slides[currentSlideIndex]?.id}
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              elements={slides[currentSlideIndex]?.content?.elements as any[] || []}
-              onElementsChange={(elements) => {
-                const currentSlide = slides[currentSlideIndex]
-                if (!currentSlide) return
-                // Filter elements to only include those belonging to current slide
-                // This ensures elements don't leak between slides
-                const boundElements = elements
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  .filter((el: any) => !el.slideId || el.slideId === currentSlide.id)
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  .map((el: any) => ({
-                    ...el,
-                    slideId: currentSlide.id,
-                  }))
-                debouncedSave(currentSlide.id, boundElements)
-              }}
-            />
-
-            {/* Slide frames as purely visual overlays - scrollable container */}
+          <div className="relative w-full h-full bg-canvas-light overflow-hidden">
+            {/* Slide frames container - each with its own canvas */}
             <div
               ref={slidesContainerRef}
-              className="absolute inset-0 flex items-center overflow-x-auto pointer-events-none"
+              className="absolute inset-0 flex items-center overflow-x-auto"
               style={{ scrollBehavior: 'smooth' }}
             >
               <div className="flex items-center gap-4 px-4 min-w-max">
-                {slides.map((slide, index) => (
-                  <div
-                    key={slide.id}
-                    data-slide-index={index}
-                    className={`relative transition-all duration-200 ${
-                      currentSlideIndex === index
-                        ? "z-20"
-                        : "z-10"
-                    }`}
-                    style={{
-                      width: "720px",
-                      height: "540px",
-                      transform: currentSlideIndex === index ? "scale(1.02)" : "scale(1)",
-                    }}
-                  >
-                    {/* Pure visual border - no pointer events */}
+                {slides.map((slide, index) => {
+                  const isActive = currentSlideIndex === index
+                  return (
                     <div
-                      className={`absolute inset-0 rounded-lg transition-all duration-200 pointer-events-none ${
-                        currentSlideIndex === index
-                          ? "border-4 border-primary shadow-2xl"
-                          : "border-2 border-border/70"
+                      key={slide.id}
+                      data-slide-index={index}
+                      className={`relative flex-shrink-0 ${
+                        isActive ? "z-20" : "z-10"
                       }`}
-                    />
-                    {/* Slide number label */}
-                    <div
-                      className={`absolute -top-8 left-1/2 -translate-x-1/2 text-sm font-medium px-3 py-1 rounded-full transition-colors pointer-events-none ${
-                        currentSlideIndex === index
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted text-muted-foreground"
-                      }`}
+                      style={{
+                        width: "720px",
+                        height: "540px",
+                      }}
                     >
-                      {index + 1}
+                      {/* Excalidraw canvas for this slide */}
+                      <div
+                        className="absolute inset-0 rounded-lg overflow-hidden cursor-pointer"
+                        onClick={() => {
+                          goToSlide(index)
+                          // Scroll into view
+                          setTimeout(() => {
+                            const container = slidesContainerRef.current
+                            const slideEl = container?.querySelector(`[data-slide-index="${index}"]`)
+                            slideEl?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
+                          }, 50)
+                        }}
+                      >
+                        <ExcalidrawCanvas
+                          key={slide.id}
+                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                          elements={slide.content?.elements as any[] || []}
+                          onElementsChange={(elements) => {
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            const boundElements = elements.map((el: any) => ({
+                              ...el,
+                              slideId: slide.id,
+                            }))
+                            updateSlide(slide.id, { content: { elements: boundElements } })
+                          }}
+                        />
+                      </div>
+
+                      {/* Border overlay */}
+                      <div
+                        className={`absolute inset-0 rounded-lg transition-all duration-200 pointer-events-none ${
+                          isActive
+                            ? "border-4 border-primary shadow-2xl"
+                            : "border-2 border-border/70"
+                        }`}
+                      />
+
+                      {/* Slide number label */}
+                      <div
+                        className={`absolute -top-8 left-1/2 -translate-x-1/2 text-sm font-medium px-3 py-1 rounded-full transition-colors ${
+                          isActive
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted text-muted-foreground"
+                        }`}
+                      >
+                        {index + 1}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
 
