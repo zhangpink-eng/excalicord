@@ -607,7 +607,7 @@ function App() {
               }}
             />
 
-            {/* Slide frames - clickable overlays */}
+            {/* Slide frames - visual overlays (active slide doesn't block events) */}
             <div
               ref={slidesContainerRef}
               className="absolute inset-0 flex items-center overflow-x-auto"
@@ -628,16 +628,15 @@ function App() {
                         height: "540px",
                       }}
                     >
-                      {/* Clickable area */}
-                      <div
-                        className="absolute inset-0 cursor-pointer"
-                        style={{ pointerEvents: 'auto' }}
-                        onClick={() => {
-                          goToSlide(index)
-                        }}
-                      />
+                      {/* Only non-active slides are clickable */}
+                      {!isActive && (
+                        <div
+                          className="absolute inset-0 cursor-pointer z-30"
+                          onClick={() => goToSlide(index)}
+                        />
+                      )}
 
-                      {/* Border overlay */}
+                      {/* Border overlay - always visible, never blocks events */}
                       <div
                         className={`absolute inset-0 rounded-lg transition-all duration-200 pointer-events-none ${
                           isActive
