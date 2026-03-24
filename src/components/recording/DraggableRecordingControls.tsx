@@ -7,6 +7,7 @@ interface DraggableRecordingControlsProps {
   duration: number
   onRecord: () => void
   onStop: () => void
+  onCancel?: () => void
 }
 
 function formatDuration(seconds: number): string {
@@ -20,6 +21,7 @@ export function DraggableRecordingControls({
   duration,
   onRecord,
   onStop,
+  onCancel,
 }: DraggableRecordingControlsProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [isDragging, setIsDragging] = useState(false)
@@ -28,17 +30,18 @@ export function DraggableRecordingControls({
 
   const isRecording = state === "recording"
   const isCountdown = state === "countdown"
+  const isPreviewing = state === "previewing"
 
   // Initialize position to bottom-right after mount
   useEffect(() => {
-    const containerWidth = 140
+    const containerWidth = isPreviewing ? 280 : 140
     const containerHeight = 48
     const margin = 80
     setPosition({
       x: window.innerWidth - containerWidth - margin,
       y: window.innerHeight - containerHeight - margin,
     })
-  }, [])
+  }, [isPreviewing])
 
   const handleMouseDown = (e: React.MouseEvent) => {
     // Don't start drag if clicking on a button
@@ -56,7 +59,7 @@ export function DraggableRecordingControls({
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (!isDragging) return
-      const containerWidth = 140
+      const containerWidth = isPreviewing ? 280 : 140
       const containerHeight = 48
       const newX = Math.max(0, Math.min(window.innerWidth - containerWidth, e.clientX - dragStart.x))
       const newY = Math.max(0, Math.min(window.innerHeight - containerHeight, e.clientY - dragStart.y))
@@ -76,7 +79,7 @@ export function DraggableRecordingControls({
       document.removeEventListener("mousemove", handleMouseMove)
       document.removeEventListener("mouseup", handleMouseUp)
     }
-  }, [isDragging, dragStart])
+  }, [isDragging, dragStart, isPreviewing])
 
   return (
     <div
@@ -103,6 +106,32 @@ export function DraggableRecordingControls({
         </div>
       </div>
 
+      {/* Cancel button - only show in previewing state */}
+      {isPreviewing && onCancel && (
+        <Button
+          variant="ghost"
+          onClick={onCancel}
+          size="sm"
+          className="h-8 text-gray-600 hover:text-gray-800 hover:bg-gray-100"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="mr-1"
+          >
+            <path d="M18 6L6 18M6 6l12 12" />
+          </svg>
+          取消
+        </Button>
+      )}
+
       {/* Recording state indicator - only show when recording */}
       {isRecording && (
         <div className="flex items-center gap-1.5 mr-2">
@@ -124,6 +153,20 @@ export function DraggableRecordingControls({
         >
           {isCountdown ? (
             "Starting..."
+          ) : isPreviewing ? (
+            <>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                className="mr-1"
+              >
+                <circle cx="12" cy="12" r="8" />
+              </svg>
+              开始录制
+            </>
           ) : (
             <>
               <svg

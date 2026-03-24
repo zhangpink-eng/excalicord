@@ -263,6 +263,7 @@ function App() {
   } = useCanvasRecorder()
 
   const [isRecording, setIsRecording] = useState(false)
+  const [isPreviewing, setIsPreviewing] = useState(false)
   const [showRecordingPreview, setShowRecordingPreview] = useState(false)
   const [beautyEnabled, setBeautyEnabled] = useState(false)
   const [beautySettings, setBeautySettingsState] = useState<BeautySettings>(defaultBeautySettings)
@@ -384,8 +385,33 @@ function App() {
     return () => window.removeEventListener("keydown", handleKeyDown)
   }, [currentPage, currentSlideIndex, slides.length, goToSlide])
 
+  // Handle cancel from preview state
+  const handleCancelRecording = useCallback(() => {
+    setIsPreviewing(false)
+    setShowRecordingPreview(false)
+  }, [])
+
+  // Handle start recording from preview state
+  const handleStartRecording = useCallback(async () => {
+    // Actually start recording now
+    setIsPreviewing(false)
+    setIsRecording(true)
+
+    // Start canvas recording
+    try {
+      await startCanvasRecording()
+    } catch (err) {
+      console.error("Failed to start canvas recording:", err)
+      setIsRecording(false)
+    }
+
+    analytics.trackRecordingStarted(project?.id || "unknown")
+  }, [startCanvasRecording, project])
+
+  // Handle record button click - enter preview state
   const handleRecord = useCallback(async () => {
-    // Show the recording preview first
+    // Enter preview state
+    setIsPreviewing(true)
     setShowRecordingPreview(true)
 
     // Start camera and mic, using the returned streams directly
@@ -834,6 +860,7 @@ function App() {
             {/* Recording Preview Area - shown during recording */}
             <RecordingPreview
               visible={showRecordingPreview}
+              isPreview={isPreviewing}
               width={frameDimensionsRef.current[currentSlideIndex]?.width || customWidth}
               height={frameDimensionsRef.current[currentSlideIndex]?.height || customHeight}
               cameraStream={cameraStream}
@@ -891,10 +918,11 @@ function App() {
 
             {/* Draggable Recording Controls */}
             <DraggableRecordingControls
-              state={isRecording ? "recording" : "idle"}
+              state={isPreviewing ? "previewing" : isRecording ? "recording" : "idle"}
               duration={duration}
-              onRecord={handleRecord}
+              onRecord={isPreviewing ? handleStartRecording : handleRecord}
               onStop={handleStop}
+              onCancel={isPreviewing ? handleCancelRecording : undefined}
             />
           </div>
         }

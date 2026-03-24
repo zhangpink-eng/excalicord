@@ -41,7 +41,7 @@ export interface SlideContent {
   elements?: unknown[]
 }
 
-export type RecordingState = 'idle' | 'countdown' | 'recording' | 'paused' | 'stopped'
+export type RecordingState = 'idle' | 'countdown' | 'previewing' | 'recording' | 'paused' | 'stopped'
 
 export interface RecordingSession {
   id: string

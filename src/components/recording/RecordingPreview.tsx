@@ -4,6 +4,7 @@ import type { CameraBubbleState } from "@/services/video/CanvasRecorder"
 
 interface RecordingPreviewProps {
   visible: boolean
+  isPreview?: boolean
   width: number
   height: number
   cameraStream: MediaStream | null
@@ -21,6 +22,7 @@ interface RecordingPreviewProps {
 
 export function RecordingPreview({
   visible,
+  isPreview = false,
   width,
   height,
   cameraStream,
@@ -162,7 +164,7 @@ export function RecordingPreview({
     >
       {/* Recording area frame - fully transparent with dashed border */}
       <div
-        className="absolute bg-transparent border-2 border-dashed border-red-500 pointer-events-auto"
+        className={`absolute bg-transparent border-2 border-dashed pointer-events-auto ${isPreview ? "border-yellow-500" : "border-red-500"}`}
         style={{
           left: "50%",
           top: "50%",
@@ -171,16 +173,16 @@ export function RecordingPreview({
           height: `${height}px`,
         }}
       >
-        {/* Recording indicator */}
-        <div className="absolute -top-10 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-red-500 text-white px-3 py-1 rounded-full">
-          <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
-          <span className="text-sm font-medium">Recording</span>
+        {/* Recording/Preview indicator */}
+        <div className={`absolute -top-10 left-1/2 -translate-x-1/2 flex items-center gap-2 ${isPreview ? "bg-yellow-500" : "bg-red-500"} text-white px-3 py-1 rounded-full`}>
+          <div className={`w-2 h-2 bg-white rounded-full ${isPreview ? "" : "animate-pulse"}`} />
+          <span className="text-sm font-medium">{isPreview ? "Preview" : "Recording"}</span>
         </div>
 
         {/* Size adjust handle - top right corner */}
         <div
           onMouseDown={handleResizeMouseDown}
-          className="absolute -top-2 -right-2 w-4 h-4 bg-red-500 rounded cursor-se-resize pointer-events-auto"
+          className={`absolute -top-2 -right-2 w-4 h-4 ${isPreview ? "bg-yellow-500" : "bg-red-500"} rounded cursor-se-resize pointer-events-auto`}
           style={{ cursor: "se-resize" }}
         />
 
