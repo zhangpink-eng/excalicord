@@ -2,6 +2,7 @@ import { type ReactNode } from "react"
 import { BeautyPanel } from "@/components/beauty/BeautyPanel"
 import { CameraBubbleSettings, type BubbleShape } from "@/components/canvas/CameraBubbleSettings"
 import type { BeautySettings } from "@/services/beauty/BeautyFilter"
+import type { AvatarPreset } from "@/services/ai/AvatarService"
 
 export interface RightPanelProps {
   beautyEnabled: boolean
@@ -21,6 +22,12 @@ export interface RightPanelProps {
   onCameraBubbleBorderRadiusChange?: (radius: number) => void
   onCameraBubbleSizeChange?: (size: { width: number; height: number }) => void
   onCameraBubblePositionPreset?: (position: { x: number; y: number }) => void
+  // AI Avatar settings
+  avatarEnabled?: boolean
+  avatarPresets?: AvatarPreset[]
+  selectedAvatarId?: string | null
+  onAvatarToggle?: () => void
+  onAvatarSelect?: (presetId: string) => void
 }
 
 export function RightPanel({
@@ -40,6 +47,11 @@ export function RightPanel({
   onCameraBubbleBorderRadiusChange,
   onCameraBubbleSizeChange,
   onCameraBubblePositionPreset,
+  avatarEnabled = false,
+  avatarPresets = [],
+  selectedAvatarId = null,
+  onAvatarToggle,
+  onAvatarSelect,
 }: RightPanelProps) {
   return (
     <div className="p-4 space-y-6">
@@ -83,15 +95,41 @@ export function RightPanel({
       </section>
 
       <section>
-        <h3 className="font-semibold text-sm mb-4">AI Avatar</h3>
-        <div className="space-y-2">
-          <AvatarOption id="alex" name="Alex (Illustrated)" />
-          <AvatarOption id="sam" name="Sam (Anime)" />
-          <AvatarOption id="jordan" name="Jordan (Realistic)" />
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-sm">AI Avatar</h3>
+          {onAvatarToggle && (
+            <button
+              onClick={onAvatarToggle}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                avatarEnabled ? "bg-primary" : "bg-muted"
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  avatarEnabled ? "translate-x-6" : "translate-x-1"
+                }`}
+              />
+            </button>
+          )}
         </div>
-        <p className="text-xs text-muted-foreground mt-2">
-          AI avatars require API configuration
-        </p>
+        {avatarEnabled && (
+          <>
+            <div className="space-y-2">
+              {avatarPresets.map((preset) => (
+                <AvatarOption
+                  key={preset.id}
+                  id={preset.id}
+                  name={preset.name}
+                  selected={selectedAvatarId === preset.id}
+                  onSelect={onAvatarSelect}
+                />
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              Avatar will appear in camera bubble when enabled
+            </p>
+          </>
+        )}
       </section>
     </div>
   )
@@ -147,16 +185,30 @@ function ToolButton({
   )
 }
 
-function AvatarOption({ id, name }: { id: string; name: string }) {
+function AvatarOption({
+  id,
+  name,
+  selected = false,
+  onSelect,
+}: {
+  id: string
+  name: string
+  selected?: boolean
+  onSelect?: (id: string) => void
+}) {
   return (
-    <label className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted cursor-pointer transition-colors">
+    <label
+      className={`flex items-center gap-3 px-3 py-2 rounded-md cursor-pointer transition-colors ${
+        selected ? "bg-primary/10 text-primary" : "hover:bg-muted"
+      }`}
+      onClick={() => onSelect?.(id)}
+    >
       <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-medium">
         {name[0]}
       </div>
       <span className="text-sm flex-1">{name}</span>
-      <input type="radio" name="avatar" value={id} className="sr-only" />
       <div className="w-4 h-4 rounded-full border border-muted-foreground/30 flex items-center justify-center">
-        <div className="w-2 h-2 rounded-full bg-primary opacity-0" />
+        <div className={`w-2 h-2 rounded-full bg-primary transition-opacity ${selected ? "opacity-100" : "opacity-0"}`} />
       </div>
     </label>
   )

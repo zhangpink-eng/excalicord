@@ -6,7 +6,7 @@ import { PreviewPlayer } from "@/components/recording/PreviewPlayer"
 import { ExcalidrawCanvas, CameraBubble } from "@/components/canvas"
 import { RightPanel } from "@/components/layout/RightPanel"
 import { LanguageSelector, ThemeToggle } from "@/components/ui"
-import { useMediaDevices, useTranslation, useCanvasRecorder } from "@/hooks"
+import { useMediaDevices, useTranslation, useCanvasRecorder, useAvatar } from "@/hooks"
 import { useAuth } from "@/contexts"
 import { useProject } from "@/contexts"
 import { LoginPage, SignUpPage, DashboardPage, PricingPage, AuthCallbackPage } from "@/pages"
@@ -245,6 +245,17 @@ function App() {
   const [recordingPreviewSize] = useState({ width: 640, height: 360 })
   const [beautyEnabled, setBeautyEnabled] = useState(false)
   const [beautySettings, setBeautySettingsState] = useState<BeautySettings>(defaultBeautySettings)
+
+  // AI Avatar state
+  const [avatarEnabled, setAvatarEnabled] = useState(false)
+  const [selectedAvatarId, setSelectedAvatarId] = useState<string | null>(null)
+  const {
+    presets: avatarPresets,
+    outputStream: avatarStream,
+    selectAvatar,
+    start: startAvatar,
+    stop: stopAvatar,
+  } = useAvatar()
 
   // Camera and mic toggle state (for control bar icons)
   const [cameraEnabled, setCameraEnabled] = useState(false)
@@ -498,6 +509,9 @@ function App() {
     if (cameraEnabled) {
       // Turn off camera
       stopCamera()
+      if (avatarEnabled) {
+        stopAvatar()
+      }
       setCameraEnabled(false)
       setCameraBubbleState({
         stream: null,
@@ -513,6 +527,10 @@ function App() {
       try {
         const stream = await startCamera()
         setCameraEnabled(true)
+        // If avatar is enabled, start avatar with the camera stream
+        if (avatarEnabled) {
+          startAvatar(stream)
+        }
         // Set up camera bubble state
         setCameraBubbleState({
           stream: stream,
@@ -527,7 +545,7 @@ function App() {
         console.error("Failed to start camera:", err)
       }
     }
-  }, [cameraEnabled, startCamera, stopCamera, setCameraBubbleState, cameraBubbleShape, cameraBubbleBorderColor, cameraBubbleBorderWidth, cameraBubbleBorderRadius])
+  }, [cameraEnabled, avatarEnabled, startCamera, stopCamera, setCameraBubbleState, cameraBubbleShape, cameraBubbleBorderColor, cameraBubbleBorderWidth, cameraBubbleBorderRadius, startAvatar, stopAvatar])
 
   // Toggle mic on/off (for control bar icon)
   const handleToggleMic = useCallback(async () => {
@@ -545,6 +563,36 @@ function App() {
       }
     }
   }, [micEnabled, startMic, stopMic])
+
+  // Toggle AI Avatar on/off
+  const handleAvatarToggle = useCallback(() => {
+    if (avatarEnabled) {
+      stopAvatar()
+      setAvatarEnabled(false)
+    } else {
+      setAvatarEnabled(true)
+      // If no avatar selected, select the first one
+      if (!selectedAvatarId && avatarPresets.length > 0) {
+        setSelectedAvatarId(avatarPresets[0].id)
+        selectAvatar(avatarPresets[0].id)
+      }
+      // Start avatar with camera stream if camera is enabled
+      if (cameraEnabled && cameraStream) {
+        startAvatar(cameraStream)
+      }
+    }
+  }, [avatarEnabled, selectedAvatarId, avatarPresets, selectAvatar, stopAvatar, cameraEnabled, cameraStream, startAvatar])
+
+  // Select avatar preset
+  const handleAvatarSelect = useCallback((presetId: string) => {
+    setSelectedAvatarId(presetId)
+    selectAvatar(presetId)
+    // If avatar is already running with camera, restart with new avatar
+    if (avatarEnabled && cameraEnabled && cameraStream) {
+      stopAvatar()
+      startAvatar(cameraStream)
+    }
+  }, [selectAvatar, avatarEnabled, cameraEnabled, cameraStream, stopAvatar, startAvatar])
 
   const handleShare = useCallback(() => {
     console.log("Share clicked")
@@ -685,7 +733,7 @@ function App() {
             />
 
             <CameraBubble
-              stream={cameraEnabled && !isRecording ? cameraStream : null}
+              stream={cameraEnabled && !isRecording ? (avatarEnabled && avatarStream ? avatarStream : cameraStream) : null}
               position={cameraBubblePosition.current}
               size={cameraBubbleSize.current}
               shape={cameraBubbleShape}
@@ -785,6 +833,11 @@ function App() {
               onCameraBubbleBorderRadiusChange={setCameraBubbleBorderRadius}
               onCameraBubbleSizeChange={(size) => { cameraBubbleSize.current = size }}
               onCameraBubblePositionPreset={(pos) => { cameraBubblePosition.current = pos }}
+              avatarEnabled={avatarEnabled}
+              avatarPresets={avatarPresets}
+              selectedAvatarId={selectedAvatarId}
+              onAvatarToggle={handleAvatarToggle}
+              onAvatarSelect={handleAvatarSelect}
             />
           ) : null
         }
