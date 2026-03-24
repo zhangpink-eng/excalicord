@@ -84,7 +84,6 @@ function App() {
 
   // Sync currentPage with user state when auth changes
   useEffect(() => {
-    console.log("Auth state changed - user:", user, "authLoading:", authLoading)
     if (!authLoading) {
       if (user) {
         setCurrentPage("editor")
