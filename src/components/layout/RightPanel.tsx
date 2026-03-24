@@ -79,6 +79,11 @@ export function RightPanel({
 }: RightPanelProps) {
   return (
     <div className="p-4 space-y-6">
+      {/* Header */}
+      <div className="text-center">
+        <h2 className="font-semibold">录制设置</h2>
+      </div>
+
       {/* Media Device Controls */}
       {onCameraToggle && onMicToggle && (
         <section>
