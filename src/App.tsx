@@ -39,6 +39,37 @@ function App() {
   // Use slides from ProjectContext (synced with database)
   const { project, slides, addSlide: addSlideToProject, deleteSlide, updateSlide, reorderSlides, createProject, loadProject, updateProject } = useProject()
 
+  // Auto-save debounce refs
+  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const lastSavedElementsRef = useRef<string>("")
+
+  // Debounced save function for slide elements
+  const debouncedSave = useCallback((slideId: string, elements: unknown[]) => {
+    const elementsString = JSON.stringify(elements)
+    if (elementsString === lastSavedElementsRef.current) return
+    if (autoSaveTimeoutRef.current) clearTimeout(autoSaveTimeoutRef.current)
+    autoSaveTimeoutRef.current = setTimeout(() => {
+      lastSavedElementsRef.current = elementsString
+      updateSlide(slideId, { content: { elements } })
+    }, 1000)
+  }, [updateSlide])
+
+  // Debounced save function for project name
+  const debouncedProjectNameSave = useCallback((name: string) => {
+    if (autoSaveTimeoutRef.current) clearTimeout(autoSaveTimeoutRef.current)
+    autoSaveTimeoutRef.current = setTimeout(() => {
+      updateProject({ title: name })
+    }, 1000)
+  }, [updateProject])
+
+  // Handle project name change
+  const handleProjectNameChange = useCallback((name: string) => {
+    setProjectName(name)
+    if (project) {
+      debouncedProjectNameSave(name)
+    }
+  }, [project, debouncedProjectNameSave])
+
   // Projects list for the projects panel
   const [projects, setProjects] = useState<Array<{ id: string; title: string; updatedAt: string }>>([])
 
@@ -55,14 +86,6 @@ function App() {
     loadProjects()
   }, [])
 
-  // Handle project name change - save to database if project exists
-  const handleProjectNameChange = useCallback((name: string) => {
-    setProjectName(name)
-    // Save to database if we have a loaded project
-    if (project) {
-      updateProject({ title: name })
-    }
-  }, [project, updateProject])
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0)
 
   // Sync currentSlideIndex when project changes
@@ -489,7 +512,7 @@ function App() {
                     ...el,
                     slideId: currentSlide.id,
                   }))
-                updateSlide(currentSlide.id, { content: { elements: boundElements } })
+                debouncedSave(currentSlide.id, boundElements)
               }}
             />
 
