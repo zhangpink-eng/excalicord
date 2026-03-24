@@ -1,3 +1,5 @@
 export { ExcalidrawCanvas } from "./ExcalidrawCanvas"
 export { CameraBubble } from "./CameraBubble"
 export type { CameraBubbleProps } from "./CameraBubble"
+export { CanvasOverlay } from "./CanvasOverlay"
+export type { Tool } from "./CanvasOverlay"
