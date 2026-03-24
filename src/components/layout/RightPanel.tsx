@@ -37,6 +37,11 @@ export interface RightPanelProps {
   onAvatarExpressionChange?: (expression: AvatarExpression) => void
   onAvatarPositionPreset?: (position: { x: number; y: number }) => void
   onAvatarScaleChange?: (scale: number) => void
+  // Media device settings
+  cameraEnabled?: boolean
+  micEnabled?: boolean
+  onCameraToggle?: () => void
+  onMicToggle?: () => void
 }
 
 export function RightPanel({
@@ -68,6 +73,10 @@ export function RightPanel({
   onAvatarExpressionChange,
   onAvatarPositionPreset,
   onAvatarScaleChange,
+  cameraEnabled = true,
+  micEnabled = true,
+  onCameraToggle,
+  onMicToggle,
 }: RightPanelProps) {
   return (
     <div className="p-4 space-y-6">
@@ -80,6 +89,64 @@ export function RightPanel({
           <ToolButton icon="image" label="Image" />
         </div>
       </section>
+
+      {/* Media Device Controls */}
+      {onCameraToggle && onMicToggle && (
+        <section>
+          <h3 className="font-semibold text-sm mb-4">Media</h3>
+          <div className="flex gap-2">
+            <button
+              onClick={onCameraToggle}
+              className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-md text-sm font-medium transition-colors ${
+                cameraEnabled
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted hover:bg-muted/80 text-muted-foreground"
+              }`}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill={cameraEnabled ? "currentColor" : "none"}
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                <circle cx="12" cy="13" r="4" />
+              </svg>
+              Camera
+            </button>
+            <button
+              onClick={onMicToggle}
+              className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-md text-sm font-medium transition-colors ${
+                micEnabled
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted hover:bg-muted/80 text-muted-foreground"
+              }`}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill={micEnabled ? "currentColor" : "none"}
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                <line x1="12" x2="12" y1="19" y2="22" />
+              </svg>
+              Mic
+            </button>
+          </div>
+        </section>
+      )}
 
       {/* Camera Bubble Settings */}
       {onCameraBubbleShapeChange && onCameraBubbleBorderColorChange && (

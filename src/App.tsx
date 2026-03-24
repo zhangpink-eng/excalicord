@@ -260,15 +260,15 @@ function App() {
   // Avatar scale state
   const [avatarScale, setAvatarScaleState] = useState(1.0)
 
-  // Camera and mic toggle state (for control bar icons)
-  const [cameraEnabled, setCameraEnabled] = useState(false)
-  const [micEnabled, setMicEnabled] = useState(false)
+  // Camera and mic toggle state (default: enabled)
+  const [cameraEnabled, setCameraEnabled] = useState(true)
+  const [micEnabled, setMicEnabled] = useState(true)
 
   // Preview state
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
 
-  // Right panel visibility (default: hidden)
-  const [rightPanelVisible, setRightPanelVisible] = useState(false)
+  // Right panel visibility (default: visible for camera/mic controls)
+  const [rightPanelVisible, setRightPanelVisible] = useState(true)
 
   // Projects panel visibility (default: hidden)
   const [projectsPanelVisible, setProjectsPanelVisible] = useState(false)
@@ -829,10 +829,6 @@ function App() {
               duration={duration}
               onRecord={handleRecord}
               onStop={handleStop}
-              cameraEnabled={cameraEnabled}
-              micEnabled={micEnabled}
-              onCameraToggle={handleToggleCamera}
-              onMicToggle={handleToggleMic}
             />
           </div>
         }
@@ -870,6 +866,10 @@ function App() {
                 setAvatarScaleState(scale)
                 setAvatarScale(scale)
               }}
+              cameraEnabled={cameraEnabled}
+              micEnabled={micEnabled}
+              onCameraToggle={handleToggleCamera}
+              onMicToggle={handleToggleMic}
             />
           ) : null
         }
