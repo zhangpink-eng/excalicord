@@ -16,6 +16,7 @@ export interface UseCanvasRecorderReturn {
   setCameraBubbleState: (state: CameraBubbleState) => void
   setExcalidrawCanvas: (canvas: HTMLCanvasElement | null) => void
   setCameraVideo: (video: HTMLVideoElement | null) => void
+  setAudioStream: (stream: MediaStream | null) => void
   setBeautySettings: (enabled: boolean, settings?: BeautySettings) => void
   setPreviewArea: (area: PreviewAreaState) => void
 }
@@ -78,6 +79,10 @@ export function useCanvasRecorder(): UseCanvasRecorderReturn {
   const setCameraBubbleState = useCallback((state: CameraBubbleState) => {
     cameraBubbleStateRef.current = state
     recorderRef.current?.setCameraBubble(state)
+  }, [])
+
+  const setAudioStream = useCallback((stream: MediaStream | null) => {
+    recorderRef.current?.setAudioStream(stream)
   }, [])
 
   const setExcalidrawCanvas = useCallback((canvas: HTMLCanvasElement | null) => {
@@ -171,6 +176,7 @@ export function useCanvasRecorder(): UseCanvasRecorderReturn {
     setCameraBubbleState,
     setExcalidrawCanvas,
     setCameraVideo,
+    setAudioStream,
     setBeautySettings,
     setPreviewArea,
   }

@@ -45,6 +45,7 @@ export class CanvasRecorder {
   private excalidrawCanvas: HTMLCanvasElement | null = null
   private cameraBubble: CameraBubbleState | null = null
   private cameraVideo: HTMLVideoElement | null = null
+  private audioStream: MediaStream | null = null
 
   // Beauty filter
   private beautyFilter: BeautyFilter | null = null
@@ -109,6 +110,13 @@ export class CanvasRecorder {
   }
 
   /**
+   * Set the audio stream for recording (separate from camera bubble)
+   */
+  setAudioStream(stream: MediaStream | null): void {
+    this.audioStream = stream
+  }
+
+  /**
    * Set beauty filter settings
    */
   setBeautySettings(enabled: boolean, settings?: BeautySettings): void {
@@ -145,6 +153,15 @@ export class CanvasRecorder {
       const audioTracks = this.cameraBubble.stream.getAudioTracks()
       audioTracks.forEach((track) => {
         canvasStream.addTrack(track)
+      })
+    }
+
+    // Add audio from separate mic stream
+    if (this.audioStream) {
+      const audioTracks = this.audioStream.getAudioTracks()
+      audioTracks.forEach((track) => {
+        canvasStream.addTrack(track)
+        console.log("[CanvasRecorder] Added audio track:", track.label)
       })
     }
 

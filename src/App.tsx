@@ -121,6 +121,7 @@ function App() {
 
   const {
     cameraStream,
+    micStream,
     startCamera,
     stopCamera,
     startMic,
@@ -134,6 +135,7 @@ function App() {
     setExcalidrawCanvas,
     setCameraBubbleState,
     setCameraVideo,
+    setAudioStream,
     setBeautySettings,
     setPreviewArea,
     duration, // Get duration from recorder hook
@@ -274,6 +276,11 @@ function App() {
       }
     }
 
+    // Pass mic stream to recorder for audio recording
+    if (micStream) {
+      setAudioStream(micStream)
+    }
+
     // Apply beauty settings to recorder
     setBeautySettings(beautyEnabled, beautySettings)
 
@@ -282,7 +289,7 @@ function App() {
     startCanvasRecording()
 
     analytics.trackRecordingStarted(project?.id || "unknown")
-  }, [cameraEnabled, cameraStream, micEnabled, startCamera, startMic, setExcalidrawCanvas, setCameraBubbleState, setBeautySettings, setPreviewArea, beautyEnabled, beautySettings, startCanvasRecording, project, recordingPreviewSize, cameraBubbleShape, cameraBubbleBorderColor, cameraBubbleBorderWidth, cameraBubbleBorderRadius])
+  }, [cameraEnabled, cameraStream, micEnabled, micStream, startCamera, startMic, setExcalidrawCanvas, setCameraBubbleState, setCameraVideo, setAudioStream, setBeautySettings, setPreviewArea, beautyEnabled, beautySettings, startCanvasRecording, project, recordingPreviewSize, cameraBubbleShape, cameraBubbleBorderColor, cameraBubbleBorderWidth, cameraBubbleBorderRadius])
 
   const handleStop = useCallback(async () => {
     setIsRecording(false)
