@@ -111,6 +111,9 @@ function App() {
 
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0)
 
+  // Viewport state for syncing slide frames with canvas pan/zoom
+  const [viewport, setViewport] = useState({ x: 0, y: 0, zoom: 1 })
+
   // Sync currentSlideIndex when project changes
   useEffect(() => {
     setCurrentSlideIndex(0)
@@ -599,13 +602,20 @@ function App() {
                 }))
                 updateSlide(currentSlide.id, { content: { elements: boundElements } })
               }}
+              onViewportChange={(scrollX, scrollY, zoom) => {
+                setViewport({ x: scrollX, y: scrollY, zoom })
+              }}
             />
 
-            {/* Slide frames - clickable overlays */}
+            {/* Slide frames - clickable overlays (synced with viewport) */}
             <div
               ref={slidesContainerRef}
-              className="absolute inset-0 flex items-center overflow-x-auto"
-              style={{ scrollBehavior: 'smooth', pointerEvents: 'none' }}
+              className="absolute inset-0 flex items-center overflow-hidden"
+              style={{
+                pointerEvents: 'none',
+                transform: `translate(${-viewport.x}px, ${-viewport.y}px) scale(${viewport.zoom})`,
+                transformOrigin: '0 0',
+              }}
             >
               <div className="flex items-center gap-4 px-4 min-w-max">
                 {slides.map((slide, index) => {
@@ -625,6 +635,7 @@ function App() {
                       {/* Clickable area */}
                       <div
                         className="absolute inset-0 cursor-pointer"
+                        style={{ pointerEvents: 'auto' }}
                         onClick={() => {
                           goToSlide(index)
                         }}
