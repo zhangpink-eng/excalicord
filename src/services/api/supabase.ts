@@ -9,10 +9,10 @@ export function initSupabase(url: string, anonKey: string): SupabaseClient {
 
   supabaseClient = createClient(url, anonKey, {
     auth: {
-      // Disable auto-refresh to prevent lock conflicts with onAuthStateChange
-      autoRefreshToken: false,
+      // Enable to detect session from URL hash after OAuth callback
+      autoRefreshToken: true,
       persistSession: true,
-      detectSessionInUrl: false,
+      detectSessionInUrl: true,
     },
   })
 

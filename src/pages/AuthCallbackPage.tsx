@@ -25,7 +25,10 @@ export function AuthCallbackPage() {
           return
         }
 
-        // Get the session from the URL hash
+        // With detectSessionInUrl: true, Supabase should auto-detect session from URL hash
+        // Just wait a moment for the auth to process
+        await new Promise(resolve => setTimeout(resolve, 1000))
+
         const { data, error: sessionError } = await supabase.auth.getSession()
 
         if (sessionError) {
@@ -37,7 +40,13 @@ export function AuthCallbackPage() {
           // Successfully authenticated, redirect to app
           window.location.href = "/"
         } else {
-          setError("No session found")
+          // Try to refresh and get the session
+          const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession()
+          if (refreshError || !refreshData.session) {
+            setError("No session found after authentication")
+          } else {
+            window.location.href = "/"
+          }
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Authentication failed")
