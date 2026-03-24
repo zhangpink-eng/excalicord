@@ -229,9 +229,10 @@ function App() {
     }
 
     // Auto-enable mic if not already enabled
+    let micStreamToUse = micStream
     if (!micEnabled) {
       try {
-        await startMic()
+        micStreamToUse = await startMic()
         setMicEnabled(true)
       } catch (err) {
         console.error("Failed to start mic:", err)
@@ -277,8 +278,11 @@ function App() {
     }
 
     // Pass mic stream to recorder for audio recording
-    if (micStream) {
-      setAudioStream(micStream)
+    if (micStreamToUse) {
+      console.log("[handleRecord] Setting audio stream, tracks:", micStreamToUse.getAudioTracks().length)
+      setAudioStream(micStreamToUse)
+    } else {
+      console.log("[handleRecord] No mic stream available")
     }
 
     // Apply beauty settings to recorder

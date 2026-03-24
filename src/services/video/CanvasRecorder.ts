@@ -148,6 +148,10 @@ export class CanvasRecorder {
     // Create a stream from the canvas
     const canvasStream = this.canvas.captureStream(this.fps)
 
+    // Check if we have any audio tracks
+    const hasAudio = (this.cameraBubble?.stream?.getAudioTracks().length ?? 0) > 0 ||
+                     (this.audioStream?.getAudioTracks().length ?? 0) > 0
+
     // Try to add audio track from camera
     if (this.cameraBubble?.stream) {
       const audioTracks = this.cameraBubble.stream.getAudioTracks()
@@ -165,23 +169,42 @@ export class CanvasRecorder {
       })
     }
 
-    // Determine supported MIME type - try MP4 first for instant download, then fall back to WebM
+    // Log all tracks in the stream
+    console.log("[CanvasRecorder] Stream has", canvasStream.getTracks().length, "tracks:", canvasStream.getTracks().map(t => `${t.kind}:${t.label}`))
+
+    // Determine supported MIME type - prefer WebM when we have audio (MP4 audio support is limited)
     let mimeType = ""
 
-    // Try MP4 first (Safari supports it natively, gives instant MP4)
-    if (MediaRecorder.isTypeSupported("video/mp4")) {
-      mimeType = "video/mp4"
-      console.log("[CanvasRecorder] Using native MP4 recording")
+    // If we have audio, prefer WebM with VP9 (better audio support)
+    if (hasAudio) {
+      if (MediaRecorder.isTypeSupported("video/webm;codecs=vp9")) {
+        mimeType = "video/webm;codecs=vp9"
+        console.log("[CanvasRecorder] Using WebM VP9 recording (has audio)")
+      } else if (MediaRecorder.isTypeSupported("video/webm")) {
+        mimeType = "video/webm"
+        console.log("[CanvasRecorder] Using WebM recording (has audio)")
+      }
     }
-    // Try WebM with VP9
-    else if (MediaRecorder.isTypeSupported("video/webm;codecs=vp9")) {
-      mimeType = "video/webm;codecs=vp9"
-      console.log("[CanvasRecorder] Using WebM VP9 recording")
-    }
-    // Fall back to basic WebM
-    else if (MediaRecorder.isTypeSupported("video/webm")) {
-      mimeType = "video/webm"
-      console.log("[CanvasRecorder] Using WebM recording")
+
+    // If no audio or WebM not supported, try MP4
+    if (!mimeType) {
+      // Try MP4 first (Safari supports it natively, gives instant MP4)
+      if (MediaRecorder.isTypeSupported("video/mp4")) {
+        mimeType = "video/mp4"
+        console.log("[CanvasRecorder] Using native MP4 recording")
+      }
+      // Try WebM with VP9
+      else if (MediaRecorder.isTypeSupported("video/webm;codecs=vp9")) {
+        mimeType = "video/webm;codecs=vp9"
+        console.log("[CanvasRecorder] Using WebM VP9 recording")
+      }
+      // Fall back to basic WebM
+      else if (MediaRecorder.isTypeSupported("video/webm")) {
+        mimeType = "video/webm"
+        console.log("[CanvasRecorder] Using WebM recording")
+      } else {
+        console.warn("[CanvasRecorder] No supported MIME type found")
+      }
     } else {
       console.warn("[CanvasRecorder] No supported MIME type found")
     }
