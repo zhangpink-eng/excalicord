@@ -68,15 +68,15 @@ export function SlideThumbnail({
     const ctx = canvas.getContext("2d")
     if (!ctx) return
 
-    // Set canvas size to match thumbnail display size (16x12 at 2x for retina)
+    // Set canvas size to match thumbnail display size (40x32 at 2x for retina)
     const dpr = 2
-    canvas.width = 16 * dpr
-    canvas.height = 12 * dpr
+    canvas.width = 40 * dpr
+    canvas.height = 32 * dpr
     ctx.scale(dpr, dpr)
 
     // Clear and fill background
     ctx.fillStyle = "#fafafa"
-    ctx.fillRect(0, 0, 16, 12)
+    ctx.fillRect(0, 0, 40, 32)
 
     // Calculate bounds of all elements
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
@@ -93,10 +93,10 @@ export function SlideThumbnail({
 
     const contentWidth = maxX - minX || 1
     const contentHeight = maxY - minY || 1
-    const scale = Math.min(14 / contentWidth, 10 / contentHeight, 1)
+    const scale = Math.min(36 / contentWidth, 28 / contentHeight, 1)
 
-    const offsetX = (16 - contentWidth * scale) / 2 - minX * scale
-    const offsetY = (12 - contentHeight * scale) / 2 - minY * scale
+    const offsetX = (40 - contentWidth * scale) / 2 - minX * scale
+    const offsetY = (32 - contentHeight * scale) / 2 - minY * scale
 
     // Render each element
     elements.forEach((el: SlideElement) => {
@@ -203,7 +203,7 @@ export function SlideThumbnail({
         onClick={onClick}
         onDoubleClick={handleDoubleClick}
         className={`
-          relative w-4 h-3 rounded border cursor-pointer overflow-hidden
+          relative w-10 h-8 rounded border cursor-pointer overflow-hidden
           transition-all duration-200
           ${isSelected
             ? "border-primary shadow-lg ring-1 ring-primary/20"
@@ -219,7 +219,7 @@ export function SlideThumbnail({
           />
         ) : (
           <div className="absolute inset-0 bg-muted flex items-center justify-center">
-            <span className="text-[6px] text-muted-foreground font-medium leading-none">
+            <span className="text-[8px] text-muted-foreground font-medium leading-none">
               {index + 1}
             </span>
           </div>
