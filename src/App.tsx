@@ -133,6 +133,31 @@ function App() {
     setFramePositionsState({ ...framePositionsRef.current })
   }, [slides])
 
+  // Initialize frame dimensions when slides change - extract from slide content elements
+  useEffect(() => {
+    if (slides.length === 0) return
+
+    slides.forEach((slide, index) => {
+      // Extract frame dimensions from slide content elements
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const elements = (slide.content?.elements || []) as any[]
+      const frameElement = elements.find((el: any) => el.type === "frame" || el.id?.startsWith("slide-frame-"))
+
+      if (frameElement) {
+        frameDimensionsRef.current[index] = {
+          width: frameElement.width || 1920,
+          height: frameElement.height || 1080,
+        }
+      } else if (!frameDimensionsRef.current[index]) {
+        // Fallback for new slides that don't have frame elements yet
+        frameDimensionsRef.current[index] = {
+          width: 1920,
+          height: 1080,
+        }
+      }
+    })
+  }, [slides])
+
   // Auto-save debounce refs
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   // Debounced save function for project name
