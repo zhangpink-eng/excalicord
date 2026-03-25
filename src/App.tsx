@@ -6,7 +6,7 @@ import { PreviewPlayer } from "@/components/recording/PreviewPlayer"
 import { ExcalidrawCanvas, CameraBubble } from "@/components/canvas"
 import { RightPanel } from "@/components/layout/RightPanel"
 import { LanguageSelector, ThemeToggle } from "@/components/ui"
-import { useMediaDevices, useTranslation, useCanvasRecorder, useAvatar, useSlides } from "@/hooks"
+import { useMediaDevices, useTranslation, useAvatar, useSlides, useRecordingFlow } from "@/hooks"
 import { useAuth } from "@/contexts"
 import { useProject } from "@/contexts"
 import { LoginPage, SignUpPage, DashboardPage, PricingPage, AuthCallbackPage } from "@/pages"
@@ -145,25 +145,21 @@ function App() {
     stopMic,
   } = useMediaDevices()
 
-  // Canvas recorder for recording Excalidraw + camera bubble
+  // Recording flow state machine
   const {
-    startRecording: startCanvasRecording,
-    stopRecording: stopCanvasRecording,
+    state: recordingState,
+    isPreviewing,
+    showPreview,
+    duration,
+    startPreview,
+    cancelPreview,
+    startRecording,
     pauseRecording,
     resumeRecording,
-    setExcalidrawCanvas,
+    stopRecording,
     setCameraBubbleState,
-    setCameraVideo,
-    setAudioStream,
-    setBeautySettings,
-    setPreviewArea,
-    duration, // Get duration from recorder hook
-  } = useCanvasRecorder()
+  } = useRecordingFlow()
 
-  const [isRecording, setIsRecording] = useState(false)
-  const [isPaused, setIsPaused] = useState(false)
-  const [isPreviewing, setIsPreviewing] = useState(false)
-  const [showRecordingPreview, setShowRecordingPreview] = useState(false)
   const [beautyEnabled, setBeautyEnabled] = useState(false)
   const [beautySettings, setBeautySettingsState] = useState<BeautySettings>(defaultBeautySettings)
 
@@ -286,37 +282,21 @@ function App() {
 
   // Handle cancel from preview state
   const handleCancelRecording = useCallback(() => {
-    setIsPreviewing(false)
-    setIsPaused(false)
-    setShowRecordingPreview(false)
-  }, [])
+    cancelPreview()
+  }, [cancelPreview])
 
   // Handle start recording from preview state
   const handleStartRecording = useCallback(async () => {
-    // Actually start recording now
-    setIsPreviewing(false)
-    setShowRecordingPreview(false)
-    setIsRecording(true)
-
-    // Start canvas recording
     try {
-      await startCanvasRecording()
+      await startRecording()
     } catch (err) {
-      console.error("Failed to start canvas recording:", err)
-      setIsRecording(false)
+      console.error("Failed to start recording:", err)
     }
-
-    analytics.trackRecordingStarted(project?.id || "unknown")
-  }, [startCanvasRecording, project])
+  }, [startRecording])
 
   // Handle record button click - enter preview state
   const handleRecord = useCallback(async () => {
-    // Enter preview state
-    setIsPreviewing(true)
-    setShowRecordingPreview(true)
-
-    // Start camera and mic, using the returned streams directly
-    // Note: We use the return values directly instead of captured state to avoid closure issues
+    // Start camera and mic
     let cameraStreamToUse = null
     let micStreamToUse = null
 
@@ -342,13 +322,9 @@ function App() {
       width: currentSlideDims.width,
       height: currentSlideDims.height,
     }
-    setPreviewArea(previewAreaConfig)
 
     // Set up Excalidraw canvas reference
     const excalidrawCanvas = document.querySelector(".excalidraw-canvas canvas") as HTMLCanvasElement
-    if (excalidrawCanvas) {
-      setExcalidrawCanvas(excalidrawCanvas)
-    }
 
     // Camera bubble size is 10% larger than slide
     const cameraBubbleDimensions = {
@@ -357,86 +333,50 @@ function App() {
     }
 
     // Set up camera bubble state - default to bottom-right of preview area
-    if (cameraStreamToUse) {
-      const defaultPos = {
-        x: currentSlideDims.width - cameraBubbleDimensions.width - 20,
-        y: currentSlideDims.height - cameraBubbleDimensions.height - 20,
-      }
-      // Use avatar stream if avatar is enabled, otherwise use camera stream
-      const streamForRecording = avatarEnabled && avatarStream ? avatarStream : cameraStreamToUse
-      setCameraBubbleState({
-        stream: streamForRecording,
-        position: defaultPos,
-        size: cameraBubbleSize.current,
-        shape: cameraBubbleShape,
-        borderRadius: cameraBubbleBorderRadius,
-        borderColor: cameraBubbleBorderColor,
-        borderWidth: cameraBubbleBorderWidth,
-      })
+    const defaultPos = {
+      x: currentSlideDims.width - cameraBubbleDimensions.width - 20,
+      y: currentSlideDims.height - cameraBubbleDimensions.height - 20,
+    }
+    // Use avatar stream if avatar is enabled, otherwise use camera stream
+    const streamForRecording = avatarEnabled && avatarStream ? avatarStream : cameraStreamToUse
 
-      // Attach stream to video element and tell recorder about it
-      if (cameraVideoRef.current) {
-        cameraVideoRef.current.srcObject = streamForRecording
-        cameraVideoRef.current.play().catch(err => console.log("Video play error:", err))
-        setCameraVideo(cameraVideoRef.current)
-      }
+    const cameraBubbleConfig = {
+      stream: streamForRecording,
+      position: defaultPos,
+      size: cameraBubbleSize.current,
+      shape: cameraBubbleShape,
+      borderRadius: cameraBubbleBorderRadius,
+      borderColor: cameraBubbleBorderColor,
+      borderWidth: cameraBubbleBorderWidth,
     }
 
-    // Pass mic stream to recorder for audio recording
-    if (micStreamToUse) {
-      console.log("[handleRecord] Setting audio stream, tracks:", micStreamToUse.getAudioTracks().length)
-      setAudioStream(micStreamToUse)
-    } else {
-      console.log("[handleRecord] No mic stream available")
-    }
-
-    // Apply beauty settings to recorder
-    setBeautySettings(beautyEnabled, beautySettings)
-
-    // Note: Do NOT start recording here - only enter preview state
-    // Actual recording starts when user clicks "Start Recording" in preview
-  }, [startCamera, startMic, setExcalidrawCanvas, setCameraBubbleState, setCameraVideo, setAudioStream, setBeautySettings, setPreviewArea, beautyEnabled, beautySettings, customWidth, customHeight, cameraBubbleShape, cameraBubbleBorderColor, cameraBubbleBorderWidth, cameraBubbleBorderRadius, avatarEnabled, avatarStream])
+    // Call startPreview with all the config
+    await startPreview({
+      previewArea: previewAreaConfig,
+      cameraBubble: cameraBubbleConfig,
+      canvas: excalidrawCanvas,
+      audioStream: micStreamToUse,
+      beautyEnabled,
+      beautySettings,
+      avatarEnabled,
+      avatarStream,
+      projectId: project?.id,
+    })
+  }, [startCamera, startMic, startPreview, frameDimensions, currentSlideIndex, customWidth, customHeight, avatarEnabled, avatarStream, beautyEnabled, beautySettings, cameraBubbleShape, cameraBubbleBorderColor, cameraBubbleBorderWidth, cameraBubbleBorderRadius, project])
 
   const handleStop = useCallback(async () => {
-    setIsRecording(false)
-    setIsPaused(false)
-    setShowRecordingPreview(false)
-
-    // Stop canvas recording and get the blob
-    const blob = await stopCanvasRecording()
-
-    if (blob) {
-      console.log("[handleStop] Recording stopped, blob:", blob.size, "bytes, type:", blob.type)
-
-      // Auto-download the recording
-      const extension = blob.type === "video/mp4" ? "mp4" : "webm"
-      const a = document.createElement("a")
-      a.href = URL.createObjectURL(blob)
-      a.download = `recording-${Date.now()}.${extension}`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(a.href)
-    } else {
-      console.warn("[handleStop] No blob received from recording")
-    }
-
-    analytics.trackRecordingStopped(project?.id || "unknown", duration)
-  }, [stopCanvasRecording, project, duration])
+    await stopRecording()
+  }, [stopRecording])
 
   // Handle pause recording
   const handlePauseRecording = useCallback(() => {
     pauseRecording()
-    setIsPaused(true)
-    analytics.trackRecordingPaused(project?.id || "unknown", duration)
-  }, [pauseRecording, project, duration])
+  }, [pauseRecording])
 
   // Handle resume recording
   const handleResumeRecording = useCallback(() => {
     resumeRecording()
-    setIsPaused(false)
-    analytics.trackRecordingResumed(project?.id || "unknown")
-  }, [resumeRecording, project])
+  }, [resumeRecording])
 
   const handlePreviewDownload = useCallback(() => {
     if (!previewUrl) return
@@ -760,7 +700,7 @@ function App() {
             />
 
             <CameraBubble
-              stream={cameraEnabled && !isRecording ? (avatarEnabled && avatarStream ? avatarStream : cameraStream) : null}
+              stream={cameraEnabled && (recordingState === "idle" || recordingState === "previewing") ? (avatarEnabled && avatarStream ? avatarStream : cameraStream) : null}
               position={cameraBubblePosition.current}
               size={cameraBubbleSize.current}
               shape={cameraBubbleShape}
@@ -772,7 +712,7 @@ function App() {
 
             {/* Recording Preview Area - shown during recording */}
             <RecordingPreview
-              visible={showRecordingPreview}
+              visible={showPreview}
               isPreview={isPreviewing}
               width={Math.round((frameDimensions[currentSlideIndex]?.width || 1920) * 1.1)}
               height={Math.round((frameDimensions[currentSlideIndex]?.height || 1080) * 1.1)}
@@ -785,7 +725,6 @@ function App() {
               cameraBorderRadius={cameraBubbleBorderRadius}
               onCameraPositionChange={(pos) => { cameraBubblePosition.current = pos }}
               onCameraSizeChange={(size) => { cameraBubbleSize.current = size }}
-              onCameraBubbleStateChange={setCameraBubbleState}
               videoRef={cameraVideoRef}
             />
 
@@ -831,13 +770,13 @@ function App() {
 
             {/* Draggable Recording Controls */}
             <DraggableRecordingControls
-              state={isPreviewing ? "previewing" : isPaused ? "paused" : isRecording ? "recording" : "idle"}
+              state={recordingState}
               duration={duration}
               onRecord={isPreviewing ? handleStartRecording : handleRecord}
               onStop={handleStop}
               onCancel={isPreviewing ? handleCancelRecording : undefined}
-              onPause={isRecording ? handlePauseRecording : undefined}
-              onResume={isPaused ? handleResumeRecording : undefined}
+              onPause={recordingState === "recording" ? handlePauseRecording : undefined}
+              onResume={recordingState === "paused" ? handleResumeRecording : undefined}
             />
           </div>
         }
