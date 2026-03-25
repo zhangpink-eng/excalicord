@@ -15,16 +15,49 @@ import { db } from "@/services/api/supabase"
 import { defaultBeautySettings, type BeautySettings } from "@/services/beauty/BeautyFilter"
 import type { BubbleShape } from "@/components/canvas/CameraBubbleSettings"
 
+/**
+ * App - 应用根组件，协调整合层
+ *
+ * @description
+ * App.tsx 是 Excalicord 的核心协调组件，负责：
+ * - 页面路由（login/signup/dashboard/editor）
+ * - 协调各 hook 和服务之间的交互
+ * - 管理跨组件共享的 UI 状态
+ * - 整合各个功能模块的输出
+ *
+ * @architecture
+ * App 不直接实现业务逻辑，而是通过以下 hook 委托：
+ * - {@link useSlides} - 幻灯片/帧状态管理
+ * - {@link useRecordingFlow} - 录制状态机管理
+ * - {@link useMediaDevices} - 摄像头/麦克风设备管理
+ * - {@link useAvatar} - AI 虚拟形象管理
+ * - {@link useProject} - 项目数据管理
+ *
+ * @example
+ * 数据流：
+ * 用户点击录制 → App.handleRecord → useRecordingFlow.startPreview
+ *                                    → RecordingPreview 显示预览
+ * 用户确认录制 → App.handleStartRecording → useRecordingFlow.startRecording
+ *                                     → CanvasRecorder 开始捕获
+ *
+ * @see
+ * - 技术架构文档: docs/technical-architecture.md
+ * - 2.3 逻辑层架构
+ */
+
 type Page = "login" | "signup" | "dashboard" | "editor"
 
 function App() {
+  // =========================================================================
+  // Section 1: Contexts & Hooks (数据层)
+  // =========================================================================
   const { t } = useTranslation()
   const { user, isLoading: authLoading } = useAuth()
 
-  // Use slides from ProjectContext (synced with database) - must be before useEffect that uses loadProject
+  // Project context - 数据持久化
   const { project, slides, updateSlide, createProject, loadProject, updateProject } = useProject()
 
-  // Slide management (navigation, frames, dimensions)
+  // Slide management hook - 幻灯片/帧状态
   const {
     currentSlideIndex,
     frameElements,
@@ -38,6 +71,9 @@ function App() {
     setCustomSize,
   } = useSlides()
 
+  // =========================================================================
+  // Section 2: Page & Project State (页面状态)
+  // =========================================================================
   const [currentPage, setCurrentPage] = useState<Page>(user ? "editor" : "login")
   const [showPricing, setShowPricing] = useState(false)
   const [projectName, setProjectName] = useState("Untitled Project")
@@ -47,6 +83,9 @@ function App() {
   const [isSaving, setIsSaving] = useState(false)
   const pendingProjectNameRef = useRef<string | null>(null)
 
+  // =========================================================================
+  // Section 3: Auth & Navigation Effects (认证 & 导航)
+  // =========================================================================
   // Sync currentPage with user state when auth changes
   // Auto-load last project if available
   useEffect(() => {
@@ -137,6 +176,9 @@ function App() {
   // Note: currentSlideIndex, goToSlide, addSlide, aspectRatio, customWidth, customHeight
   // are now managed by useSlides hook with localStorage persistence
 
+  // =========================================================================
+  // Section 4: Device & Recording Hooks (设备 & 录制)
+  // =========================================================================
   const {
     cameraStream,
     startCamera,
@@ -145,7 +187,7 @@ function App() {
     stopMic,
   } = useMediaDevices()
 
-  // Recording flow state machine
+  // Recording flow state machine - 委托给 useRecordingFlow 管理
   const {
     state: recordingState,
     isPreviewing,
@@ -160,10 +202,13 @@ function App() {
     setCameraBubbleState,
   } = useRecordingFlow()
 
+  // =========================================================================
+  // Section 5: Beauty & Avatar Settings (美颜 & 虚拟形象)
+  // =========================================================================
   const [beautyEnabled, setBeautyEnabled] = useState(false)
   const [beautySettings, setBeautySettingsState] = useState<BeautySettings>(defaultBeautySettings)
 
-  // AI Avatar state
+  // AI Avatar state - 委托给 useAvatar 管理
   const [avatarEnabled, setAvatarEnabled] = useState(false)
   const [selectedAvatarId, setSelectedAvatarId] = useState<string | null>(null)
   const {
@@ -184,6 +229,9 @@ function App() {
   // Avatar scale state
   const [avatarScale, setAvatarScaleState] = useState(1.0)
 
+  // =========================================================================
+  // Section 6: UI State (UI 状态)
+  // =========================================================================
   // Camera and mic toggle state (default: enabled)
   const [cameraEnabled, setCameraEnabled] = useState(true)
   const [micEnabled, setMicEnabled] = useState(true)
@@ -207,6 +255,9 @@ function App() {
     setProjectsPanelVisible((v) => !v)
   }, [])
 
+  // =========================================================================
+  // Section 7: Camera Bubble Refs & Settings (摄像头气泡)
+  // =========================================================================
   const cameraVideoRef = useRef<HTMLVideoElement>(null)
   const cameraStreamRef = useRef<MediaStream | null>(null)
   const cameraBubblePosition = useRef({ x: 50, y: 50 })
@@ -279,6 +330,13 @@ function App() {
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
   }, [currentPage, currentSlideIndex, slides.length, goToSlide])
+
+  // =========================================================================
+  // Section 8: Recording Event Handlers (录制事件处理)
+  // =========================================================================
+  // 数据流: handleRecord → startPreview → RecordingPreview 显示
+  //          handleStartRecording → startRecording → CanvasRecorder 开始捕获
+  //          handleStop → stopRecording → 返回 Blob
 
   // Handle cancel from preview state
   const handleCancelRecording = useCallback(() => {
@@ -378,6 +436,9 @@ function App() {
     resumeRecording()
   }, [resumeRecording])
 
+  // =========================================================================
+  // Section 9: Preview & Export Handlers (预览 & 导出)
+  // =========================================================================
   const handlePreviewDownload = useCallback(() => {
     if (!previewUrl) return
     // Trigger download via link click
@@ -427,6 +488,11 @@ function App() {
     }
     setPreviewUrl(null)
   }, [previewUrl])
+
+  // =========================================================================
+  // Section 10: Device Toggle Handlers (设备开关处理)
+  // =========================================================================
+  // 摄像头和麦克风的开关控制，通过 setCameraBubbleState 更新录制组件
 
   // Toggle camera on/off (for control bar icon)
   const handleToggleCamera = useCallback(async () => {
@@ -518,6 +584,11 @@ function App() {
     initMedia()
   }, [])
 
+  // =========================================================================
+  // Section 11: Avatar & Share Handlers (虚拟形象 & 分享)
+  // =========================================================================
+  // 虚拟形象切换、表情、位置控制
+
   // Toggle AI Avatar on/off
   const handleAvatarToggle = useCallback(() => {
     if (avatarEnabled) {
@@ -562,6 +633,11 @@ function App() {
   const handleShare = useCallback(() => {
     console.log("Share clicked")
   }, [])
+
+  // =========================================================================
+  // Section 12: Auth & Project Handlers (认证 & 项目)
+  // =========================================================================
+  // 登录、登出、项目创建/打开
 
   // Auth handlers
   const handleAuthSuccess = useCallback(() => {
