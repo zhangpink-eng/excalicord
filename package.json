@@ -9,6 +9,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "playwright test",
+    "test:unit": "vitest run --config vitest.unit.config.ts",
+    "test:unit:watch": "vitest --config vitest.unit.config.ts",
     "test:ui": "playwright test --ui",
     "test:headed": "playwright test --headed",
     "storybook": "storybook dev -p 6006",
