@@ -6,7 +6,7 @@ import { PreviewPlayer } from "@/components/recording/PreviewPlayer"
 import { ExcalidrawCanvas, CameraBubble } from "@/components/canvas"
 import { RightPanel } from "@/components/layout/RightPanel"
 import { LanguageSelector, ThemeToggle } from "@/components/ui"
-import { useMediaDevices, useTranslation, useCanvasRecorder, useAvatar } from "@/hooks"
+import { useMediaDevices, useTranslation, useCanvasRecorder, useAvatar, useSlides } from "@/hooks"
 import { useAuth } from "@/contexts"
 import { useProject } from "@/contexts"
 import { LoginPage, SignUpPage, DashboardPage, PricingPage, AuthCallbackPage } from "@/pages"
@@ -17,65 +17,26 @@ import type { BubbleShape } from "@/components/canvas/CameraBubbleSettings"
 
 type Page = "login" | "signup" | "dashboard" | "editor"
 
-// Default slide frame dimensions
-const DEFAULT_FRAME_X = 100
-const DEFAULT_FRAME_Y = 100
-const DEFAULT_FRAME_OFFSET_X = 800 // horizontal spacing between frames
-
-// Generate slide frame element (as Excalidraw native frame)
-function createSlideFrameElement(index: number, isActive: boolean, x: number, y: number, width: number, height: number, name?: string): any {
-  return {
-    id: `slide-frame-${index}`, // Use index for stable ID
-    type: "frame",
-    x,
-    y,
-    width,
-    height,
-    strokeColor: isActive ? "#2563eb" : "#e5e7eb",
-    backgroundColor: "transparent",
-    fillStyle: "solid",
-    strokeWidth: isActive ? 4 : 2,
-    borderRadius: 8,
-    roughness: 0,
-    groupIds: [],
-    frameId: null,
-    roundness: null,
-    seed: index,
-    version: 1,
-    versionNonce: 0,
-    isDeleted: false,
-    boundElements: [],
-    updated: 0,
-    link: null,
-    locked: false,
-    name: name || `第${index + 1}页`,
-  }
-}
-
-// Helper to generate slide frame elements for Excalidraw
-// Uses stored positions from framePositionsRef for dragged frames
-function createSlideFrameElements(
-  slides: { id: string; name?: string }[],
-  currentIndex: number,
-  framePositions: Record<number, { x: number; y: number }>,
-  frameDimensions: Record<number, { width: number; height: number }>
-): any[] {
-  return slides.map((slide, index) => {
-    const isActive = index === currentIndex
-    const stored = framePositions[index]
-    const x = stored ? stored.x : (DEFAULT_FRAME_X + index * DEFAULT_FRAME_OFFSET_X)
-    const y = stored ? stored.y : DEFAULT_FRAME_Y
-    const dims = frameDimensions[index] || { width: 720, height: 540 }
-    return createSlideFrameElement(index, isActive, x, y, dims.width, dims.height, slide.name || `第${index + 1}页`)
-  })
-}
-
 function App() {
   const { t } = useTranslation()
   const { user, isLoading: authLoading } = useAuth()
 
   // Use slides from ProjectContext (synced with database) - must be before useEffect that uses loadProject
-  const { project, slides, addSlide: addSlideToProject, updateSlide, createProject, loadProject, updateProject } = useProject()
+  const { project, slides, updateSlide, createProject, loadProject, updateProject } = useProject()
+
+  // Slide management (navigation, frames, dimensions)
+  const {
+    currentSlideIndex,
+    frameElements,
+    frameDimensions,
+    goToSlide,
+    addSlide,
+    aspectRatio,
+    customWidth,
+    customHeight,
+    setAspectRatio,
+    setCustomSize,
+  } = useSlides()
 
   const [currentPage, setCurrentPage] = useState<Page>(user ? "editor" : "login")
   const [showPricing, setShowPricing] = useState(false)
@@ -108,53 +69,6 @@ function App() {
       }
     }
   }, [user, authLoading, loadProject])
-
-  // Track slide frame positions (keyed by index)
-  const framePositionsRef = useRef<Record<number, { x: number; y: number }>>({})
-  const [framePositionsState, setFramePositionsState] = useState<Record<number, { x: number; y: number }>>({})
-
-  // Track slide frame dimensions (keyed by index) - new slides use current aspect ratio, existing slides keep their dimensions
-  const frameDimensionsRef = useRef<Record<number, { width: number; height: number }>>({})
-
-  // Initialize frame positions when slides change
-  useEffect(() => {
-    // Only initialize if we have slides
-    if (slides.length === 0) return
-
-    slides.forEach((_, index) => {
-      if (!framePositionsRef.current[index]) {
-        framePositionsRef.current[index] = {
-          x: DEFAULT_FRAME_X + index * DEFAULT_FRAME_OFFSET_X,
-          y: DEFAULT_FRAME_Y,
-        }
-      }
-    })
-    // Sync to state for re-renders
-    setFramePositionsState({ ...framePositionsRef.current })
-  }, [slides])
-
-  // Initialize frame dimensions from localStorage when project loads
-  useEffect(() => {
-    if (!project?.id) return
-
-    const savedDims = localStorage.getItem(`frameDims_${project.id}`)
-    if (savedDims) {
-      try {
-        const parsed = JSON.parse(savedDims)
-        Object.keys(parsed).forEach(key => {
-          frameDimensionsRef.current[parseInt(key)] = parsed[key]
-        })
-      } catch (e) {
-        console.error("Failed to parse saved frame dimensions:", e)
-      }
-    }
-  }, [project?.id])
-
-  // Save frame dimensions to localStorage when they change
-  useEffect(() => {
-    if (!project?.id) return
-    localStorage.setItem(`frameDims_${project.id}`, JSON.stringify(frameDimensionsRef.current))
-  }, [project?.id, frameDimensionsRef.current])
 
   // Auto-save debounce refs
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -220,49 +134,8 @@ function App() {
     loadProjects()
   }, [])
 
-  const [currentSlideIndex, setCurrentSlideIndex] = useState(0)
-
-  // Sync currentSlideIndex when project changes - restore from localStorage or default to 0
-  useEffect(() => {
-    if (!project?.id) return
-    const savedIndex = localStorage.getItem(`slideIndex_${project.id}`)
-    if (savedIndex !== null) {
-      const index = parseInt(savedIndex, 10)
-      if (!isNaN(index) && index >= 0) {
-        setCurrentSlideIndex(index)
-        return
-      }
-    }
-    setCurrentSlideIndex(0)
-  }, [project?.id])
-
-  // Save currentSlideIndex to localStorage when it changes
-  useEffect(() => {
-    if (!project?.id) return
-    localStorage.setItem(`slideIndex_${project.id}`, String(currentSlideIndex))
-  }, [currentSlideIndex, project?.id])
-
-  const goToSlide = useCallback((index: number) => {
-    console.log(`[App] goToSlide called with index=${index}, currentSlideIndex=${currentSlideIndex}`)
-    setCurrentSlideIndex(index)
-  }, [])
-
-  // Aspect ratio state - must be before handleAddSlide which uses it
-  const [aspectRatio, setAspectRatio] = useState("16:9")
-  const [customWidth, setCustomWidth] = useState(1920)
-  const [customHeight, setCustomHeight] = useState(1080)
-
-  const handleAddSlide = useCallback(async () => {
-    const newIndex = await addSlideToProject()
-    if (newIndex >= 0) {
-      // Set dimensions for the new slide based on current aspect ratio
-      frameDimensionsRef.current[newIndex] = {
-        width: customWidth,
-        height: customHeight,
-      }
-      setCurrentSlideIndex(newIndex)
-    }
-  }, [addSlideToProject, customWidth, customHeight])
+  // Note: currentSlideIndex, goToSlide, addSlide, aspectRatio, customWidth, customHeight
+  // are now managed by useSlides hook with localStorage persistence
 
   const {
     cameraStream,
@@ -462,7 +335,7 @@ function App() {
     }
 
     // Set up preview area for the recorder - use current slide's dimensions
-    const currentSlideDims = frameDimensionsRef.current[currentSlideIndex] || { width: customWidth, height: customHeight }
+    const currentSlideDims = frameDimensions[currentSlideIndex] || { width: customWidth, height: customHeight }
     const previewAreaConfig = {
       x: 0,
       y: 0,
@@ -856,7 +729,7 @@ function App() {
                 ...el,
                 frameId: `slide-frame-${currentSlideIndex}`, // Set frameId for containment
               }))}
-              slideFrameElements={createSlideFrameElements(slides, currentSlideIndex, framePositionsState, frameDimensionsRef.current)}
+              slideFrameElements={frameElements}
               onElementsChange={(elements) => {
                 const currentSlide = slides[currentSlideIndex]
                 if (!currentSlide) return
@@ -901,8 +774,8 @@ function App() {
             <RecordingPreview
               visible={showRecordingPreview}
               isPreview={isPreviewing}
-              width={Math.round((frameDimensionsRef.current[currentSlideIndex]?.width || 1920) * 1.1)}
-              height={Math.round((frameDimensionsRef.current[currentSlideIndex]?.height || 1080) * 1.1)}
+              width={Math.round((frameDimensions[currentSlideIndex]?.width || 1920) * 1.1)}
+              height={Math.round((frameDimensions[currentSlideIndex]?.height || 1080) * 1.1)}
               cameraStream={cameraStream}
               cameraPosition={cameraBubblePosition.current}
               cameraSize={cameraBubbleSize.current}
@@ -935,7 +808,7 @@ function App() {
                   </button>
                 ))}
                 <button
-                  onClick={handleAddSlide}
+                  onClick={addSlide}
                   className="w-10 h-8 rounded border border-dashed border-border hover:border-primary flex items-center justify-center text-muted-foreground hover:text-primary transition-colors"
                   title="添加幻灯片"
                 >
@@ -1010,7 +883,7 @@ function App() {
               customWidth={customWidth}
               customHeight={customHeight}
               onAspectRatioChange={setAspectRatio}
-              onCustomSizeChange={(w, h) => { setCustomWidth(w); setCustomHeight(h) }}
+              onCustomSizeChange={setCustomSize}
             />
           ) : null
         }
