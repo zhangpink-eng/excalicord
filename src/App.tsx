@@ -372,13 +372,13 @@ function App() {
       console.error("Failed to start mic:", err)
     }
 
-    // Set up preview area for the recorder - use current slide's dimensions
+    // Set up preview area for the recorder - use current slide's dimensions * 1.1
     const currentSlideDims = frameDimensions[currentSlideIndex] || { width: customWidth, height: customHeight }
     const previewAreaConfig = {
       x: 0,
       y: 0,
-      width: currentSlideDims.width,
-      height: currentSlideDims.height,
+      width: Math.round(currentSlideDims.width * 1.1),
+      height: Math.round(currentSlideDims.height * 1.1),
     }
 
     // Set up Excalidraw canvas reference
@@ -392,8 +392,8 @@ function App() {
 
     // Set up camera bubble state - default to bottom-right of preview area
     const defaultPos = {
-      x: currentSlideDims.width - cameraBubbleDimensions.width - 20,
-      y: currentSlideDims.height - cameraBubbleDimensions.height - 20,
+      x: previewAreaConfig.width - cameraBubbleDimensions.width - 20,
+      y: previewAreaConfig.height - cameraBubbleDimensions.height - 20,
     }
     // Use avatar stream if avatar is enabled, otherwise use camera stream
     const streamForRecording = avatarEnabled && avatarStream ? avatarStream : cameraStreamToUse
@@ -413,6 +413,7 @@ function App() {
       previewArea: previewAreaConfig,
       cameraBubble: cameraBubbleConfig,
       canvas: excalidrawCanvas,
+      cameraVideo: cameraVideoRef.current,
       audioStream: micStreamToUse,
       beautyEnabled,
       beautySettings,

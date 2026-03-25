@@ -95,6 +95,7 @@ describe("useRecordingFlow", () => {
           borderWidth: 3,
         },
         canvas: null,
+        cameraVideo: null,
         audioStream: null,
         beautyEnabled: false,
       }
@@ -124,6 +125,7 @@ describe("useRecordingFlow", () => {
           borderWidth: 3,
         },
         canvas: null,
+        cameraVideo: null,
         audioStream: null,
         beautyEnabled: false,
       }
@@ -152,6 +154,7 @@ describe("useRecordingFlow", () => {
         previewArea: { x: 0, y: 0, width: 1920, height: 1080 },
         cameraBubble,
         canvas: null,
+        cameraVideo: null,
         audioStream: null,
         beautyEnabled: false,
       }
@@ -182,6 +185,7 @@ describe("useRecordingFlow", () => {
           borderWidth: 3,
         },
         canvas: null,
+        cameraVideo: null,
         audioStream: null,
         beautyEnabled: false,
       }

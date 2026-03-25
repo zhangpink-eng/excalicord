@@ -29,6 +29,7 @@ export interface RecordingFlowConfig {
   previewArea: PreviewAreaState
   cameraBubble: CameraBubbleState
   canvas: HTMLCanvasElement | null
+  cameraVideo: HTMLVideoElement | null
   audioStream: MediaStream | null
   beautyEnabled: boolean
   beautySettings?: BeautySettings
@@ -73,6 +74,7 @@ export function useRecordingFlow(): UseRecordingFlowReturn {
     setPreviewArea,
     setCameraBubbleState,
     setExcalidrawCanvas,
+    setCameraVideo,
     setAudioStream,
     setBeautySettings,
   } = useCanvasRecorder()
@@ -95,8 +97,10 @@ export function useRecordingFlow(): UseRecordingFlowReturn {
     // Set up camera bubble state
     setCameraBubbleState(config.cameraBubble)
 
-    // Note: Camera video element is managed separately by App.tsx
-    // through handleToggleCamera - no need to set it here
+    // Set up camera video element for capturing bubble video
+    if (config.cameraVideo) {
+      setCameraVideo(config.cameraVideo)
+    }
 
     // Set up audio stream
     setAudioStream(config.audioStream)
@@ -107,7 +111,7 @@ export function useRecordingFlow(): UseRecordingFlowReturn {
     // Enter preview state
     setIsPreviewing(true)
     setShowPreview(true)
-  }, [setPreviewArea, setExcalidrawCanvas, setCameraBubbleState, setAudioStream, setBeautySettings])
+  }, [setPreviewArea, setExcalidrawCanvas, setCameraBubbleState, setCameraVideo, setAudioStream, setBeautySettings])
 
   /**
    * Cancel preview and return to idle state
