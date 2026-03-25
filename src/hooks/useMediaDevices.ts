@@ -18,6 +18,13 @@ export interface UseMediaDevicesReturn {
   startMic: () => Promise<MediaStream>
   stopCamera: () => void
   stopMic: () => void
+
+  // Agent能力：设备开关状态机
+  isCameraEnabled: boolean
+  isMicEnabled: boolean
+  toggleCamera: () => Promise<void>
+  toggleMic: () => Promise<void>
+  getCameraStream: () => MediaStream | null
 }
 
 export function useMediaDevices(): UseMediaDevicesReturn {
@@ -32,6 +39,10 @@ export function useMediaDevices(): UseMediaDevicesReturn {
   // Use refs to store streams for immediate access (bypass React state batching)
   const cameraStreamRef = useRef<MediaStream | null>(null)
   const micStreamRef = useRef<MediaStream | null>(null)
+
+  // Agent能力：设备开关状态
+  const [isCameraEnabled, setIsCameraEnabled] = useState(true)
+  const [isMicEnabled, setIsMicEnabled] = useState(true)
 
   const refreshDevices = useCallback(async () => {
     try {
@@ -162,6 +173,39 @@ export function useMediaDevices(): UseMediaDevicesReturn {
     }
   }, [stopMic, startMic])
 
+  // Agent能力：toggleCamera - 摄像头开关状态机
+  const toggleCamera = useCallback(async () => {
+    if (isCameraEnabled) {
+      stopCamera()
+      setIsCameraEnabled(false)
+    } else {
+      try {
+        await startCamera()
+        setIsCameraEnabled(true)
+      } catch (err) {
+        console.error("Failed to start camera:", err)
+      }
+    }
+  }, [isCameraEnabled, startCamera, stopCamera])
+
+  // Agent能力：toggleMic - 麦克风开关状态机
+  const toggleMic = useCallback(async () => {
+    if (isMicEnabled) {
+      stopMic()
+      setIsMicEnabled(false)
+    } else {
+      try {
+        await startMic()
+        setIsMicEnabled(true)
+      } catch (err) {
+        console.error("Failed to start mic:", err)
+      }
+    }
+  }, [isMicEnabled, startMic, stopMic])
+
+  // Agent能力：getCameraStream - 同步获取当前stream
+  const getCameraStream = useCallback(() => cameraStreamRef.current, [])
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -182,5 +226,12 @@ export function useMediaDevices(): UseMediaDevicesReturn {
     startMic,
     stopCamera,
     stopMic,
+
+    // Agent能力
+    isCameraEnabled,
+    isMicEnabled,
+    toggleCamera,
+    toggleMic,
+    getCameraStream,
   }
 }

@@ -6,7 +6,7 @@ import { PreviewPlayer } from "@/components/recording/PreviewPlayer"
 import { ExcalidrawCanvas, CameraBubble } from "@/components/canvas"
 import { RightPanel } from "@/components/layout/RightPanel"
 import { LanguageSelector, ThemeToggle } from "@/components/ui"
-import { useMediaDevices, useTranslation, useAvatar, useSlides, useRecordingFlow } from "@/hooks"
+import { useMediaDevices, useTranslation, useAvatar, useSlides, useRecordingFlow, useExport } from "@/hooks"
 import { useAuth } from "@/contexts"
 import { useProject } from "@/contexts"
 import { LoginPage, SignUpPage, DashboardPage, PricingPage, AuthCallbackPage } from "@/pages"
@@ -181,6 +181,11 @@ function App() {
   // =========================================================================
   const {
     cameraStream,
+    micStream,
+    isCameraEnabled,
+    isMicEnabled,
+    toggleCamera,
+    toggleMic,
     startCamera,
     stopCamera,
     startMic,
@@ -193,7 +198,7 @@ function App() {
     isPreviewing,
     showPreview,
     duration,
-    startPreview,
+    startPreviewWithFrameDims,
     cancelPreview,
     startRecording,
     pauseRecording,
@@ -202,6 +207,9 @@ function App() {
     setCameraBubbleState,
   } = useRecordingFlow()
 
+  // Export agent - 委托给 useExport 管理
+  const { exportAndDownload } = useExport()
+
   // =========================================================================
   // Section 5: Beauty & Avatar Settings (美颜 & 虚拟形象)
   // =========================================================================
@@ -209,13 +217,15 @@ function App() {
   const [beautySettings, setBeautySettingsState] = useState<BeautySettings>(defaultBeautySettings)
 
   // AI Avatar state - 委托给 useAvatar 管理
-  const [avatarEnabled, setAvatarEnabled] = useState(false)
   const [selectedAvatarId, setSelectedAvatarId] = useState<string | null>(null)
   const {
+    isEnabled: avatarEnabled,
     presets: avatarPresets,
     isLoading: avatarLoading,
     error: avatarError,
     outputStream: avatarStream,
+    toggle: toggleAvatar,
+    selectAndStart: selectAvatarAndStart,
     selectAvatar,
     setExpression,
     setScale: setAvatarScale,
@@ -232,9 +242,7 @@ function App() {
   // =========================================================================
   // Section 6: UI State (UI 状态)
   // =========================================================================
-  // Camera and mic toggle state (default: enabled)
-  const [cameraEnabled, setCameraEnabled] = useState(true)
-  const [micEnabled, setMicEnabled] = useState(true)
+  // Note: cameraEnabled/micEnabled now come from useMediaDevices (isCameraEnabled/isMicEnabled)
 
   // Preview state
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
@@ -354,49 +362,38 @@ function App() {
 
   // Handle record button click - enter preview state
   const handleRecord = useCallback(async () => {
-    // Start camera and mic
-    let cameraStreamToUse = null
-    let micStreamToUse = null
+    // Start camera and mic if not already running
+    let cameraStreamToUse = cameraStream
+    let micStreamToUse = micStream
 
     try {
-      cameraStreamToUse = await startCamera()
-      setCameraEnabled(true)
+      if (!cameraStreamToUse) {
+        cameraStreamToUse = await startCamera()
+      }
     } catch (err) {
       console.error("Failed to start camera:", err)
     }
 
     try {
-      micStreamToUse = await startMic()
-      setMicEnabled(true)
+      if (!micStreamToUse) {
+        micStreamToUse = await startMic()
+      }
     } catch (err) {
       console.error("Failed to start mic:", err)
     }
 
-    // Set up preview area for the recorder - use current slide's dimensions * 1.1
+    // Get current slide dimensions
     const currentSlideDims = frameDimensions[currentSlideIndex] || { width: customWidth, height: customHeight }
-    const previewAreaConfig = {
-      x: 0,
-      y: 0,
-      width: Math.round(currentSlideDims.width * 1.1),
-      height: Math.round(currentSlideDims.height * 1.1),
-    }
 
     // Set up Excalidraw canvas reference
     const excalidrawCanvas = document.querySelector(".excalidraw-canvas canvas") as HTMLCanvasElement
 
-    // Camera bubble size is 10% larger than slide
-    const cameraBubbleDimensions = {
-      width: Math.round(currentSlideDims.width * 1.1),
-      height: Math.round(currentSlideDims.height * 1.1),
-    }
-
-    // Set up camera bubble state - default to bottom-right of preview area
-    const defaultPos = {
-      x: previewAreaConfig.width - cameraBubbleDimensions.width - 20,
-      y: previewAreaConfig.height - cameraBubbleDimensions.height - 20,
-    }
     // Use avatar stream if avatar is enabled, otherwise use camera stream
     const streamForRecording = avatarEnabled && avatarStream ? avatarStream : cameraStreamToUse
+
+    // Set up camera bubble state - default to bottom-right of preview area
+    // Position will be adjusted by RecordingPreview component
+    const defaultPos = { x: 50, y: 50 }
 
     const cameraBubbleConfig = {
       stream: streamForRecording,
@@ -408,9 +405,10 @@ function App() {
       borderWidth: cameraBubbleBorderWidth,
     }
 
-    // Call startPreview with all the config
-    await startPreview({
-      previewArea: previewAreaConfig,
+    // Agent能力：使用 startPreviewWithFrameDims，内部自动计算 1.1x 尺寸
+    await startPreviewWithFrameDims({
+      frameWidth: currentSlideDims.width,
+      frameHeight: currentSlideDims.height,
       cameraBubble: cameraBubbleConfig,
       canvas: excalidrawCanvas,
       cameraVideo: cameraVideoRef.current,
@@ -421,7 +419,7 @@ function App() {
       avatarStream,
       projectId: project?.id,
     })
-  }, [startCamera, startMic, startPreview, frameDimensions, currentSlideIndex, customWidth, customHeight, avatarEnabled, avatarStream, beautyEnabled, beautySettings, cameraBubbleShape, cameraBubbleBorderColor, cameraBubbleBorderWidth, cameraBubbleBorderRadius, project])
+  }, [cameraStream, micStream, startCamera, startMic, startPreviewWithFrameDims, frameDimensions, currentSlideIndex, customWidth, customHeight, avatarEnabled, avatarStream, beautyEnabled, beautySettings, cameraBubbleShape, cameraBubbleBorderColor, cameraBubbleBorderWidth, cameraBubbleBorderRadius, cameraBubbleSize, project])
 
   const handleStop = useCallback(async () => {
     await stopRecording()
@@ -454,34 +452,10 @@ function App() {
   const handlePreviewExport = useCallback(async () => {
     if (!previewUrl) return
 
-    try {
-      const { videoConverter } = await import("@/services/video/VideoConverter")
-      await videoConverter.load()
-
-      // Fetch the blob from previewUrl
-      const response = await fetch(previewUrl)
-      const blob = await response.blob()
-
-      const mp4Blob = await videoConverter.exportTo480P(blob, (progress) => {
-        console.log(`[handlePreviewExport] Conversion progress: ${progress.percent}%`)
-      })
-
-      console.log("[handlePreviewExport] MP4 generated, size:", mp4Blob.size)
-
-      const mp4Url = URL.createObjectURL(mp4Blob)
-      const mp4A = document.createElement("a")
-      mp4A.href = mp4Url
-      mp4A.download = `recording-${Date.now()}.mp4`
-      document.body.appendChild(mp4A)
-      mp4A.click()
-      document.body.removeChild(mp4A)
-      URL.revokeObjectURL(mp4Url)
-
-      setPreviewUrl(null) // Close preview
-    } catch (err) {
-      console.error("[handlePreviewExport] MP4 conversion failed:", err)
-    }
-  }, [previewUrl])
+    // Agent能力：委托给 ExportAgent 导出并下载
+    await exportAndDownload(previewUrl, 'mp4')
+    setPreviewUrl(null) // Close preview
+  }, [previewUrl, exportAndDownload])
 
   const handlePreviewClose = useCallback(() => {
     if (previewUrl) {
@@ -493,72 +467,54 @@ function App() {
   // =========================================================================
   // Section 10: Device Toggle Handlers (设备开关处理)
   // =========================================================================
-  // 摄像头和麦克风的开关控制，通过 setCameraBubbleState 更新录制组件
+  // 摄像头和麦克风的开关控制，委托给 MediaAgent 和 AvatarAgent
 
   // Toggle camera on/off (for control bar icon)
+  // Agent能力：摄像头开关，同时处理 avatar 联动
   const handleToggleCamera = useCallback(async () => {
-    if (cameraEnabled) {
-      // Turn off camera
-      stopCamera()
-      if (avatarEnabled) {
+    // 获取当前摄像头流（同步）
+    const currentStream = cameraStream
+
+    // 调用 MediaAgent 切换摄像头状态
+    await toggleCamera()
+
+    // 如果 avatar 启用，需要同步处理 avatar 的启动/停止
+    if (avatarEnabled) {
+      if (currentStream) {
+        // 摄像头之前是开的，说明现在要关掉，停止 avatar
         stopAvatar()
-      }
-      setCameraEnabled(false)
-      setCameraBubbleState({
-        stream: null,
-        position: cameraBubblePosition.current,
-        size: cameraBubbleSize.current,
-        shape: cameraBubbleShape,
-        borderRadius: cameraBubbleBorderRadius,
-        borderColor: cameraBubbleBorderColor,
-        borderWidth: cameraBubbleBorderWidth,
-      })
-    } else {
-      // Turn on camera
-      try {
-        const stream = await startCamera()
-        setCameraEnabled(true)
-        // If avatar is enabled, start avatar with the camera stream
+      } else {
+        // 摄像头之前是关的，说明现在要开启，启动 avatar
+        const newStream = await startCamera()
         if (avatarEnabled) {
-          startAvatar(stream)
+          startAvatar(newStream)
         }
-        // Set up camera bubble state
-        setCameraBubbleState({
-          stream: stream,
-          position: cameraBubblePosition.current,
-          size: cameraBubbleSize.current,
-          shape: cameraBubbleShape,
-          borderRadius: cameraBubbleBorderRadius,
-          borderColor: cameraBubbleBorderColor,
-          borderWidth: cameraBubbleBorderWidth,
-        })
-      } catch (err) {
-        console.error("Failed to start camera:", err)
       }
     }
-  }, [cameraEnabled, avatarEnabled, startCamera, stopCamera, setCameraBubbleState, cameraBubbleShape, cameraBubbleBorderColor, cameraBubbleBorderWidth, cameraBubbleBorderRadius, startAvatar, stopAvatar])
+
+    // 更新 camera bubble state
+    const newStream = cameraStreamRef.current
+    setCameraBubbleState({
+      stream: newStream,
+      position: cameraBubblePosition.current,
+      size: cameraBubbleSize.current,
+      shape: cameraBubbleShape,
+      borderRadius: cameraBubbleBorderRadius,
+      borderColor: cameraBubbleBorderColor,
+      borderWidth: cameraBubbleBorderWidth,
+    })
+  }, [cameraStream, toggleCamera, avatarEnabled, stopAvatar, startCamera, startAvatar, setCameraBubbleState, cameraBubbleShape, cameraBubbleBorderColor, cameraBubbleBorderWidth, cameraBubbleBorderRadius, cameraBubblePosition, cameraBubbleSize])
 
   // Toggle mic on/off (for control bar icon)
+  // Agent能力：直接委托给 MediaAgent
   const handleToggleMic = useCallback(async () => {
-    if (micEnabled) {
-      // Turn off mic
-      stopMic()
-      setMicEnabled(false)
-    } else {
-      // Turn on mic
-      try {
-        await startMic()
-        setMicEnabled(true)
-      } catch (err) {
-        console.error("Failed to start mic:", err)
-      }
-    }
-  }, [micEnabled, startMic, stopMic])
+    await toggleMic()
+  }, [toggleMic])
 
   // Initialize camera and mic on mount (default enabled)
   useEffect(() => {
     const initMedia = async () => {
-      if (cameraEnabled && !cameraStream) {
+      if (isCameraEnabled && !cameraStream) {
         try {
           const stream = await startCamera()
           setCameraBubbleState({
@@ -574,7 +530,7 @@ function App() {
           console.error("Failed to start camera on init:", err)
         }
       }
-      if (micEnabled) {
+      if (isMicEnabled) {
         try {
           await startMic()
         } catch (err) {
@@ -583,42 +539,28 @@ function App() {
       }
     }
     initMedia()
-  }, [])
+  }, [isCameraEnabled, isMicEnabled, cameraStream, startCamera, startMic, setCameraBubbleState, cameraBubblePosition, cameraBubbleSize, cameraBubbleShape, cameraBubbleBorderRadius, cameraBubbleBorderColor, cameraBubbleBorderWidth])
 
   // =========================================================================
   // Section 11: Avatar & Share Handlers (虚拟形象 & 分享)
   // =========================================================================
   // 虚拟形象切换、表情、位置控制
 
-  // Toggle AI Avatar on/off
+  // Toggle AI Avatar on/off - 委托给 AvatarAgent
   const handleAvatarToggle = useCallback(() => {
-    if (avatarEnabled) {
-      stopAvatar()
-      setAvatarEnabled(false)
-    } else {
-      setAvatarEnabled(true)
-      // If no avatar selected, select the first one
-      if (!selectedAvatarId && avatarPresets.length > 0) {
-        setSelectedAvatarId(avatarPresets[0].id)
-        selectAvatar(avatarPresets[0].id)
-      }
-      // Start avatar with camera stream if camera is enabled
-      if (cameraEnabled && cameraStream) {
-        startAvatar(cameraStream)
-      }
-    }
-  }, [avatarEnabled, selectedAvatarId, avatarPresets, selectAvatar, stopAvatar, cameraEnabled, cameraStream, startAvatar])
+    toggleAvatar(cameraStream)
+  }, [toggleAvatar, cameraStream])
 
-  // Select avatar preset
+  // Select avatar preset - 委托给 AvatarAgent
   const handleAvatarSelect = useCallback((presetId: string) => {
     setSelectedAvatarId(presetId)
-    selectAvatar(presetId)
-    // If avatar is already running with camera, restart with new avatar
-    if (avatarEnabled && cameraEnabled && cameraStream) {
-      stopAvatar()
-      startAvatar(cameraStream)
+    // Agent能力：如果 avatar 已启用，使用 selectAndStart
+    if (avatarEnabled && cameraStream) {
+      selectAvatarAndStart(presetId, cameraStream)
+    } else {
+      selectAvatar(presetId)
     }
-  }, [selectAvatar, avatarEnabled, cameraEnabled, cameraStream, stopAvatar, startAvatar])
+  }, [avatarEnabled, cameraStream, selectAvatarAndStart, selectAvatar])
 
   // Change avatar expression
   const handleAvatarExpressionChange = useCallback((expression: "neutral" | "happy" | "serious") => {
@@ -777,7 +719,7 @@ function App() {
             />
 
             <CameraBubble
-              stream={cameraEnabled && (recordingState === "idle" || recordingState === "previewing") ? (avatarEnabled && avatarStream ? avatarStream : cameraStream) : null}
+              stream={isCameraEnabled && (recordingState === "idle" || recordingState === "previewing") ? (avatarEnabled && avatarStream ? avatarStream : cameraStream) : null}
               position={cameraBubblePosition.current}
               size={cameraBubbleSize.current}
               shape={cameraBubbleShape}
@@ -891,8 +833,8 @@ function App() {
                 setAvatarScaleState(scale)
                 setAvatarScale(scale)
               }}
-              cameraEnabled={cameraEnabled}
-              micEnabled={micEnabled}
+              cameraEnabled={isCameraEnabled}
+              micEnabled={isMicEnabled}
               onCameraToggle={handleToggleCamera}
               onMicToggle={handleToggleMic}
               aspectRatio={aspectRatio}

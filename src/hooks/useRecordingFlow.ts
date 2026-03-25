@@ -38,6 +38,21 @@ export interface RecordingFlowConfig {
   projectId?: string
 }
 
+// Agent能力：便捷配置接口 - 只需传入帧尺寸，内部自动计算 previewArea
+export interface RecordingFlowConfigWithFrameDims {
+  frameWidth: number
+  frameHeight: number
+  cameraBubble: CameraBubbleState
+  canvas: HTMLCanvasElement | null
+  cameraVideo: HTMLVideoElement | null
+  audioStream: MediaStream | null
+  beautyEnabled: boolean
+  beautySettings?: BeautySettings
+  avatarEnabled?: boolean
+  avatarStream?: MediaStream | null
+  projectId?: string
+}
+
 export interface UseRecordingFlowReturn {
   // State
   state: RecordingState
@@ -48,6 +63,7 @@ export interface UseRecordingFlowReturn {
 
   // Methods
   startPreview: (config: RecordingFlowConfig) => Promise<void>
+  startPreviewWithFrameDims: (config: RecordingFlowConfigWithFrameDims) => Promise<void>
   cancelPreview: () => void
   startRecording: () => Promise<void>
   pauseRecording: () => void
@@ -112,6 +128,41 @@ export function useRecordingFlow(): UseRecordingFlowReturn {
     setIsPreviewing(true)
     setShowPreview(true)
   }, [setPreviewArea, setExcalidrawCanvas, setCameraBubbleState, setCameraVideo, setAudioStream, setBeautySettings])
+
+  /**
+   * Agent能力：startPreviewWithFrameDims - 只需传入帧尺寸，自动计算 1.1x previewArea
+   */
+  const startPreviewWithFrameDims = useCallback(async (config: RecordingFlowConfigWithFrameDims): Promise<void> => {
+    // 内部计算 1.1x previewArea
+    const previewArea: PreviewAreaState = {
+      x: 0,
+      y: 0,
+      width: Math.round(config.frameWidth * 1.1),
+      height: Math.round(config.frameHeight * 1.1),
+    }
+
+    // Camera bubble 尺寸也是 1.1x
+    const cameraBubbleWithSize = {
+      ...config.cameraBubble,
+      size: {
+        width: Math.round(config.frameWidth * 1.1),
+        height: Math.round(config.frameHeight * 1.1),
+      },
+    }
+
+    await startPreview({
+      previewArea,
+      cameraBubble: cameraBubbleWithSize,
+      canvas: config.canvas,
+      cameraVideo: config.cameraVideo,
+      audioStream: config.audioStream,
+      beautyEnabled: config.beautyEnabled,
+      beautySettings: config.beautySettings,
+      avatarEnabled: config.avatarEnabled,
+      avatarStream: config.avatarStream,
+      projectId: config.projectId,
+    })
+  }, [startPreview])
 
   /**
    * Cancel preview and return to idle state

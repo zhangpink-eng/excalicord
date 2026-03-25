@@ -16,6 +16,11 @@ export interface UseAvatarReturn {
   start: (sourceStream: MediaStream) => void
   stop: () => void
   generateAvatar: (imageUrl: string, type: AvatarType) => Promise<MediaStream | null>
+
+  // Agent能力：Avatar开关状态机
+  isEnabled: boolean
+  toggle: (cameraStream?: MediaStream | null) => void
+  selectAndStart: (presetId: string, cameraStream: MediaStream) => void
 }
 
 export function useAvatar(): UseAvatarReturn {
@@ -25,6 +30,9 @@ export function useAvatar(): UseAvatarReturn {
   const [error, setError] = useState<string | null>(null)
   const [currentAvatar, setCurrentAvatar] = useState<AvatarPreset | null>(null)
   const [outputStream, setOutputStream] = useState<MediaStream | null>(null)
+
+  // Agent能力：Avatar开关状态
+  const [isEnabled, setIsEnabled] = useState(false)
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const presets = avatarService.listPresets()
@@ -97,6 +105,31 @@ export function useAvatar(): UseAvatarReturn {
     return avatarService.generateAvatar(imageUrl, type)
   }, [])
 
+  // Agent能力：toggle - Avatar开关状态机
+  const toggle = useCallback((cameraStream?: MediaStream | null) => {
+    if (isEnabled) {
+      stop()
+      setIsEnabled(false)
+    } else {
+      // If no avatar selected, select the first one
+      if (!currentAvatar && presets.length > 0) {
+        selectAvatar(presets[0].id)
+      }
+      // Start avatar with camera stream if provided
+      if (cameraStream) {
+        start(cameraStream)
+      }
+      setIsEnabled(true)
+    }
+  }, [isEnabled, currentAvatar, presets, stop, start, selectAvatar])
+
+  // Agent能力：selectAndStart - 选择并启动
+  const selectAndStart = useCallback((presetId: string, cameraStream: MediaStream) => {
+    selectAvatar(presetId)
+    start(cameraStream)
+    setIsEnabled(true)
+  }, [selectAvatar, start])
+
   return {
     isActive,
     isLoading,
@@ -112,5 +145,10 @@ export function useAvatar(): UseAvatarReturn {
     start,
     stop,
     generateAvatar,
+
+    // Agent能力
+    isEnabled,
+    toggle,
+    selectAndStart,
   }
 }
